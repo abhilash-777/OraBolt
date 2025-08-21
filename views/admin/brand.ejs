@@ -1,0 +1,278 @@
+<%-include("../partials/admin/header.ejs")%>
+
+    <style>
+        .pagination-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .pagination {
+            display: inline-block;
+        }
+        .pagination a,
+        .pagination .current-page {
+            display: inline-block;
+            padding: 8px 12px;
+            margin: 0 2px;
+            border: 1px solid #ddd;
+            text-decoration: none;
+            color: #333;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        .pagination a:hover {
+            background-color: rgb(202, 156, 6);
+            color: white;
+            border-color: rgb(202, 156, 6);
+        }
+        .pagination .current-page{
+            background-color: rgb(202, 156, 6);
+            color: white;
+            border-color: rgb(202, 156, 6);
+            cursor: default;
+        }
+        .pagination .disabled{
+            color: #6c757d;
+            pointer-events: none;
+            border-color: #6c757d;
+            background-color: #f8f9fa;
+        }
+        .pagination-info{
+            text-align: center;
+            margin-bottom: 10px;
+            color: #666;
+            font-size: 12px;
+        }
+        .error-message {
+            color: red;
+        }
+    </style>
+
+    <section class="content-main">
+        <div class="content-header">
+            <div>
+                <h2 class="content-title card-title">Brands</h2>
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <form method="post" action="/admin/brand" enctype="multipart/form-data" id="brandForm">
+                            <div class="mb-4">
+                                <label for="product_name" class="form-label">Brand Name</label>
+                                <input type="text" id="name" name="name" placeholder="Type here" class="form-control" />
+                                <small id="nameError" class="error-message"></small>
+                            </div>
+                            <% if(typeof errorMessage!== 'undefined'){ %>
+                                <div class="error-message"><%= errorMessage %></div>
+                            <% } %>
+                            <label for="product_name" class="form-label">Brand Image</label>
+                            <div class="input-upload">
+                                <img src="" alt="" />
+                                <input class="form-control border" id="image" name="image" type="file" />
+                                <small id="imageError" class="error-message"></small>
+                            </div>
+                            <div class="d-grid">
+                                <button class="btn btn-primary mt-20" type="submit">
+                                    Add Brand
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="col-md-7 ml-105">
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Brand</th>
+                                        <th>Logo</th>
+                                        <th>Status</th>
+                                        <th>Block/Unblock/Delete</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% data.forEach((brand,index) => { %>
+                                    <tr>
+                                        <td class="text-start"><%=brand.brandName%></td>
+                                        <td class="text-start">
+                                            <div class="d-flex align-items-center justify-content-center" style=" width: 40px; height: 40px; border-radius: 50%; overflow: hidden;">
+                                                <img src="/uploads/images/<%= brand.brandImage[0] %>" alt="<%=brand.brandName%>" class="img-fluid rounded-circle" style="width: 100%; height: auto" />
+                                            </div>
+                                        </td>
+                                        <td class="text-start">
+                                            <% if(brand.isBlocked === true){ %>
+                                            <span class="badge rounded-pill alert-danger" style="width: 60px">Blocked</span>
+                                            <% } else { %>
+                                            <span class="badge rounded-pill alert-success" style="width: 60px">Active</span>
+                                            <% } %>
+                                        </td>
+                                        <td class="text-start">
+                                            <% if(brand.isBlocked === true){ %>
+                                            <button class="btn btn-success" style="width: 60px">
+                                                <a href="/admin/brand/unBlockBrand?id=<%=brand._id%>" class="text-white" style=" font-size: 9px;">Unblock</a>
+                                            </button>
+                                            <% } else { %>
+                                            <button class="btn btn-danger" style="width: 60px">
+                                                <a href="/admin/brand/blockBrand?id=<%=brand._id%>" class="text-white" style=" font-size: 9px;">Block</a>
+                                            </button>
+                                            <% } %>
+                                            <button class="btn btn-danger" style="font-size: 9px; width: 55px;" onclick="return confirmAndDelete('<%= brand._id %>')">
+                                                Delete
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <% if(totalPage > 1){ %>
+            <div class="pagination-info">
+                <%= ((currentPage - 1) * 5) + 1 %> to <%= Math.min(currentPage * 5,totalBrand) %> of <%= totalBrand %> brands
+            </div>
+            <div class="pagination-container">
+                <div class="pagination">
+
+                    <% if(currentPage > 1){ %>
+                        <a href="/admin/brand?page=<%= currentPage - 1 %>">&laquo; Previous</a>
+                    <% } else { %>
+                        <span class="disabled">&laquo; Previous</span>
+                    <% } %>
+
+                    <% if(currentPage > 3){ %>
+                        <a href="/admin/brand?page=1">1</a>
+                        <% if(currentPage > 4){ %>
+                            <span class="disabled">...</span>
+                        <% } %>
+                    <% } %>
+
+                    <%
+                        let startPage = Math.max(1,currentPage-3);
+                        let endPage = Math.min(totalPage,currentPage+3);
+                    %>
+
+                    <% for(let i = startPage; i <= endPage; i++){ %>
+                        <% if(i === currentPage){ %>
+                            <span class="current-page"><%= i %></span>
+                        <% } else { %>
+                            <a href="/admin/brand?page=<%= i %>"><%= i %></a>
+                        <% } %>
+                    <% } %>
+
+                    <% if(currentPage < totalPage - 2){ %>
+                        <% if(currentPage < totalPage - 3){ %>
+                            <span class="disabled">...</span>
+                        <% } %>
+                        <a href="/admin/brand?page=<%= totalPage %>"><%= totalPage %></a>
+                    <% } %>
+
+                    <% if(currentPage < totalPage){ %>
+                        <a href="/admin/brand?page=<%= currentPage + 1 %>">Next &raquo;</a>
+                    <% } else { %>
+                        <span class="disabled">Next &raquo;</span>
+                    <% } %>
+
+                </div>
+            </div>
+        <% } %>
+    </section>
+
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        document.getElementById("brandForm").addEventListener("submit",(event) => {
+
+            let isValid = true
+            const name = document.getElementById("name").value.trim();
+            const image = document.getElementById("image").files[0];
+
+            document.getElementById("nameError").textContent = "";
+            document.getElementById("imageError").textContent = "";
+
+            if(!name || name.length < 3 || name.length > 20){
+                document.getElementById("nameError").textContent = "Brand Name should required , atleast 3-20 characters.";
+                isValid = false
+            }else if(!/^[a-zA-Z\s]+$/.test(name)){
+                document.getElementById("nameError").textContent = "Brand name must in alphabetic characters.";
+                isValid = false;
+            }
+            if(!image){
+                document.getElementById("imageError").textContent = "Brand image should required. Please upload a image";
+                isValid = false;
+            }
+            if(!isValid){
+                event.preventDefault();
+            }
+
+        });
+
+        document.addEventListener("DOMContentLoaded",() => {
+            const nameInput = document.getElementById("name");
+            const imageInput = document.getElementById("image");
+            if(nameInput){
+                nameInput.addEventListener("blur",function(){
+                    const name = this.value.trim();
+                    if(!name){
+                        document.getElementById("nameError").textContent = "Brand name is required";
+                    }else if(name.length < 3 || name.length > 20){
+                        document.getElementById("nameError").textContent = "Brand name should contain atleast 3-20 characters"
+                    }else if(!/^[a-zA-Z\s]+$/.test(name)){
+                        document.getElementById("nameError").textContent = "name should be alphabetic characters"
+                    }else{
+                        document.getElementById("nameError").textContent = "";
+                    }
+                });
+            }
+            if(imageInput){
+                imageInput.addEventListener("blur",function(){
+                    const image = this.files[0];
+                    if(!image){
+                        document.getElementById("imageError").textContent = "image is required.please upload a image";
+                    }else{
+                        document.getElementById("imageError").textContent = "";
+                    }
+                });
+            }
+        });
+
+        async function confirmAndDelete(id) {
+            if(!id)return
+            Swal.fire({
+                title:"Are you sure to delete?",
+                text:"This cannot be undone!",
+                icon:"warning",
+                showCancelButton:true,
+                confirmButtonColor:"#d33",
+                cancelButtonColor:"#3085d6",
+                confirmButtonText:"Yes. Delete it"
+            }).then(result => {
+                if(result.isConfirmed){
+                    fetch(`/admin/brand/${id}`,{
+                        method:"DELETE"
+                    }).then(res => res.json())
+                    .then(data => {
+                        if(data.success){
+                            Swal.fire({
+                                title:"Done.",
+                                text:"Brand deleted successfully.",
+                                icon:"success",
+                                timer:1000,
+                                showConfirmButton:false
+                            }).then(() => window.location.reload())
+                        }else{
+                            Swal.fire("Error",data.message||"Failed to delete!","error")
+                        }
+                    })
+                    .catch(err => {
+                        Swal.fire("Error",err.message||"Somthing went wrong","error")
+                    })
+                }
+            })
+        }
+    </script>
+
+<%-include("../partials/admin/footer.ejs")%>

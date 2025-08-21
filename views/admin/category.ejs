@@ -1,0 +1,438 @@
+<%-include("../partials/admin/header.ejs")%>
+
+    <style>
+        .pagination-container {
+            text-align: center;
+        }
+
+        .pagination {
+            display: inline-block;
+        }
+
+        .pagination a,
+        .pagination .current-page {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 0 2px;
+            border: 1px solid #ddd;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .pagination a:hover {
+            background-color: #f5f5f5;
+        }
+
+        .error-message {
+            color: red;
+        }
+
+        .offer-input {
+            width: 100px;
+            margin-right: 5px;
+        }
+    </style>
+
+    <section class="content-main">
+        <div class="content-header">
+            <div>
+                <h2 class="content-title card-title">Categories </h2>
+                <p>Add, edit or delete a category</p>
+            </div>
+            <div>
+                <input type="text" placeholder="Search Categories" class="form-control bg-white">
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <form method="post" action="/admin/category" onsubmit="return handleFormSubmit(event)">
+                            <div class="mb-4">
+                                <label for="product_name" class="form-label">Name</label>
+                                <input type="text" placeholder="Type here" name="name" class="form-control" id="name" />
+                                <div class="error-message" id="name-error" style="display:none;"></div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="description" class="form-label">Description</label>
+                                <input type="text" placeholder="Type here" name="description" 
+                                class="form-control" id="description" />
+                                <div class="error-message" id="description-error" style="display:none;"></div>
+                            </div>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">Create category</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="col-md-9">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="productTable">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Description</th>
+                                        <th>Offer%</th>
+                                        <th>Add/Edit Offer</th>
+                                        <th>isListed</th>
+                                        <th>List/Unlist</th>
+                                        <th>Timestamp</th>
+                                        <th class="text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+
+                                    <%cat.forEach((category,index)=> { %>
+
+                                        <tr data-id="<%= category._id %>">
+                                            <td>
+                                                <%= category.name %>
+                                            </td>
+                                            <td>
+                                                <%= category.description %>
+                                            </td>
+                                            <td class="offer-cell">
+                                                <%= category.offer %>
+                                            </td>
+                                            <td>
+                                                <% if(category.offer && category.offer> 0) { %>
+                                                    <button class="btn-editOffer" style="background-color: rgb(129, 202, 255);">Edit Offer</button>
+                                                <% } else { %>
+                                                    <button class="btn-success btn-addOffer">Add Offer</button>
+                                                <% } %>
+                                            </td>
+                                            <td class="list-cell">
+                                                <% if(category.isListed) { %>
+                                                    <span class="badge rounded-pill alert-success">Listed</span>
+                                                <% } else { %>
+                                                    <span class="badge rounded-pill alert-danger">UnListed</span>
+                                                <% } %>
+                                            </td>
+                                            <td>
+                                                <% if(category.isListed) { %>
+                                                    <button class="btn btn-danger btn-unlist">Unlist</button>
+                                                <% } else { %>
+                                                    <button class="btn btn-success btn-list">List</button>
+                                                <% } %>
+                                            </td>
+                                            <td>
+                                                <%= new Date(category.createdAt).toLocaleString() %>
+                                            </td>
+                                            <td class="text-end">
+                                                <div class="dropdown">
+                                                    <a href="#" data-bs-toggle="dropdown"
+                                                        class="btn btn-light rounded btn-sm font-sm">
+                                                        <i class="material-icons md-more_horiz"></i>
+                                                    </a>
+                                                    <div class="dropdown-menu">
+                                                        <a class="dropdown-item"
+                                                            href="/admin/category/edit/<%= category._id%>">Edit info</a>
+                                                        <a class="dropdown-item text-danger btn-delete"
+                                                            href="#" data-id="<%= category._id %>">Delete</a>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <% }) %>
+
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <% if(totalPages > 1){ %>
+            <div class="pagination-info">
+                <%= ((currentPage - 1) * 4) + 1 %> to <%= Math.min(currentPage * 4,totalSubCategories) %> of <%= totalSubCategories %> Categories
+            </div>
+            <div class="pagination-container">
+                <% if(currentPage > 1){ %>
+                    <a href="/admin/category?page=<%= currentPage - 1 %>">&laquo; Previous</a>
+                <% } else { %>
+                    <span class="disabled">&laquo; Previous</span>
+                <% } %>
+                <% if(currentPage > 3){ %>
+                    <a href="/admin/category?page=1">1</a>
+                    <% if(currentPage > 4){ %>
+                        <span class="disabled">...</span>
+                    <% } %>
+                <% } %>
+                <%
+                    let startPage = Math.max(1,currentPage - 2);
+                    let endPage = Math.min(totalPages,currentPage + 1);
+                %>
+                <% for(let i = startPage; i <= endPage; i++){ %>
+                    <% if(i === currentPage){ %>
+                        <span class="current-page"><%= i %></span>
+                    <% } else { %>
+                        <a href="/admin/category?page=<%= i %>"><%= i %></a>
+                    <% } %>
+                <% } %>
+                <% if(currentPage < totalPages - 2){ %>
+                    <% if(currentPage < totalPages - 3){ %>
+                        <span class="disabled">...</span>
+                    <% } %>
+                    <a href="/admin/category?page=<%= totalPages %>"><%= totalPages %></a>
+                <% } %>
+                <% if(currentPage > totalPages){ %>
+                    <a href="/admin/category?page=<%= currentPage + 1 %>">Next &raquo;</a>
+                <% } else { %>
+                    <span class="disabled">Next &raquo;</span>
+                <% } %>
+            </div>
+        <% } %>
+
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            if (!validateForm()) {
+                return;
+            }
+
+            const name = document.getElementsByName("name")[0].value.trim();
+            const description = document.getElementById("description").value.trim();
+
+            fetch('/admin/category', {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name, description })
+            })
+            .then((response) =>  response.json())
+            .then((data) => {
+                if(data.success){
+                    Swal.fire({
+                        icon: "success",
+                        title: "Success!",
+                        text: "Category added successfully",
+                        timer: 1000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.href = data.redirectUrl;
+                    });
+                }else{
+                    Swal.fire({
+                        icon: "error",
+                        title: "Oops",
+                        text: data.error || "An error occurred while adding the category"
+                    });
+                }
+            })
+            .catch((err) => { 
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops",
+                    text: err.message||"Somthing went wrong!"
+                });
+            });
+        }
+
+        function validateForm() {
+            clearErrorMessage();
+
+            const name = document.getElementsByName("name")[0].value.trim();
+            const description = document.getElementById("description").value.trim();
+            let isValid = true;
+
+            if (name === "") {
+                displayErrorMessage("name-error", "Please enter a name");
+                isValid = false;
+            } else if (!/^[a-zA-Z\s]+$/.test(name)) {
+                displayErrorMessage("name-error", "Category name should contain alphabetic characters");
+                isValid = false;
+            } else if (name.length < 3) {
+                displayErrorMessage("name-error", "Category name must be at least 3 characters long");
+                isValid = false;
+            } else if (name.length > 20) {
+                displayErrorMessage("name-error", "Category name must be less than 20 characters");
+                isValid = false;
+            }
+
+            if (description === "") {
+                displayErrorMessage("description-error", "Please enter a description");
+                isValid = false;
+            } else if (description.length < 5) {
+                displayErrorMessage("description-error", "Description must be at least 5 characters long");
+                isValid = false;
+            } else if (description.length > 50) {
+                displayErrorMessage("description-error", "Description must be less than 50 characters");
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        function displayErrorMessage(elementId, errorMessage) {
+            let errorElement = document.getElementById(elementId);
+            if (errorElement) {
+                errorElement.innerText = errorMessage;
+                errorElement.style.display = "block";
+            }
+        }
+
+        function clearErrorMessage() {
+            const errorElements = document.getElementsByClassName("error-message");
+            Array.from(errorElements).forEach((element) => {
+                element.innerText = "";
+                element.style.display = "none";
+            });
+        }
+
+        document.querySelectorAll(".btn-delete").forEach(btn => {
+            btn.addEventListener("click",function(event){
+                event.preventDefault();
+
+                const categoryId = this.getAttribute("data-id");
+                Swal.fire({
+                    title: "Are you sure?",
+                    text: "This action cannot be undone!",
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#d33",
+                    cancelButtonColor: "#3085d6",
+                    confirmButtonText: "Yes, delete it!"
+                }).then(result => {
+                    if(result.isConfirmed){
+                        fetch(`/admin/category/${categoryId}`,{
+                            method:"DELETE"
+                        })
+                        .then(res => res.json())
+                        .then(data => {
+                            if(data.success){
+                                Swal.fire("Deleted.", "Category deleted successfully", "success")
+                                .then(() => window.location.reload())
+                            }else{
+                                Swal.fire("Error",data.message, "error")
+                            }
+                        })
+                        .catch(() => Swal.fire("Error", "Something went wrong", "error"))
+                    }
+                })
+            });
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+
+            const setupOfferHandler = (buttonSelector) => {
+                document.querySelectorAll(buttonSelector).forEach((button) => {
+                    button.addEventListener("click", () => {
+                        const row = button.closest("tr");
+                        const categoryId = row.dataset.id;
+                        const offerCell = row.querySelector(".offer-cell");
+
+                        if (offerCell.querySelector("input")) return;
+
+                        const input = document.createElement("input");
+                        input.type = "number";
+                        input.min = "0";
+                        input.max = "100";
+                        input.placeholder = "Enter Offer%";
+                        input.className = "offer-input";
+                        input.value = offerCell.innerText;
+
+                        const submitbtn = document.createElement("button");
+                        submitbtn.textContent = "Submit";
+                        submitbtn.className = "btn-submitOffer"
+
+                        offerCell.innerHTML = "";
+                        offerCell.appendChild(input);
+                        offerCell.appendChild(submitbtn);
+
+                        submitbtn.addEventListener("click", async () => {
+                            const offerValue = parseFloat(input.value.trim());
+
+                            if (isNaN(offerValue) || offerValue < 0 || offerValue > 100) {
+                                alert("please enter a Valid percentage between 0 and 100");
+                                return
+                            }
+
+                            try {
+                                const res = await fetch("/admin/category/offer", {
+                                    method: "POST",
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({ categoryId, offer: offerValue })
+                                });
+                                const result = await res.json();
+                                if (result.success) {
+                                    offerCell.innerText = `${offerValue}`;
+                                    button.textContent = `Edit Offer`;
+                                    button.className = "btn-editOffer";
+                                    location.reload();
+                                } else {
+                                    alert("Failed to save offer");
+                                }
+                            } catch (error) {
+                                console.error("Error:", error);
+                                alert("Server error");
+                            }
+                        });
+                    })
+                })
+            };
+
+            setupOfferHandler(".btn-addOffer");
+            setupOfferHandler(".btn-editOffer");
+
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            function setupToggleHandlers() {
+                document.querySelectorAll(".btn-list , .btn-unlist").forEach((button) => {
+                    button.addEventListener("click", async function () {
+                        const row = button.closest("tr");
+                        const categoryId = row.dataset.id;
+                        const isListed = button.classList.contains("btn-list");
+
+                        try {   
+
+                            const response = await fetch("/admin/category/toggleList", {
+                                method: "POST",
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    categoryId,
+                                    isListed: isListed
+                                }),
+                            });
+
+                            const result = await response.json();
+
+                            if (result.success) {
+                                const listCell = row.querySelector(".list-cell");
+                                listCell.innerHTML = isListed ? "<p>Listed</P>":"<p>Unlisted</p>";
+
+                                button.textContent = isListed ? "unList" : "List";
+                                button.classList = isListed ? "btn-unlist" : "btn-list"
+                                location.reload();
+                            } else {
+                                alert("Failed to update listing status");
+                            }
+
+                        } catch (error) {
+                            console.error("error listing toggle error", error);
+                            alert("Server error while updating listing");
+                        }
+
+                    });
+                });
+            }
+            setupToggleHandlers();
+        });
+
+    </script>
+
+
+
+
+    <%-include("../partials/admin/footer.ejs")%>

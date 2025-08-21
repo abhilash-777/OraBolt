@@ -1,0 +1,135 @@
+<!DOCTYPE HTML>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8">
+    <title>OraBolt Dashboard</title>
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="description" content="">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta property="og:title" content="">
+    <meta property="og:type" content="">
+    <meta property="og:url" content="">
+    <meta property="og:image" content="">
+
+    <!--Favicon -->
+    <link rel="shortcut icon" type="image/x-icon" href="assets/imgs/theme/favicon-96x96.png">
+    
+    <!-- Main CSS -->
+    <link href="assets/css/main.css" rel="stylesheet" type="text/css" >
+
+</head>
+
+<body>
+    <main>
+        <header class="main-header style-2 navbar" style="height: 50px; ">
+            <div class="col-brand" style="display: flex; align-items: center;">
+                <a href="" class="brand-wrap">
+                    <img src="assets/imgs/theme/logo1.png" class="logo" alt="OraBolt Dashboard">
+                </a>
+                <div class="col-brand" style="margin-top: 30px; color: #ca9c06; font-size: 20px; font-style: normal; font-family:'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;">OraBolt</div>
+            </div>
+        </header>
+        <section class="content-main mt-80 mb-80">
+            <div class="card mx-auto card-login">
+                <div class="card-body">
+                    <h4 class="card-title mb-4">Login</h4>
+                    <form action="/admin/login" method="post" id="loginForm" >
+                        <div class="mb-3">
+                            <input class="form-control" id="email" name="email" placeholder="Username or email" type="text">
+                            <small id="emailError" style="color: red;"></small>
+                        </div> 
+                        <div class="mb-3">
+                            <input class="form-control" id="password" name="password" placeholder="Password" type="password">
+                            <small id="passwordError" style=" color: red;"></small>
+                        </div> 
+                        
+                        <div class="mb-4">
+                            <button type="submit" class="btn btn-primary w-100"> Login </button>
+                        </div> 
+                    </form>
+                </div>
+            </div>
+        </section>
+        <footer class="main-footer text-center" style="margin-bottom: 40px;">
+            <p class="font-xs">
+                <script>
+                    document.write(new Date().getFullYear())
+                </script> ©, OraBolt - Ecommerce Website .
+            </p>
+            <p class="font-xs mb-30">All rights reserved</p>
+        </footer>
+    </main>
+
+    <script src="assets/js/vendors/jquery-3.6.0.min.js"></script>
+    <script src="assets/js/vendors/bootstrap.bundle.min.js"></script>
+    <script src="assets/js/vendors/jquery.fullscreen.min.js"></script>
+    <!-- Main Script -->
+    <script src="/public/admin/assets/js/main.js" type="text/javascript"></script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded",() => {
+
+            const form = document.getElementById("loginForm");
+            const emaiInput = document.getElementById("email");
+            const passwordInput = document.getElementById("password");
+            let emailError = document.getElementById("emailError");
+            let passwordError = document.getElementById("passwordError");
+
+            emailError.textContent = "";
+            passwordError.textContent = "";
+
+            emaiInput.addEventListener("blur",(e) => {
+                const email = e.target.value.trim();
+                if(!email){
+                    emailError.textContent = "Email is required";
+                }else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+                    emailError.textContent = "Invalid email format";
+                }
+            });
+            emaiInput.addEventListener("input",() => {
+                if(emaiInput.value.trim()){
+                    emailError.textContent = "";
+                }
+            });
+            
+            passwordInput.addEventListener("blur",() => {
+                const password = this.value.trim();
+                if(!password){
+                    passwordError.textContent = "Password is required";
+                }
+            });
+            passwordInput.addEventListener("input",() => {
+                if(passwordInput.value.trim()){
+                    passwordError.textContent = "";
+                }
+            });
+
+            form.addEventListener("submit",function(event){
+                let isValid = true;
+                const email = emaiInput.value.trim();
+                const password = passwordInput.value.trim();
+
+                if(!email){
+                    emailError.textContent = "Email is required!";
+                    isValid = false
+                }else{
+                    const isMail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+                    if(!isMail){
+                        emailError.textContent = "Email is not a valid format";
+                        isValid = false
+                    }
+                }
+                if(!password){
+                    passwordError.textContent = "password is required";
+                    isValid = false;
+                }
+                if(!isValid){
+                    event.preventDefault();
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

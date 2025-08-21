@@ -1,0 +1,514 @@
+<%-include("../partials/admin/header.ejs")%>
+
+    <style>
+        .pagination-container {
+            text-align: center;
+            margin-top: 20px;
+        }
+        .pagination {
+            display: inline-block;
+        }
+        .pagination a,
+        .pagination .current-page {
+            display: inline-block;
+            padding: 8px 12px;
+            margin: 0 2px;
+            border: 1px solid #ddd;
+            text-decoration: none;
+            color: #333;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+        .pagination a:hover {
+            background-color: rgb(202, 156, 6);
+            color: #ddd;
+            border-color: rgb(202, 156, 6);
+        }
+        .error-message {
+            color: red;
+        }
+        .pagination .current-page{
+            background-color: rgb(202, 156, 6);
+            color: #ddd;
+            border-color: rgb(202, 156, 6);
+            cursor: default;
+        }
+        .pagination .disabled{
+            color: #6c757d;
+            border-color: #6c757d;
+            pointer-events: none;
+            background-color: #ddd;
+        }
+        .pagination-info{
+            text-align: center;
+            margin-top: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+        .offer-input {
+            width: 100px;
+            margin-right: 5px;
+        }
+    </style>
+
+    <section class="content-main">
+        <div class="content-header">
+            <div>
+                <h2 class="content-title card-title">Sub Categories </h2>
+                <p>Add, edit or delete a Sub Category</p>
+            </div>
+            <div>
+                <input type="text" placeholder="Search Categories" class="form-control bg-white">
+            </div>
+        </div>
+        <div class="card">
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <form method="post" action="/admin/subCategory" onsubmit="return handleFormSubmit(event)">
+                            <div class="mb-4">
+                                <label for="product_name" class="form-label">Name</label>
+                                <input type="text" placeholder="Enter Sub Category" name="name" class="form-control" id="name" />
+                                <div class="error-message" id="name-error" style="display:none;"></div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="description" class="form-label">Description</label>
+                                <input type="text" placeholder="Enter Description" name="description" class="form-control"
+                                    id="description" />
+                                <div class="error-message" id="description-error" style="display:none;"></div>
+                            </div>
+                            <div class="mb-4">
+                                <select id="category" name="categoryId" class="form-select" >
+                                    <option value="">Select Category</option>
+                                    <% for(let i=0;i<categories.length;i++){ %>
+                                        <option value="<%= categories[i]._id %>">
+                                            <%= categories[i].name %>
+                                        </option>
+                                        <% } %>
+                                </select>
+                                <div id="category-error" class="error-message text-danger" style="display: none;"></div>
+                            </div>
+                            <div class="d-grid">
+                                <button class="btn btn-primary">Create SubCategory</button>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="col-md-9">
+                        <div class="table-responsive">
+                            <table class="table table-hover" id="productTable">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Description</th>
+                                        <th>Offer%</th>
+                                        <th>Add/Edit Offer</th>
+                                        <th>isListed</th>
+                                        <th>List/Unlist</th>
+                                        <th>Timestamp</th>
+                                        <th class="text-end">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+
+                                    <%cat.forEach((subCategory,index)=> {%>
+
+                                        <tr data-id="<%= subCategory._id %>">
+                                            <td>
+                                                <%= subCategory.name %>
+                                            </td>
+                                            <td>
+                                                <%= subCategory.description %>
+                                            </td>
+                                            <td class="offer-cell">
+                                                <%= subCategory.offer %>
+                                            </td>
+                                            <td>
+                                                <% if(subCategory.offer && subCategory.offer> 0) { %>
+                                                    <button class="btn-editOffer" style="background-color: rgb(129, 202, 255);">Edit Offer</button>
+                                                <% } else { %>
+                                                    <button class="btn-success btn-addOffer">Add Offer</button>
+                                                <% } %>
+                                            </td>
+                                            <td class="list-cell">
+                                                <% if(subCategory.isListed) { %>
+                                                    <span class="badge rounded-pill alert-success">Listed</span>
+                                                <% } else { %>
+                                                    <span class="badge rounded-pill alert-danger">UnListed</span>
+                                                <% } %>
+                                            </td>
+                                            <td>
+                                                <% if(subCategory.isListed) { %>
+                                                    <button class="btn btn-danger btn-unlist">Unlist</button>
+                                                <% } else { %>
+                                                    <button class="btn btn-success btn-list">List</button>
+                                                <% } %>
+                                            </td>
+                                            <td>
+                                                <%= new Date(subCategory.createdAt).toLocaleString() %>
+                                            </td>
+                                            <td class="text-end">
+                                                <div class="dropdown">
+                                                    <a href="#" data-bs-toggle="dropdown"
+                                                        class="btn btn-light rounded btn-sm font-sm">
+                                                        <i class="material-icons md-more_horiz"></i>
+                                                    </a>
+                                                    <div class="dropdown-menu">
+                                                        <a class="dropdown-item"
+                                                            href="/admin/subCategory/edit/<%= subCategory._id %>">Edit info</a>
+                                                        <a class="dropdown-item text-danger btn-delete"
+                                                            href="#" data-id="<%= subCategory._id %>">Delete</a>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                        <% }) %>
+
+                                </tbody>
+                            </table>
+                        </div>
+                    </div> <!-- .col// -->
+                </div> <!-- .row // -->
+            </div> <!-- card body .// -->
+        </div> <!-- card .// -->
+
+        <% if(totalPages > 1){ %>
+            <div class="pagination-info">
+                <%= ((currentPage - 1) * 5) + 1 %> to <%= Math.min(currentPage * 5,totalSubCategory) %> of <%= totalSubCategory %> Sub Categories
+            </div>
+            <div class="pagination-container">
+                <div class="pagination">
+                    <% if(currentPage > 1){ %>
+                        <a href="/admin/subCategory?page=<%= currentPage - 1 %>">&laquo; Previous</a>
+                    <% } else { %>
+                        <span class="disabled">&laquo; Previous</span>
+                    <% } %>
+                    <% if(currentPage > 3){ %>
+                        <a href="/admin/subCategory?page=1">1</a>
+                        <% if(currentPage > 4){ %>
+                            <span class="disabled">...</span>
+                        <% } %>
+                    <% } %>
+                    <%
+                        let startPage = Math.max(1,currentPage - 3);
+                        let endPage = Math.min(totalPages,currentPage + 3);
+                    %>
+                    <% for(let i = startPage; i <= endPage; i++){ %>
+                        <% if(i === currentPage){ %>
+                            <span class="current-page"><%= i %></span>
+                        <% } else { %>
+                            <a href="/admin/subCategory?page=<%= i %>"><%= i %></a>
+                        <% } %>
+                    <% } %>
+                    <% if(currentPage < totalPages - 2){ %>
+                        <% if(currentPage < totalPages - 3){ %>
+                            <span class="disabled">...</span>
+                        <% } %>
+                        <a href="/admin/subCategory?page=<%= totalPages %>"><%= totalPages %></a>
+                    <% } %>
+                    <% if(currentPage < totalPages){ %>
+                        <a href="/admin/subCategory?page=<%= currentPage + 1 %>">Next &raquo;</a>
+                    <% } else { %>
+                        <span class="disabled">Next &raquo;</span>
+                    <% } %>
+                </div>
+            </div>
+        <% } %>
+
+    </section>
+    
+    <script src="https://unpkg.com/sweetalert/dist/sweetalert.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            if (!validateForm()) {
+                return;
+            }
+
+            const name = document.getElementsByName("name")[0].value.trim();
+            const description = document.getElementById("description").value.trim();
+            const categoryId = document.getElementsByName("categoryId")[0].value;
+
+            fetch('/admin/subCategory', {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name, description,categoryId })
+            })
+            .then((response) => response.json())
+            .then((data) => {
+                if(data.success){
+                    Swal.fire({
+                        icon: "success",
+                        title: "Done!",
+                        text: "SubCategory added successfully",
+                        timer: 1000,
+                        showConfirmButton: false
+                    })
+                    .then(() => window.location.reload())
+                }else{
+                    Swal.fire({
+                        icon: "error",
+                        title: "Oops",
+                        text: data.error || "An error occurred while adding the category",
+                    });
+                }
+            })
+            .catch((err) => {
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops",
+                    text: err.error||"Somethig went wrong",
+                });
+            });
+        }
+
+        function validateForm() {
+            clearErrorMessage();
+
+            const name = document.getElementsByName("name")[0].value.trim();
+            const description = document.getElementById("description").value.trim();
+            const categoryId = document.getElementsByName("categoryId")[0].value;
+            let isValid = true;
+
+            if (name === "") {
+                displayErrorMessage("name-error", "Please enter a name");
+                isValid = false;
+            } else if (!/^[a-zA-Z\s]+$/.test(name)) {
+                displayErrorMessage("name-error", "subCategory name should contain alphabetic characters");
+                isValid = false;
+            }else if (name.length < 3) {
+                displayErrorMessage("name-error", "subCategory name atleast contain 3 characters");
+                isValid = false;
+            }else if (name.length > 20) {
+                displayErrorMessage("name-error", "subCategory name must be less than 20 characters");
+                isValid = false;
+            }
+
+            if (description === "") {
+                displayErrorMessage("description-error", "Please enter a description");
+                isValid = false;
+            }else if (description.length < 5) {
+                displayErrorMessage("name-error", "subCategory description atleast contain 5 characters");
+                isValid = false;
+            }else if (description.length > 50) {
+                displayErrorMessage("name-error", "subCategory description must be less than 50 characters");
+                isValid = false;
+            }
+
+            if(categoryId === ""){
+                displayErrorMessage("category-error","Please select one category");
+                isValid = false
+            }
+
+            return isValid;
+        }
+
+        function displayErrorMessage(elementId, errorMessage) {
+            let errorElement = document.getElementById(elementId);
+            if (errorElement) {
+                errorElement.innerText = errorMessage;
+                errorElement.style.display = "block";
+            }
+        }
+
+        function clearErrorMessage() {
+            const errorElements = document.getElementsByClassName("error-message");
+            Array.from(errorElements).forEach((element) => {
+                element.innerText = "";
+                element.style.display = "none";
+            });
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("productTable").addEventListener("click",(event) => {
+                if(event.target.classList.contains("btn-delete")){
+                    event.preventDefault();
+
+                    const subCategoryId = event.target.getAttribute("data-id");
+                    if(!subCategoryId)return;
+                    Swal.fire({
+                        icon:"warning",
+                        title:"Are you sure to delete!",
+                        text:"This cannot be undone!",
+                        showCancelButton:true,
+                        confirmButtonColor:"#d33",
+                        cancelButtonColor:"#3085d6",
+                        confirmButtonText:"Yes! Delete it."
+                    }).then(result => {
+                        if(result.isConfirmed){
+                            fetch(`/admin/subCategory/${subCategoryId}`,{
+                                method:"DELETE"
+                            }).then(res => res.json())
+                            .then(data =>{
+                                if(data.success){
+                                    Swal.fire({
+                                        icon:"success",
+                                        title:"Deleted.",
+                                        text:"SubCategory deleted successfully.",
+                                        timer:1000,
+                                        showConfirmButton:false
+                                    }).then(() => window.location.reload())
+                                }else{
+                                    Swal.fire("Error",data.message||"Failed to delete!","error")
+                                }
+                            })
+                            .catch(err => {
+                                Swal.fire("Error",err.message||"Something went wrong","error")
+                            })
+                        }
+                    })
+                }
+            })
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+
+            const setupOfferHandler = (buttonSelector) => {
+                document.querySelectorAll(buttonSelector).forEach((button) => {
+                    button.addEventListener("click", () => {
+                        const row = button.closest("tr");
+                        const subCategoryId = row.dataset.id;
+                        const offerCell = row.querySelector(".offer-cell");
+
+                        if (offerCell.querySelector("input")) return;
+
+                        const input = document.createElement("input");
+                        input.type = "number";
+                        input.min = "0";
+                        input.max = "100";
+                        input.placeholder = "Enter Offer%";
+                        input.className = "offer-input";
+                        input.value = offerCell.innerText;
+
+                        const submitbtn = document.createElement("button");
+                        submitbtn.textContent = "Submit";
+                        submitbtn.className = "btn-submitOffer"
+
+                        offerCell.innerHTML = "";
+                        offerCell.appendChild(input);
+                        offerCell.appendChild(submitbtn);
+
+                        submitbtn.addEventListener("click", async () => {
+                            const offerValue = parseFloat(input.value.trim());
+
+                            if (isNaN(offerValue) || offerValue < 0 || offerValue > 100) {
+                                alert("please enter a Valid percentage between 0 and 100");
+                                return
+                            }
+
+                            try {
+                                const res = await fetch("/admin/subCategory/offer", {
+                                    method: "POST",
+                                    headers: {
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({ subCategoryId, offer: offerValue })
+                                });
+                                const result = await res.json();
+                                if (result.success) {
+                                    offerCell.innerText = `${offerValue}`;
+                                    button.textContent = `Edit Offer`;
+                                    button.className = "btn-editOffer";
+                                    location.reload();
+                                } else {
+                                    alert("Failed to save offer");
+                                }
+                            } catch (error) {
+                                console.error("Error:", error);
+                                alert("Server error");
+                            }
+                        });
+                    })
+                })
+            };
+
+            setupOfferHandler(".btn-addOffer");
+            setupOfferHandler(".btn-editOffer");
+
+        });
+
+        document.addEventListener("DOMContentLoaded", () => {
+            function setupToggleHandlers() {
+                document.querySelectorAll(".btn-list , .btn-unlist").forEach((button) => {
+                    button.addEventListener("click", async function () {
+                        const row = button.closest("tr");
+                        const subCategoryId = row.dataset.id;
+                        const isListed = button.classList.contains("btn-list");
+
+                        try {   
+
+                            const response = await fetch("/admin/SubCategory/toggleList", {
+                                method: "POST",
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                },
+                                body: JSON.stringify({
+                                    subCategoryId,
+                                    isListed: isListed
+                                }),
+                            });
+
+                            const result = await response.json();
+
+                            if (result.success) {
+                                const listCell = row.querySelector(".list-cell");
+                                listCell.innerHTML = isListed ? "<p>Listed</P>":"<p>Unlisted</p>";
+
+                                button.textContent = isListed ? "unList" : "List";
+                                button.classList = isListed ? "btn-unlist" : "btn-list"
+                                location.reload();
+                            } else {
+                                alert("Failed to update listing status");
+                            }
+
+                        } catch (error) {
+                            console.error("error listing toggle error", error);
+                            alert("Server error while updating listing");
+                        }
+
+                    });
+                });
+            }
+            setupToggleHandlers();
+        });
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const nameInput = document.getElementById('name');
+            const descriptionInput = document.getElementById('description');
+
+            if (nameInput) {
+                nameInput.addEventListener('blur', function () {
+                    const name = this.value.trim();
+                    if (name && !/^[a-zA-Z\s]+$/.test(name)&&name.length < 5) {
+                        displayErrorMessage("name-error", "Category name should contain atleast 5 , alphabetic characters");
+                    } else {
+                        document.getElementById("name-error").style.display = "none";
+                    }
+                });
+            }
+
+            if (descriptionInput) {
+                descriptionInput.addEventListener('blur', function () {
+                    const description = this.value.trim();
+                    if (description && description.length < 5) {
+                        displayErrorMessage("description-error", "Description must be at least 5 characters long");
+                    } else {
+                        document.getElementById("description-error").style.display = "none";
+                    }
+                });
+            }
+
+        });
+
+    </script>
+
+
+
+
+<%-include("../partials/admin/footer.ejs")%>

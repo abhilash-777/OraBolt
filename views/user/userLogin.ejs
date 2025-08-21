@@ -1,0 +1,161 @@
+<%-include("../partials/user/header.ejs") %>
+
+    <style>
+        body,
+        html {
+            height: 90%;
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .login-container {
+            background: rgba(255, 255, 255, 0.95);
+            display:flexbox;
+            align-items: center;
+            padding: 30px 50px;
+            border-radius: 12px;
+            max-width: 450px;
+            height: 540px;
+            margin: auto;
+            margin-top: 130px;
+            border: 1px solid #f1ebeb;
+            box-shadow: 5px 5px 5px #c9a12f;
+        }
+        .form-control:focus {
+            box-shadow: none;
+            border-color: #c9a12f;
+        }
+        .btn-login {
+            background-color: #c9a12f;
+            color: rgb(255, 255, 255);
+            font-weight: bold;
+            max-width: 200px;
+            width: 100%;
+            margin-top: 40px;
+            margin-left: 80px;
+        }
+        .google-login{
+            color: rgb(255, 255, 255);
+            background-color: #2999b6;
+            max-width: 200px;
+            width: 100%;
+            color: rgb(255, 255, 255);
+            margin-left: 80px;
+        }
+        .google-login:hover{
+            color: rgb(255, 255, 255);
+            background-color: #3dcbf6;
+        }
+        .btn-login:hover {
+            background-color: #eec50f;
+            color: #ffffff;
+        }
+        .goToForgot{
+            color: black;
+            text-decoration: none;
+        }
+        .goToForgot:hover{
+            color: blue;
+            text-decoration: underline;
+        }
+        h2 {
+            font-weight: 700;
+            color: #333;
+        }
+        .option{
+            margin-left: 210px;
+        }
+        .err_msg{
+            color: red;
+            font-size: 10px;
+            display: none;
+        }
+    </style>
+
+    <div class="login-container">
+        <h2 class="text-center mb-4">Login your Account</h2>
+        <form id="loginForm" method="POST" action="/login">
+            
+            <div class="mb-3">
+                <label for="email" class="form-label">Email address</label>
+                <input type="email" class="form-control" id="email" name="email" placeholder="Enter email address" >
+                <small id="emailError" style="color: #db4437;"></small>
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" placeholder="Enter password" >
+                <small id="passwordError" style="color: #db4437;"></small>
+            </div>
+            <div class="mb-3" style="margin-top: 10px;">
+                <a href="/forgotPassword" class="goToForgot">Forgot your password?</a>
+            </div>
+
+            <%if(locals.message && message.length > 0){%>
+                <div class="alert alert-danger text-center"><%=message%></div>
+            <%}%>
+
+            <button type="submit" class="btn btn-login w-100 mb-2">Login</button>
+            <p style="margin-left: 130px;">or login with</p>
+            <a href="/auth/google" class="btn google-login w-100 mb-2">google</a>
+        </form>
+    </div>
+
+    <script>
+        const form = document.getElementById("loginForm");
+        const emailInput = document.getElementById("email");
+        const passwordInput = document.getElementById("password");
+        let emailError = document.getElementById("emailError");
+        let passwordError = document.getElementById("passwordError");
+
+        function validateForm(event){
+            let isValid = true;
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+            emailError.textContent = "";
+            passwordError.textContent = "";
+
+            if(!email){
+                emailError.textContent = "email should required";
+                isValid = false;
+            }else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+                emailError.textContent = "Invalid email format";
+                isValid = false;
+            }
+
+            if(!password){
+                passwordError.textContent = "password Should required";
+                isValid = false;
+            }
+            if(!isValid){
+                event.preventDefault();
+            }
+        }
+
+        form.addEventListener("submit", (event) => {
+           validateForm(event);
+        });
+
+        form.addEventListener("click",(event) => {
+            emailInput.addEventListener("blur",() => {
+                if(emailInput){
+                    const email = emailInput.value.trim();
+                    emailError.textContent = "";
+                    if(!email){
+                        emailError.textContent = "email should required";
+                    }else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
+                        emailError.textContent = "Invalid email format";
+                    }
+                }
+            });
+
+            passwordInput.addEventListener("blur",() => {
+                if(passwordInput){
+                    const password = passwordInput.value.trim();
+                    passwordError.textContent = "";
+                    if(!password){
+                        passwordError.textContent = "password should required";
+                    }
+                }
+            });
+        });
+    </script>

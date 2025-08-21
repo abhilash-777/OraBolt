@@ -1,0 +1,173 @@
+<%- include("../partials/admin/header.ejs") %>
+
+    <style>
+        .error-message{
+            color: red;
+        }
+    </style>
+
+    <section class="content-main" >
+        <div class="content-header">
+            <div>
+                <h2 class="content-title card-title">Categories </h2>
+                <p>Edit Category</p>
+            </div>
+        </div>
+        <div class="card" >
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <form id="editCategoryForm">
+                            <div class="mb-4">
+                                <label for="product_name" class="form-label">Name</label>
+                                <input type="text" placeholder="Type here" name="name" value="<%= category.name %>"
+                                    class="form-control" id="name" />
+                                <div class="error-message" id="name-error" style="display:none;"></div>
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="description" class="form-label">Description</label>
+                                <input type="text" placeholder="Type here" name="description"
+                                    value="<%= category.description %>" class="form-control" id="description" />
+                                <div class="error-message" id="description-error" style="display:none;"></div>
+                            </div>
+                            <div class="d-grid">
+                                <button class="btn btn-primary" type="submit">Edit category</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        document.getElementById("editCategoryForm").addEventListener("submit",handleFormSubmit);
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            if (!validateForm()) {
+                return;
+            }
+
+            const name = document.getElementsByName("name")[0].value.trim();
+            const description = document.getElementById("description").value.trim();
+
+            fetch('/admin/category/edit/<%= category._id %>', {
+                method: "PATCH",
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ name, description })
+            })
+            .then((response) => response.json())
+            .then((data) => {
+                if(data.success){
+                    Swal.fire({
+                        icon: "success",
+                        title: "Success!",
+                        text: "Category added successfully",
+                        timer: 1000,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.href = "/admin/category";
+                    });
+                }else{
+                    Swal.fire({
+                        icon: "error",
+                        title: "Oops",
+                        text: data.error||"An error occur while updating the category"
+                    });
+                }
+            })
+            .catch((err) => {
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops",
+                    text: err.message||"Category already exists"
+                });
+            });
+        }
+
+        function validateForm() {
+            clearErrorMessage();
+
+            const name = document.getElementsByName("name")[0].value.trim();
+            const description = document.getElementById("description").value.trim();
+            let isValid = true;
+
+            if (name === "") {
+                displayErrorMessage("name-error", "Please enter a name");
+                isValid = false;
+            } else if (!/^[a-zA-Z\s]+$/.test(name)) {
+                displayErrorMessage("name-error", "Category name should contain alphabetic characters");
+                isValid = false;
+            } else if (name.length < 3) {
+                displayErrorMessage("name-error", "Category name must be at least 3 characters long");
+                isValid = false;
+            } else if (name.length > 20) {
+                displayErrorMessage("name-error", "Category name must be less than 20 characters");
+                isValid = false;
+            }
+
+            if (description === "") {
+                displayErrorMessage("description-error", "Please enter a description");
+                isValid = false;
+            } else if (description.length < 5) {
+                displayErrorMessage("description-error", "Description must be at least 5 characters long");
+                isValid = false;
+            } else if (description.length > 50) {
+                displayErrorMessage("description-error", "Description must be less than 50 characters");
+                isValid = false;
+            }
+
+            return isValid;
+        }
+
+        function displayErrorMessage(elementId, errorMessage) {
+            let errorElement = document.getElementById(elementId);
+            if (errorElement) {
+                errorElement.innerText = errorMessage;
+                errorElement.style.display = "block";
+            }
+        }
+
+        function clearErrorMessage() {
+            const errorElements = document.getElementsByClassName("error-message");
+            Array.from(errorElements).forEach((element) => {
+                element.innerText = "";
+                element.style.display = "none";
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const nameInput = document.getElementById('name');
+            const descriptionInput = document.getElementById('description');
+
+            if (nameInput) {
+                nameInput.addEventListener('blur', function () {
+                    const name = this.value.trim();
+                    if (name && !/^[a-zA-Z\s]+$/.test(name)&&name.length < 3) {
+                        displayErrorMessage("name-error", "Category name should contain atleast 3 , alphabetic characters");
+                    } else {
+                        document.getElementById("name-error").style.display = "none";
+                    }
+                });
+            }
+
+            if (descriptionInput) {
+                descriptionInput.addEventListener('blur', function () {
+                    const description = this.value.trim();
+                    if (description && description.length < 5) {
+                        displayErrorMessage("description-error", "Description must be at least 5 characters long");
+                    } else {
+                        document.getElementById("description-error").style.display = "none";
+                    }
+                });
+            }
+        });
+
+    </script>
+
+<%- include("../partials/admin/footer.ejs") %>

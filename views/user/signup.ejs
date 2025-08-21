@@ -1,0 +1,273 @@
+<%-include("../partials/user/header.ejs") %>
+
+
+    <style>
+        body,
+        html {
+            height: 100%;
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .signup-container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 0 50px;
+            border-radius: 12px;
+            max-width: 500px;
+            height: 600px;
+            margin: auto;
+            margin-top: 100px;
+            border: 1px solid #f1ebeb;
+            box-shadow: 5px 5px 5px #c9a12f;
+        }
+        @media(min-width:770px){
+            .signup-container{
+                height: 580px;
+                padding: 0 30px;
+            }
+        }
+        @media(max-width:995px){
+            .signup-container{
+                height: 580px;
+                padding: 0 30px;
+                max-width: 450px;
+            }
+        }
+        @media(max-width:992px){
+            .signup-container{
+                height: 580px;
+                margin-top: 50px;
+                padding: 0 30px;
+                max-width: 450px;
+            }
+        }
+        @media(max-width:770px){
+            .signup-container{
+                height: 580px;
+                margin-top: 30px;
+                padding: 0 30px;
+                max-width: 400px;
+            }
+        }
+        @media(max-width:768px){
+            .signup-container{
+                height: 560px;
+                margin-top: 20px;
+                padding: 0 30px;
+                max-width: 400px;
+            }
+        }
+        .form-control:focus {
+            box-shadow: none;
+            border-color: #c9a12f;
+        }
+        .btn-signup {
+            background-color: #c9a12f;
+            color: rgb(255, 255, 255);
+            font-weight: bold;
+            max-width: 300px;
+            width: 100%;
+            margin-top: 20px;
+        }
+        .btn-signup:hover {
+            background-color: #eec50f;
+            color: #fff;
+        }
+        .btn-google {
+            background-color: #2999b6;
+            color: white;
+            width: 300px;
+            font-weight: bold;
+            margin-top: 13px;
+        }
+        .btn-google:hover {
+            background-color: #3dcbf6;
+            color: #fff;
+        }
+        .backToLog{
+            color: black;
+            text-decoration: none;
+        }
+        .backToLog:hover{
+            color: blue;
+            text-decoration: underline;
+        }
+        .btn-div{
+            display: flex;
+            align-items: center;
+        }
+        h2 {
+            font-weight: 700;
+            color: #333;
+        }
+        .option{
+            margin: 20px;
+
+        }
+        .err_msg{
+            color: red;
+            font-size: 10px;
+            display: none;
+        }
+    </style>
+
+    <div class="signup-container">
+        <h2 class="text-center mb-4">Create an Account</h2>
+        <form id="signform" method="POST" action="/signup">
+            <div class="mb-3">
+                <label for="name" class="form-label">Full Name</label>
+                <input type="text" class="form-control" id="name" name="name" placeholder="Enter full name" >
+                <div class="err_msg" id="error1"></div>
+            </div>
+
+            <div class="mb-3">
+                <label for="email" class="form-label">Email address</label>
+                <input type="email" class="form-control" id="email" name="email" placeholder="Enter email address" >
+                <div class="err_msg" id="error2"></div>
+            </div>
+
+            <div class="mb-3">
+                <label for="phone" class="form-label">Phone</label>
+                <input type="tel" class="form-control" id="phone" name="phone" placeholder="Enter phone number" >
+                <div class="err_msg" id="error3"></div>
+            </div>
+
+            <div class="mb-3">
+                <label for="password" class="form-label">Password</label>
+                <input type="password" class="form-control" id="password" name="password" placeholder="Enter password" >
+                <div class="err_msg" id="error4"></div>
+            </div>
+
+            <div class="mb-3">
+                <label for="confirmPassword" class="form-label">Confirm Password</label>
+                <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" placeholder="Enter password" >
+                <div class="err_msg" id="error5"></div>
+            </div>
+
+            <%if(locals.message && message.length > 0){%>
+                <div class="alert alert-danger text-center"><%=message%></div>
+            <%}%>
+            <a href="/login" class="backToLog">Already have an account?</a>
+
+            <div class="btn-div">
+                <button type="submit" class="btn btn-signup w-100 mb-2">Sign Up</button>
+                <p class="option">or</p>
+                <a href="/auth/google" class="btn btn-google w-100"><i class="bi bi-google"></i> Google</a>
+            </div>
+        </form>
+    </div>
+
+    <script>
+
+        const name = document.getElementById("name");
+        const email = document.getElementById("email");
+        const phone = document.getElementById("phone");
+        const password = document.getElementById("password");
+        const confirmPassword = document.getElementById("confirmPassword");
+
+        const error1 = document.getElementById("error1");
+        const error2 = document.getElementById("error2");
+        const error3 = document.getElementById("error3");
+        const error4 = document.getElementById("error4");
+        const error5 = document.getElementById("error5");
+
+        const signform = document.getElementById("signform");
+
+        function nameValidation(e){
+
+            const nameVal = name.value;
+            const namePattern = /^[A-Za-z\s]+$/;
+
+            if(nameVal.trim() === ""){
+                error1.style.display = "block";
+                error1.innerHTML = "Please Enter Valid Name"
+            }else if(!namePattern.test(nameVal)){
+                error1.style.display = "block";
+                error1.innerHTML = "Name can only contain alphanets and spaces"
+            }else{
+                error1.style.display = "none";
+                error1.innerHTML = "";
+            }
+
+        }
+
+        function emailValidation(e){
+
+            const emaiVal = email.value;
+            const emailPattern = /^([a-zA-Z0-9._-]+)@([a-zA-Z0-9.-]+)\.([a-zA-Z]{2,4})$/;
+
+            if(!emailPattern.test(emaiVal)){
+                error2.style.display = "block";
+                error2.innerHTML = "Invalid Email Address"
+            }else{
+                error2.style.display = "none";
+                error2.innerHTML = "";
+            }
+
+        }
+
+        function phoneValidation(e){
+
+            const phoneVal = phone.value;
+
+            if(phoneVal.trim() === ""){
+                error3.style.display = "block";
+                error3.innerHTML = "Please Enter Valid Phone Number"
+            }else if(phoneVal.length < 10 || phoneVal.length > 10){
+                error3.style.display = "block";
+                error3.innerHTML = "Enter 10 Digit Phone Number"
+            }else{
+                error3.style.display = "none";
+                error3.innerHTML = "";
+            }
+
+        }
+
+        function passwordValidation(){
+
+            const passVal = password.value;
+            const confirmPassVal = confirmPassword.value;
+            const alpha = /[a-zA-z]/;
+            const digit = /\d/;
+
+            if(passVal.length < 8){
+                error4.style.display = "block";
+                error4.innerHTML = "Should contain atleast 8 letters"
+            }else if(!alpha.test(passVal) || !digit.test(passVal)){
+                error4.style.display = "block";
+                error4.innerHTML = "should contain alphabets and numbers";
+            }else{
+                error4.style.display = "none";
+                error4.innerHTML = "";
+            }
+
+            if(passVal !== confirmPassVal){
+                error5.style.display = "block";
+                error5.innerHTML = "Password does't match"
+            }else{
+                error5.style.display = "none";
+                error5.innerHTML = "";
+            }
+
+        }
+
+        document.addEventListener("DOMContentLoaded",function(){
+            signform.addEventListener("submit",function(e){
+
+                nameValidation();
+                emailValidation();
+                phoneValidation();
+                passwordValidation();
+
+                if(!name || !email || !phone || !password || !confirmPassword || !error1 || !error2 || !error3 || !error4 || !error5 || !signform){
+                    console.error("One or More field is empty");
+                }
+
+                if(error1.innerHTML || error2.innerHTML || error3.innerHTML || error4.innerHTML || error5.innerHTML){
+                    e.preventDefault();
+                }
+
+            })
+        })
+
+    </script>
+
