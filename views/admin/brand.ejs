@@ -52,6 +52,16 @@
             <div>
                 <h2 class="content-title card-title">Brands</h2>
             </div>
+            <div>
+                <form method="get" action="/admin/brand">
+                    <input type="text" 
+                    name="search" 
+                    value="<%= typeof search !== 'undefined' ? search : '' %>" 
+                    placeholder="Search Sub Categories" 
+                    class="form-control bg-white">
+                    <button type="submit" class="btn btn-primary mt-2">Search</button>
+                </form>
+            </div>
         </div>
         <div class="card">
             <div class="card-body">
@@ -137,7 +147,7 @@
                 <div class="pagination">
 
                     <% if(currentPage > 1){ %>
-                        <a href="/admin/brand?page=<%= currentPage - 1 %>">&laquo; Previous</a>
+                        <a href="/admin/brand?page=<%= currentPage - 1 %>&search<%= search %>">&laquo; Previous</a>
                     <% } else { %>
                         <span class="disabled">&laquo; Previous</span>
                     <% } %>
@@ -158,7 +168,7 @@
                         <% if(i === currentPage){ %>
                             <span class="current-page"><%= i %></span>
                         <% } else { %>
-                            <a href="/admin/brand?page=<%= i %>"><%= i %></a>
+                            <a href="/admin/brand?page=<%= i %>&search<%= search %>"><%= i %></a>
                         <% } %>
                     <% } %>
 
@@ -170,7 +180,7 @@
                     <% } %>
 
                     <% if(currentPage < totalPage){ %>
-                        <a href="/admin/brand?page=<%= currentPage + 1 %>">Next &raquo;</a>
+                        <a href="/admin/brand?page=<%= currentPage + 1 %>&search<%= search %>">Next &raquo;</a>
                     <% } else { %>
                         <span class="disabled">Next &raquo;</span>
                     <% } %>
