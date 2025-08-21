@@ -58,7 +58,14 @@
                 <p>Add, edit or delete a Sub Category</p>
             </div>
             <div>
-                <input type="text" placeholder="Search Categories" class="form-control bg-white">
+                <form method="get" action="/admin/subCategory">
+                    <input type="text" 
+                    name="search" 
+                    value="<%= typeof search !== 'undefined' ? search : '' %>" 
+                    placeholder="Search Sub Categories" 
+                    class="form-control bg-white">
+                    <button type="submit" class="btn btn-primary mt-2">Search</button>
+                </form>
             </div>
         </div>
         <div class="card">
@@ -179,7 +186,7 @@
             <div class="pagination-container">
                 <div class="pagination">
                     <% if(currentPage > 1){ %>
-                        <a href="/admin/subCategory?page=<%= currentPage - 1 %>">&laquo; Previous</a>
+                        <a href="/admin/subCategory?page=<%= currentPage - 1 %>&search=<%= search %>">&laquo; Previous</a>
                     <% } else { %>
                         <span class="disabled">&laquo; Previous</span>
                     <% } %>
@@ -197,7 +204,7 @@
                         <% if(i === currentPage){ %>
                             <span class="current-page"><%= i %></span>
                         <% } else { %>
-                            <a href="/admin/subCategory?page=<%= i %>"><%= i %></a>
+                            <a href="/admin/subCategory?page=<%= i %>&search=<%= search %>"><%= i %></a>
                         <% } %>
                     <% } %>
                     <% if(currentPage < totalPages - 2){ %>
@@ -207,7 +214,7 @@
                         <a href="/admin/subCategory?page=<%= totalPages %>"><%= totalPages %></a>
                     <% } %>
                     <% if(currentPage < totalPages){ %>
-                        <a href="/admin/subCategory?page=<%= currentPage + 1 %>">Next &raquo;</a>
+                        <a href="/admin/subCategory?page=<%= currentPage + 1 %>&search=<%= search %>">Next &raquo;</a>
                     <% } else { %>
                         <span class="disabled">Next &raquo;</span>
                     <% } %>

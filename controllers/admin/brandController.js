@@ -8,15 +8,26 @@ const loadBrandPage = async function (req,res) {
         const page = parseInt(req.query.page) || 1;
         const limit = 4;
         const skip = (page-1)*limit;
-        const brandData = await Brand.find({}).sort({createdAt:-1}).skip(skip).limit(limit);
-        const totalBrand = await Brand.countDocuments();
+
+        const search = req.query.search||"";
+        const filter = {
+            brandName:{$regex:search,$options:'i'}
+        }
+
+        const brandData = await Brand.find(filter)
+        .skip(skip)
+        .limit(limit)
+        .sort({createdAt:-1});
+        const totalBrand = await Brand.countDocuments(filter);
         const totalPage = Math.ceil(totalBrand/limit);
-        const reverseBrand = brandData.reverse();
+        const reverseBrand = brandData;
+
         res.render("brand",{
             data:reverseBrand,
             currentPage:page,
             totalPage:totalPage,
-            totalBrand:totalBrand
+            totalBrand:totalBrand,
+            search
         })
 
     } catch (error) {

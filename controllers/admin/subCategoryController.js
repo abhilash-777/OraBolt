@@ -10,12 +10,18 @@ const subCategoryInfo = async function (req,res) {
         const limit = 5;
         const skip = (page-1) * limit;
 
-        const subCategoryData = await subCategory.find({})
+        const search = req.query.search || "";
+
+        const filter = {
+            name: { $regex: search, $options: "i" }
+        };
+
+        const subCategoryData = await subCategory.find(filter)
         .populate("categoryId")
         .sort({createdAt:-1})
         .skip(skip)
         .limit(limit);
-        const totalSubCategories = await subCategory.countDocuments();
+        const totalSubCategories = await subCategory.countDocuments(filter);
         const totalPage = Math.ceil(totalSubCategories/limit);
 
         const categories = await Category.find({isListed:true});
@@ -26,6 +32,7 @@ const subCategoryInfo = async function (req,res) {
             totalPages:totalPage,
             totalSubCategory:totalSubCategories,
             categories,
+            search
         });
         
     } catch (error) {
