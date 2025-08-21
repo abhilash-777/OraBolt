@@ -9,7 +9,19 @@ const categoryInfo = async function (req,res) {
         const limit = 4;
         const skip = (page-1) * limit;
 
-        const categoryData = await Category.find({})
+        const searchQuery = req.query.search ? req.query.search.trim() : "";
+
+        let filter = {};
+        if (searchQuery) {
+            filter = {
+                $or: [
+                    { name: { $regex: searchQuery, $options: "i" } },
+                    { description: { $regex: searchQuery, $options: "i" } }
+                ]
+            };
+        }
+
+        const categoryData = await Category.find(filter)
         .skip(skip)
         .limit(limit)
         .sort({createdAt:-1});
@@ -21,7 +33,8 @@ const categoryInfo = async function (req,res) {
             cat:categoryData,
             currentPage:page,
             totalPages:totalPage,
-            totalCategories:totalCategory
+            totalCategories:totalCategory,
+            searchQuery
         })
         
     } catch (error) {
