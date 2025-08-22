@@ -134,10 +134,10 @@
 	<section class="ftco-section bg-light">
 		<div class="container">
 			<div class="row">
-				<!-- Sidebar Filters -->
+				
 				<div class="col-md-4 col-lg-3 mySlidebar">
 					<div class="filter-section">
-						<!-- Search Filter -->
+						
 						<div class="filter-group">
 							<h6><i class="fas fa-search"></i> Search Products</h6>
 							<form id="searchForm">
@@ -153,7 +153,7 @@
 							</form>
 						</div>
 		
-						<!-- Active Filters -->
+						
 						<% if ((currentFilters?.search) || (currentFilters?.category) || (currentFilters?.brand) ||
 							(currentFilters?.color) || (currentFilters?.minPrice) || (currentFilters?.maxPrice)) { %>
 							<div class="filter-group">
@@ -242,7 +242,7 @@
 							</div>
 						</div>
 		
-								<!-- Brand Filter -->
+						
 						<% if (brands && brands.length> 0) { %>
 						    <div class="filter-group">
 				  			    <h6><i class="fas fa-tags"></i> Brands</h6>
@@ -258,7 +258,7 @@
 		
 										
 						<div class="filter-group">
-							<h6><i class="fas fa-dollar-sign"></i> Price Range</h6>
+							<h6><i class="fas fa-rupee-sign"></i> Price Range</h6>
 							<div class="price-range-inputs">
 							    <input type="number" name="minPrice" class="form-control price-input"
 								placeholder="Min" value="<%= currentFilters?.minPrice || '' %>">
@@ -268,7 +268,7 @@
 							</div>
 							<% if (priceRange) { %>
 								<small class="text-muted">
-									Range: $<%= priceRange.minPrice || 0 %> - $<%= priceRange.maxPrice || 10000 %>
+									Range: &#8377;<%= priceRange.minPrice || 0 %> - &#8377;<%= priceRange.maxPrice || 10000 %>
 								</small>
 							<% } %>
 						</div>
@@ -302,9 +302,9 @@
 					</div>
 				</div>
 		
-				<!-- Product List -->
+				
 				<div class="col-md-8 col-lg-9 order-md-last">
-					<!-- Sort and Results Info -->
+					
 					<div class="sort-controls">
 						<div class="row align-items-center">
 							<div class="col-md-6">
@@ -327,8 +327,7 @@
 										<option value="price_low" <%=currentFilters?.sortBy==='price_low' ? 'selected' : '' %>>
 											Price: Low to High
 										</option>
-										<option value="price_high" <%=currentFilters?.sortBy==='price_high' ? 'selected' : '' %>
-											>
+										<option value="price_high" <%=currentFilters?.sortBy==='price_high' ? 'selected' : '' %>>
 											Price: High to Low
 										</option>
 										<option value="name_asc" <%=currentFilters?.sortBy==='name_asc' ? 'selected' : '' %>>
@@ -337,8 +336,7 @@
 										<option value="name_desc" <%=currentFilters?.sortBy==='name_desc' ? 'selected' : '' %>>
 											Name: Z to A
 										</option>
-										<option value="popularity" <%=currentFilters?.sortBy==='popularity' ? 'selected' : '' %>
-											>
+										<option value="popularity" <%=currentFilters?.sortBy==='popularity' ? 'selected' : '' %>>
 											Most Popular
 										</option>
 									</select>
@@ -355,7 +353,7 @@
 						</div>
 					</div>
 		
-					<!-- Products Grid -->
+					
 					<div class="row product-list">
 						<% if (products && products.length> 0) { %>
 							<% products.forEach(product=> { %>
@@ -382,11 +380,11 @@
 												<div class="pricing">
 													<% if (product.productOffer> 0) { %>
 														<p class="price">
-															<span class="mr-2 price-dc">$<%= product.regularPrice %></span>
-															<span class="price-sale">$<%= product.salePrice %></span>
+															<span class="mr-2 price-dc">&#8377;<%= product.regularPrice %></span>
+															<span class="price-sale">&#8377;<%= product.salePrice %></span>
 														</p>
 														<% } else { %>
-															<p class="price"><span>$<%= product.salePrice %></span></p>
+															<p class="price"><span>&#8377;<%= product.salePrice %></span></p>
 															<% } %>
 												</div>
 												<div class="rating">
@@ -423,8 +421,7 @@
                         </div>
                         <div class="pagination-container">
                             <div class="pagination">
-                                <% 
-                                // Build query string for pagination links
+                                <%
                                 const queryParams = new URLSearchParams();
                                 if (currentFilters?.search) queryParams.set('search', currentFilters.search);
                                 if (currentFilters?.subcategories) queryParams.set('subcategories', currentFilters.subcategories);
@@ -493,7 +490,7 @@
 	<script>
 
 		document.addEventListener('DOMContentLoaded', function() {
-            // Handle filter changes
+            
             const filterCheckboxes = document.querySelectorAll('.filter-checkbox, .filter-select');
             filterCheckboxes.forEach(element => {
                 element.addEventListener('change', function() {
@@ -501,19 +498,19 @@
                 });
             });
 
-            // Handle color selection
+            
             const colorOptions = document.querySelectorAll('.color-option');
             colorOptions.forEach(colorOption => {
                 colorOption.addEventListener('click', function() {
-                    // Remove active class from all color options
+                    
                     colorOptions.forEach(option => {
                         option.classList.remove('active');
                     });
             
-                    // Add active class to clicked option
+                    
                     this.classList.add('active');
             
-                    // Set color value
+                    
                     const color = this.getAttribute('data-color');
                     const colorInput = document.querySelector('input[name="color"]');
                     if (colorInput) {
@@ -524,15 +521,17 @@
                 });
             });
 
-            // Handle price range changes
+            
             const priceInputs = document.querySelectorAll('input[name="minPrice"], input[name="maxPrice"]');
-            priceInputs.forEach(input => {
-                input.addEventListener('change', function() {
-                    applyFilters();
-                });
-            });
+            function handlePriceInput(){
+				const min = document.querySelector('input[name="minPrice"]').value;
+                const max = document.querySelector('input[name="maxPrice"]').value;
+                if (min && max) {
+                    debouncedApplyFilters();
+                }
+			}
 
-            // Handle search form
+            
             const searchForm = document.getElementById('searchForm');
             if (searchForm) {
                 searchForm.addEventListener('submit', function(e) {
@@ -541,14 +540,14 @@
                 });
             }
 
-            // Remove active filters
+            
             const removeButtons = document.querySelectorAll('.remove');
             removeButtons.forEach(button => {
                 button.addEventListener('click', function() {
                     const filterType = this.getAttribute('data-filter');
                     const filterElement = document.querySelector(`[name="${filterType}"]`);
                     if (filterType === 'price') {
-                        // Clear both min and max price
+                        
                         const minPriceInput = document.querySelector('input[name="minPrice"]');
                         const maxPriceInput = document.querySelector('input[name="maxPrice"]');
                         if (minPriceInput) minPriceInput.value = '';
@@ -559,13 +558,13 @@
                             filterElement.value = '';
                         }
                 
-                        // Special handling for checkboxes
+                        
                         const checkboxes = document.querySelectorAll(`input[name="${filterType}"]`);
                         checkboxes.forEach(checkbox => {
                             checkbox.checked = false;
                         });
                 
-                        // Special handling for color options
+                        
                         if (filterType === 'color') {
                             colorOptions.forEach(option => {
                                 option.classList.remove('active');
@@ -580,25 +579,24 @@
             function applyFilters() {
                 const params = new URLSearchParams();
         
-                // Helper function to get element value
+                
                 function getElementValue(selector) {
                     const element = document.querySelector(selector);
                     return element ? element.value : '';
                 }
         
-                // Helper function to get checked checkbox value
                 function getCheckedValue(name) {
                     const checkedElement = document.querySelector(`input[name="${name}"]:checked`);
                     return checkedElement ? checkedElement.value : '';
                 }
         
-                // Helper function to get active color
+                
                 function getActiveColor() {
                     const activeColor = document.querySelector('.color-option.active');
                     return activeColor ? activeColor.getAttribute('data-color') : '';
                 }
 
-                // Collect all filter values
+                
                 const filters = {
                     search: getElementValue('input[name="search"]'),
                     subcategories: getCheckedValue('subcategories'),
@@ -610,21 +608,21 @@
                     status: getElementValue('select[name="status"]'),
                     sortBy: getElementValue('select[name="sortBy"]'),
                     limit: getElementValue('select[name="limit"]'),
-                    page: 1 // Reset to first page when filtering
+                    page: 1 
                 };
 
-                // Add non-empty values to params
+                
                 Object.keys(filters).forEach(key => {
                     if (filters[key] && filters[key] !== 'all' && filters[key] !== '') {
                         params.append(key, filters[key]);
                     }
                 });
 
-                // Redirect with new filters
+                
                 window.location.href = '/shop?' + params.toString();
             }
 
-            // Optional: Add debouncing for price inputs to avoid too many requests
+            
             function debounce(func, wait) {
                 let timeout;
                 return function executedFunction(...args) {
@@ -637,14 +635,16 @@
                 };
             }
 
-            // Apply debouncing to price inputs (optional)
-            const debouncedApplyFilters = debounce(applyFilters, 1000);
+            
+            const debouncedApplyFilters = debounce(applyFilters, 500);
             priceInputs.forEach(input => {
                 input.removeEventListener('change', applyFilters);
-                input.addEventListener('input', debouncedApplyFilters);
+                input.removeEventListener('input', debouncedApplyFilters);
+
+                input.addEventListener('input', handlePriceInput);
             });
 
-            // Handle Bootstrap collapse for categories (if using Bootstrap)
+            
             const collapseElements = document.querySelectorAll('[data-toggle="collapse"]');
             collapseElements.forEach(element => {
                 element.addEventListener('click', function(e) {
@@ -658,7 +658,7 @@
                             this.classList.add('collapsed');
                             this.setAttribute('aria-expanded', 'false');
                         } else {
-                        // Close other open panels
+                        
                             document.querySelectorAll('.panel-collapse.show').forEach(panel => {
                                 panel.classList.remove('show');
                             });
@@ -667,7 +667,7 @@
                                 toggle.setAttribute('aria-expanded', 'false');
                             });
                     
-                            // Open clicked panel
+                            
                             targetElement.classList.add('show');
                             this.classList.remove('collapsed');
                             this.setAttribute('aria-expanded', 'true');
@@ -676,32 +676,28 @@
                 });
             });
 
-            // Initialize: Set initial states based on current URL parameters
+            
             function initializeFilters() {
 				const urlParams = new URLSearchParams(window.location.search);
 
-				// Set search input
 				const searchValue = urlParams.get('search');
 				if (searchValue) {
 					const searchInput = document.querySelector('input[name="search"]');
 					if (searchInput) searchInput.value = searchValue;
 				}
 
-				// Set category dropdown
 				const categoryValue = urlParams.get('category');
 				if (categoryValue) {
 					const categorySelect = document.querySelector('select[name="category"]');
 					if (categorySelect) categorySelect.value = categoryValue;
 				}
 
-				// Set brand dropdown
 				const brandValue = urlParams.get('brand');
 				if (brandValue) {
 					const brandSelect = document.querySelector('select[name="brand"]');
 					if (brandSelect) brandSelect.value = brandValue;
 				}
 
-				// Set price inputs
 				const minPrice = urlParams.get('minPrice');
 				const maxPrice = urlParams.get('maxPrice');
 				if (minPrice) {
@@ -713,7 +709,6 @@
 					if (maxPriceInput) maxPriceInput.value = maxPrice;
 				}
 
-				// Set color selection
 				const colorValue = urlParams.get('color');
 				if (colorValue) {
 					const colorOption = document.querySelector(`[data-color="${colorValue}"]`);
@@ -723,36 +718,31 @@
 					}
 				}
 
-				// Set status dropdown
 				const statusValue = urlParams.get('status');
 				if (statusValue) {
 					const statusSelect = document.querySelector('select[name="status"]');
 					if (statusSelect) statusSelect.value = statusValue;
 				}
 
-				// Set sort dropdown
 				const sortValue = urlParams.get('sortBy');
 				if (sortValue) {
 					const sortSelect = document.querySelector('select[name="sortBy"]');
 					if (sortSelect) sortSelect.value = sortValue;
 				}
 
-				// Set limit dropdown
 				const limitValue = urlParams.get('limit');
 				if (limitValue) {
 					const limitSelect = document.querySelector('select[name="limit"]');
 					if (limitSelect) limitSelect.value = limitValue;
 				}
 
-				// Set subcategory checkboxes
 				const subcategoriesValue = urlParams.get('subcategories');
 				if (subcategoriesValue) {
 					const subcategoryCheckbox = document.querySelector(`input[name="subcategories"][value="${subcategoriesValue}"]`);
 					if (subcategoryCheckbox) subcategoryCheckbox.checked = true;
 				}
 			}
-    
-            // Initialize filters on page load
+
             initializeFilters();
         });
 
