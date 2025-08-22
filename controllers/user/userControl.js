@@ -5,7 +5,7 @@ const subCategory = require("../../models/subCategorySchema");
 const Brand = require("../../models/brandSchema");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
-const { search } = require("../../routers/userRouter");
+
 require("dotenv").config();
 
 const loadSignup = async function (req, res) {
