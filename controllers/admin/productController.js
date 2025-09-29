@@ -49,7 +49,12 @@ const processImages = async function (files,folderName) {
         const resizedPath = path.join(uploadDir,resizedFilename);
         try {
             await sharp(originalPath)
-            .resize({width:440,height:440})
+            .resize({
+                width:1200,
+                height:1200,
+                fit:"inside",
+                withoutEnlargement:true
+            })
             .toFile(resizedPath);
             images.push(resizedFilename);
             if(fs.existsSync(originalPath)){
@@ -122,11 +127,16 @@ const loadProductsList = async function (req,res) {
         const brand = await Brand.find();
         const category = await Category.find({isListed:true});
         const subcategory = await subCategory.find({isListed:true});
-        const page = 1;
+        const page = req.query.page||1;
         const limit = 6;
+        const skip = (page-1)*limit;
+
         const productData = await Product.find()
         .populate("category","name")
         .populate("brand","brandName")
+        .skip(skip)
+        .limit(limit)
+        .sort({createdAt:-1})
         .lean();
         const totalProduct = await Product.countDocuments();
         const totalPage = Math.ceil(totalProduct/limit);

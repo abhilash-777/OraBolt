@@ -22,13 +22,11 @@ const login = async function (req, res) {
         //console.log("stored admin data:", admin);
 
         if (!admin) {
-            console.log("No admin found");
-            return res.redirect("/admin/login");
+            return res.render("login",{message:"Admin not found"});
         }
         const passwordMatch = await bcrypt.compare(password, admin.password);
         if(!passwordMatch){
-            console.error("password is does not match!");
-            return res.redirect("/admin/login");
+            return res.render("login",{message:"Password does not match"});
         }
         req.session.admin = {
             id:admin._id,

@@ -2,7 +2,7 @@
 
     <link  href="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.css" rel="stylesheet">
 
-    <section class="content-main">
+        <section class="content-main">
         <div class="row">
             <div class="col-6">
                 <div class="content-header">
@@ -190,8 +190,14 @@
 
                     if (cropper) cropper.destroy();
                     cropper = new Cropper(imageToCrop, {
-                        aspectRatio: 1,
-                        viewMode: 1
+                        aspectRatio: NaN,
+                        viewMode: 0,
+                        autoCropArea:1,
+                        responsive:true,
+                        movable:true,
+                        zoomable:true,
+                        scalable:true,
+                        cropBoxResizable:true
                     });
                 };
                 reader.readAsDataURL(file);
@@ -200,7 +206,7 @@
             saveCropBtn.addEventListener("click", () => {
                 if (!cropper) return;
 
-                cropper.getCroppedCanvas({ width: 400, height: 440 }).toBlob((blob) => {
+                cropper.getCroppedCanvas().toBlob((blob) => {
                     const file = new File([blob],`Product-${Date.now()}.png`,{type:"image/png"});
                     cropInstance.push(file);
 
