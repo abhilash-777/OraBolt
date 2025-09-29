@@ -38,7 +38,8 @@ const customerInfo = async function (req,res) {
             data:userData,
             currentPage:page,
             totalPages:totalPage,
-            totalUsers:count
+            totalUsers:count,
+            search
         });
 
     } catch (error) {

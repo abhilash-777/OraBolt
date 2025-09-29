@@ -35,6 +35,9 @@
                 <div class="card-body">
                     <h4 class="card-title mb-4">Login</h4>
                     <form action="/admin/login" method="post" id="loginForm" >
+                        <% if (message) { %>
+                            <div style="color: red; margin-bottom: 10px;"><%= message %></div>
+                        <% } %>
                         <div class="mb-3">
                             <input class="form-control" id="email" name="email" placeholder="Username or email" type="text">
                             <small id="emailError" style="color: red;"></small>
