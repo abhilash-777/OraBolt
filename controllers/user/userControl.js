@@ -5,6 +5,7 @@ const subCategory = require("../../models/subCategorySchema");
 const Brand = require("../../models/brandSchema");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
+const { default: mongoose } = require("mongoose");
 
 require("dotenv").config();
 
@@ -267,9 +268,9 @@ const logout = async function (req,res) {
 
 const pageNotFound = async function (req, res) {
     try {
-        res.render("page-404")
+        res.status(404).render("page-404",{error:"Page Not Found"})
     } catch (error) {
-        res.redirect("/pageNotFound");
+        console.log("error handling error:",error);
     }
 };
 
@@ -447,22 +448,29 @@ const loadProduct = async function (req,res) {
     try {
 
         const user = req.session.user;
-        console.log("session log",req.session?.user);
+        // console.log("session log",req.session?.user);
+
         if (user) {
             const userData = await User.findById(req.session?.user?._id);
             const productId = req.params.id;
+            if(!mongoose.Types.ObjectId.isValid(productId)){
+                return res.status(400).render("page-404",{error:"Invalid ProductId"});
+            }
             const productData = await Product.findById(productId).lean();
             if(!productData){
-                return res.status(400).json({success:false,error:"product not found"});
+                return res.status(404).render("page-404",{error:"Product Not Found"});
             }
-            return res.render("product", {user:userData, product: productData });
+            const similarProducts = await Product.find({category:productData.category,
+                _id:{$ne:productId}}).limit(6).lean();
+            return res.render("product", {user:userData, product: productData,similarProducts});
+            
         }else{
             return res.render("home",{user:null});
         }
         
     } catch (error) {
-        console.log("product Page Not Found");
-        res.status(404).send("Server Error!")
+        console.log("Error occure in page loading:",error);
+        return res.status(500).render("page-404",{error:"Something went wrong.Please try again"})
     }
     
 };

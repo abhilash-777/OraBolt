@@ -9,11 +9,11 @@
             font-family: "Nunito Sans", sans-serif;
         }
 
-        .container {
+        .verifyOtp {
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100%;
+            height: 90%;
         }
 
         .login_wrap {
@@ -67,11 +67,8 @@
         }
 
         .btn-primary {
-            background-color: #c9a12f;
-            border: none;
             width: 100%;
             margin-top: 10px;
-            display: block;
         }
 
         .btn-primary:hover {
@@ -83,7 +80,6 @@
             background-color: #db4437;
             border: none;
             margin-top: 10px;
-            display: block;
         }
 
         .btn-secondary:hover {
@@ -110,7 +106,7 @@
         }
     </style>
 
-    <div class="container">
+    <div class="container verifyOtp">
         <div class="login_wrap">
             <div class="padding_eight_all bg-white">
                 <div class="heading_s1">
@@ -119,14 +115,15 @@
                 <form id="otpForm" method="post" >
                     <div class="form-group">
                         <label for="otp">Enter OTP:</label>
-                        <input type="text" id="otp" name="otp" class="form-control" required maxlength="6" pattern="\d*" />
+                        <input type="text" id="otp" name="otp" class="form-control" />
+                        <small id="otpError" style="font-size: 11px;color: red;"></small>
                     </div>
-                    <button type="submit" class="btn btn-primary">Verify Email</button>
+                    <button type="submit" id="verifyBtn" class="btn btn-primary" style="display: block;" >Verify Email</button>
                     <div class="form-group text-center">
                         <div id="otpTimer" class="otp-timer">
                             <span id="timerValue">60</span>
                         </div>
-                        <button type="button" class="btn btn-secondary" id="resendBtn" >Resend OTP</button>
+                        <button type="button" class="btn btn-secondary" id="resendBtn" style="display: none;" >Resend OTP</button>
                     </div>
                     <% if (locals.message && message.length> 0) { %>
                         <div class="alert alert-danger">
@@ -143,24 +140,45 @@
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        function validateOtp(otp){
+            const otpInput = otp.trim();
+            const errorMsg = document.getElementById("otpError");
+            errorMsg.textContent = ""
+            let isValid = true
+            if(!otpInput){
+                errorMsg.textContent = "OTP should required";
+                isValid = false;
+            }else if(otpInput.length !== 6 || !/^\d{6}$/.test(otpInput)){
+                errorMsg.textContent = "Invalid OTP format,(valid OTP is 6-digit)"
+                isValid = false
+            }
+            return isValid
+        }
+
         document.getElementById("otp").focus();
         let timerInterval;
 
         function startTimer(duration = 60) {
             clearInterval(timerInterval);
             let timer = duration;
+            document.getElementById("verifyBtn").style.display = "block";
             document.getElementById("otp").disabled = false;
+            document.querySelectorAll("#otpForm button[type='submit']").disabled = false;
             document.getElementById("timerValue").classList.remove("expired");
             document.getElementById("timerValue").textContent = timer;
+            document.getElementById("resendBtn").style.display = "none";
 
             timerInterval = setInterval(() => {
                 timer--;
                 document.getElementById("timerValue").textContent = timer;
                 if(timer < 0){
                     clearInterval(timerInterval);
+                    document.getElementById("verifyBtn").style.display = "none";
                     document.getElementById("timerValue").classList.add("expired");
                     document.getElementById("timerValue").textContent = "Expired";
                     document.getElementById("otp").disabled = true;
+                    document.querySelectorAll("#otpForm button[type='submit']").disabled = true;
+                    document.getElementById("resendBtn").style.display = "block";
                 }
             },1000);
         }
@@ -168,9 +186,8 @@
 
         document.getElementById("otpForm").addEventListener("submit",async function (event) {
             event.preventDefault();
-
             const otpInput = document.getElementById('otp').value;
-
+            if(!validateOtp(otpInput))return
             try {
                 const res = await fetch("/verify-otp",{
                     method:"POST",

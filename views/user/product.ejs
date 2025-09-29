@@ -1,5 +1,316 @@
 <%-include("../partials/user/header.ejs") %>
 
+    <style>
+		.product-image-gallery {
+    position: relative;
+    width: 100%;
+}
+
+.main-image-container {
+    position: relative;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    background: #f8f9fa;
+}
+
+.main-image {
+    width: 100%;
+    height: 450px;
+    object-fit: cover;
+    cursor: zoom-in;
+    transition: all 0.4s ease;
+    display: block;
+}
+
+.main-image:hover {
+    transform: scale(1.03);
+}
+
+
+.image-counter {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    z-index: 10;
+    backdrop-filter: blur(10px);
+}
+
+
+.thumbnail-container {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding: 15px 5px;
+    margin-top: 10px;
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: #dee2e6 #f8f9fa;
+}
+
+.thumbnail-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.thumbnail-container::-webkit-scrollbar-track {
+    background: #f8f9fa;
+    border-radius: 10px;
+}
+
+.thumbnail-container::-webkit-scrollbar-thumb {
+    background: #dee2e6;
+    border-radius: 10px;
+    transition: background 0.3s ease;
+}
+
+.thumbnail-container::-webkit-scrollbar-thumb:hover {
+    background: #adb5bd;
+}
+
+
+.thumbnail {
+    flex-shrink: 0;
+    width: 85px;
+    height: 85px;
+    object-fit: cover;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 3px solid transparent;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    opacity: 0.8;
+}
+
+.thumbnail:hover {
+    transform: translateY(-2px) scale(1.05);
+    border-color: #0066cc;
+    opacity: 1;
+    box-shadow: 0 4px 15px rgba(0, 102, 204, 0.3);
+}
+
+.thumbnail.active {
+    border-color: #007bff;
+    transform: translateY(-2px) scale(1.05);
+    opacity: 1;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
+}
+
+
+.image-zoom-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.95);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+    cursor: pointer;
+    animation: fadeIn 0.3s ease;
+}
+
+.image-zoom-modal img {
+    max-width: 90%;
+    max-height: 90%;
+    object-fit: contain;
+    border-radius: 8px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+
+.gallery-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    border: none;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+    z-index: 5;
+}
+
+.gallery-nav:hover {
+    background: rgba(0, 0, 0, 0.8);
+    transform: translateY(-50%) scale(1.1);
+}
+
+.gallery-nav.prev {
+    left: 15px;
+}
+
+.gallery-nav.next {
+    right: 15px;
+}
+
+
+.image-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 450px;
+    background: #f8f9fa;
+    border-radius: 12px;
+}
+
+.loading-spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e9ecef;
+    border-top: 4px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
+.product-details h3 {
+    font-size: 2.2rem;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 15px;
+    line-height: 1.2;
+}
+
+.product-price {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #e74c3c;
+    margin-bottom: 20px;
+}
+
+.product-description {
+    color: #6c757d;
+    line-height: 1.6;
+    margin-bottom: 25px;
+    font-size: 1.1rem;
+}
+
+.stock-info {
+    background: #d4edda;
+    color: #155724;
+    padding: 8px 15px;
+    border-radius: 6px;
+    display: inline-block;
+    font-weight: 500;
+    margin-bottom: 20px;
+}
+
+.stock-info.low-stock {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+
+@media (max-width: 992px) {
+    .product-details {
+        padding-left: 0 !important;
+        margin-top: 30px;
+    }
+}
+
+@media (max-width: 768px) {
+    .main-image {
+        height: 300px;
+    }
+    
+    .thumbnail {
+        width: 70px;
+        height: 70px;
+    }
+    
+    .thumbnail-container {
+        gap: 8px;
+        padding: 10px 0;
+    }
+    
+    .product-details h3 {
+        font-size: 1.8rem;
+    }
+    
+    .gallery-nav {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+    
+    .image-counter {
+        font-size: 12px;
+        padding: 6px 10px;
+    }
+}
+
+@media (max-width: 576px) {
+    .main-image {
+        height: 250px;
+    }
+    
+    .thumbnail {
+        width: 60px;
+        height: 60px;
+    }
+    
+    .product-details h3 {
+        font-size: 1.6rem;
+    }
+    
+    .thumbnail-container {
+        gap: 6px;
+    }
+}
+
+
+* {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.thumbnail,
+.main-image,
+.gallery-nav {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+}
+
+
+.thumbnail:focus,
+.gallery-nav:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 2px;
+}
+
+.main-image:focus {
+    outline: 2px solid #007bff;
+    outline-offset: 4px;
+}
+	</style>
+
 	<div class="hero-wrap hero-bread" style="background-image: url('/images/bg_6.jpg');">
 		<div class="container">
 			<div class="row no-gutters slider-text align-items-center justify-content-center">
@@ -15,10 +326,44 @@
 		<div class="container">
 			<div class="row">
 				<div class="col-lg-6 mb-5 ftco-animate">
-					<a href="/product/<%= product._id %>" class="image-popup prod-img-bg">
-						<img src="/uploads/productsImages/<%= product.image && product.image.length ? product.image[0]:'default.png' %>" 
-						class="img-fluid" alt="<%= product.productName %>"></a>
-				</div>
+                <div class="product-image-gallery">
+                    <!-- Main Image Display -->
+                    <div class="main-image-container">
+                        <% if (product.image && product.image.length > 0) { %>
+                            <img id="mainImage" 
+                                 src="/uploads/productsImages/<%= product.image[0] %>" 
+                                 class="img-fluid main-image" 
+                                 alt="<%= product.productName %>"
+                                 style="width: 100%; height: 400px; object-fit: cover; cursor: zoom-in;">
+                        <% } else { %>
+                            <img id="mainImage" 
+                                 src="/uploads/productsImages/default.png" 
+                                 class="img-fluid main-image" 
+                                 alt="<%= product.productName %>"
+                                 style="width: 100%; height: 400px; object-fit: cover;">
+                        <% } %>
+                        
+                        <!-- Image Counter -->
+                        <div class="image-counter" style="position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 20px; font-size: 12px;">
+                            <span id="currentImageIndex">1</span> / <span id="totalImages"><%= product.image ? product.image.length : 1 %></span>
+                        </div>
+                    </div>
+                    
+                    <!-- Thumbnail Images -->
+                    <% if (product.image && product.image.length > 1) { %>
+                        <div class="thumbnail-container" 
+                             style="display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; margin-top: 15px;">
+                            <% product.image.forEach((image, index) => { %>
+                                <img src="/uploads/productsImages/<%= image %>" 
+                                     alt="<%= product.productName %> - Image <%= index + 1 %>" 
+                                     class="thumbnail <%= index === 0 ? 'active' : '' %>" 
+                                     data-index="<%= index %>"
+                                     style="flex-shrink: 0; width: 80px; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; border: 2px solid <%= index === 0 ? '#007bff' : 'transparent' %>;">
+                            <% }); %>
+                        </div>
+                    <% } %>
+                </div>
+            </div>
 				<div class="col-lg-6 product-details pl-md-5 ftco-animate">
 					<h3><%= product.productName %></h3>
 					<div class="rating d-flex">
@@ -76,9 +421,6 @@
 						<a href="/checkout/<%= product._id %>" class="btn btn-primary py-3 px-5">Buy now</a></p>
 				</div>
 			</div>
-
-
-
 
 			<div class="row mt-5">
 				<div class="col-md-12 nav-link-wrap">
@@ -255,32 +597,187 @@
 					</div>
 				</div>
 			</div>
+
+            <div class="container mt-5">
+                <h3 class="mb-4">Similar Products</h3>
+                <div class="row">
+                    <% if (similarProducts && similarProducts.length> 0) { %>
+                        <% similarProducts.forEach(product=> { %>
+                            <div class="col-sm-12 col-md-6 col-lg-3 ftco-animate d-flex mb-4">
+                                <div class="product d-flex flex-column">
+                                    <a href="/product/<%= product._id %>" class="img-prod">
+                                        <img class="img-fluid" src="/uploads/productsImages/<%= product.image[0] %>"
+                                            alt="<%= product.productName %>"
+                                            onerror="this.src='/uploads/productsImages/default.jpg'">
+                                        <% if (product.productOffer> 0) { %>
+                                            <span class="status">
+                                                <%= product.productOffer %>% OFF
+                                            </span>
+                                            <% } %>
+                                                <div class="overlay"></div>
+                                    </a>
+                                    <div class="text py-3 pb-4 px-3">
+                                        <div class="d-flex justify-content-between">
+                                            <h3><a href="/product/<%= product._id %>">
+                                                    <%= product.productName %>
+                                                </a></h3>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="pricing">
+                                                <% if (product.productOffer> 0) { %>
+                                                    <p class="price">
+                                                        <span class="mr-2 price-dc">&#8377;<%= product.regularPrice %></span>
+                                                        <span class="price-sale">&#8377;<%= product.salePrice %></span>
+                                                    </p>
+                                                    <% } else { %>
+                                                        <p class="price"><span>&#8377;<%= product.salePrice %></span></p>
+                                                        <% } %>
+                                            </div>
+                                            <div class="rating">
+                                                <span class="text-muted small">
+                                                    <%= product.status %>
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        <% }) %>
+                    <% } else { %>
+                        <p>No similar product found.</p>
+                    <% } %>
+                </div>
+            </div>
+
 		</div>
 	</section>
 
 
 	<script>
-		$(document).ready(function () {
 
-			var quantitiy = 0;
-			$('.quantity-right-plus').click(function (e) {
-				e.preventDefault();
-				var quantity = parseInt($('#quantity').val());
+		document.addEventListener('DOMContentLoaded', function() {
+    
+    const productImages = [
+        <% if (product.image && product.image.length > 0) { %>
+            <% product.image.forEach((image, index) => { %>
+                '<%= "/uploads/productsImages/" + image %>'<%= index < product.image.length - 1 ? ',' : '' %>
+            <% }); %>
+        <% } else { %>
+            '/uploads/productsImages/default.png'
+        <% } %>
+    ];
 
-				$('#quantity').val(quantity + 1);
+    let currentImageIndex = 0;
+    const mainImage = document.getElementById('mainImage');
+    const thumbnails = document.querySelectorAll('.thumbnail');
+    const currentImageIndexElement = document.getElementById('currentImageIndex');
 
-			});
+    
+    thumbnails.forEach((thumbnail, index) => {
+        thumbnail.addEventListener('click', () => {
+            switchImage(index);
+        });
+    });
 
-			$('.quantity-left-minus').click(function (e) {
-				e.preventDefault();
-				var quantity = parseInt($('#quantity').val());
+    function switchImage(index) {
+        if (index >= 0 && index < productImages.length) {
+            
+            mainImage.src = productImages[index];
+            
+            
+            thumbnails.forEach(thumb => thumb.classList.remove('active'));
+            if (thumbnails[index]) {
+                thumbnails[index].classList.add('active');
+                thumbnails[index].style.borderColor = '#007bff';
+            }
+            
+            
+            thumbnails.forEach((thumb, i) => {
+                if (i !== index) {
+                    thumb.style.borderColor = 'transparent';
+                }
+            });
+            
+            
+            currentImageIndex = index;
+            if (currentImageIndexElement) {
+                currentImageIndexElement.textContent = index + 1;
+            }
+        }
+    }
 
-				if (quantity > 0) {
-					$('#quantity').val(quantity - 1);
-				}
-			});
+    
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft' && currentImageIndex > 0) {
+            switchImage(currentImageIndex - 1);
+        } else if (e.key === 'ArrowRight' && currentImageIndex < productImages.length - 1) {
+            switchImage(currentImageIndex + 1);
+        }
+    });
 
-		});
+    
+    document.querySelector('.quantity-left-minus')?.addEventListener('click', function() {
+        const quantityInput = document.getElementById('quantity');
+        const currentValue = parseInt(quantityInput.value);
+        if (currentValue > 1) {
+            quantityInput.value = currentValue - 1;
+        }
+    });
+
+    document.querySelector('.quantity-right-plus')?.addEventListener('click', function() {
+        const quantityInput = document.getElementById('quantity');
+        const currentValue = parseInt(quantityInput.value);
+        const maxValue = parseInt(quantityInput.max) || 100;
+        if (currentValue < maxValue) {
+            quantityInput.value = currentValue + 1;
+        }
+    });
+
+    
+    mainImage.addEventListener('click', function() {
+        
+        const modal = document.createElement('div');
+        modal.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            cursor: pointer;
+        `;
+        
+        const zoomedImg = document.createElement('img');
+        zoomedImg.src = this.src;
+        zoomedImg.style.cssText = `
+            max-width: 90%;
+            max-height: 90%;
+            object-fit: contain;
+        `;
+        
+        modal.appendChild(zoomedImg);
+        document.body.appendChild(modal);
+        
+        
+        modal.addEventListener('click', () => {
+            document.body.removeChild(modal);
+        });
+        
+        
+        const handleEscape = (e) => {
+            if (e.key === 'Escape') {
+                document.body.removeChild(modal);
+                document.removeEventListener('keydown', handleEscape);
+            }
+        };
+        document.addEventListener('keydown', handleEscape);
+    });
+});
+
 	</script>
 
 
