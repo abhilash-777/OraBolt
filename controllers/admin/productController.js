@@ -127,18 +127,28 @@ const loadProductsList = async function (req,res) {
         const brand = await Brand.find();
         const category = await Category.find({isListed:true});
         const subcategory = await subCategory.find({isListed:true});
-        const page = req.query.page||1;
+
+        const page = parseInt(req.query.page)||1;
         const limit = 6;
         const skip = (page-1)*limit;
 
-        const productData = await Product.find()
+        const filter = {};
+
+        if(req.query.category && req.query.category !== ""){
+            filter.category = req.query.category;
+        }
+        if(req.query.status && req.query.status !== "all"){
+            filter.status = req.query.status;
+        }
+
+        const productData = await Product.find(filter)
         .populate("category","name")
         .populate("brand","brandName")
         .skip(skip)
         .limit(limit)
         .sort({createdAt:-1})
         .lean();
-        const totalProduct = await Product.countDocuments();
+        const totalProduct = await Product.countDocuments(filter);
         const totalPage = Math.ceil(totalProduct/limit);
 
         const successMessage = req.query.success;
@@ -147,6 +157,7 @@ const loadProductsList = async function (req,res) {
         if(category && brand && subcategory){
             res.render("products",{
                 category: category,
+                query:req.query,
                 brand: brand,
                 subcategory: subcategory,
                 currentPage: page,

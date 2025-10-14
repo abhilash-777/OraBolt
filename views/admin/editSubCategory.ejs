@@ -66,7 +66,7 @@
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ name, description,categoryId })
+                body: JSON.stringify({name,description,categoryId})
             })
             .then((response) => response.json())
             .then((data) => {
@@ -74,7 +74,7 @@
                     Swal.fire({
                         icon: "success",
                         title: "Success!",
-                        text: "Category added successfully",
+                        text: "Sub Category updated successfully",
                         timer: 1000,
                         showConfirmButton: false
                     }).then(() => {
@@ -104,10 +104,7 @@
             const description = document.getElementById("description").value.trim();
             let isValid = true;
 
-            if (name === "") {
-                displayErrorMessage("name-error", "Please enter a name");
-                isValid = false;
-            } else if (!/^[a-zA-Z\s]+$/.test(name)) {
+            if (name === ""||!/^[a-zA-Z\s]+$/.test(name)) {
                 displayErrorMessage("name-error", "Category name should contain alphabetic characters");
                 isValid = false;
             } else if (name.length < 3 || name.length > 20) {
@@ -141,33 +138,6 @@
                 element.style.display = "none";
             });
         }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const nameInput = document.getElementById('name');
-            const descriptionInput = document.getElementById('description');
-
-            if (nameInput) {
-                nameInput.addEventListener('blur', function () {
-                    const name = this.value.trim();
-                    if (name && !/^[a-zA-Z\s]+$/.test(name)&&name.length < 3) {
-                        displayErrorMessage("name-error", "Category name should contain atleast 3 , alphabetic characters");
-                    } else {
-                        document.getElementById("name-error").style.display = "none";
-                    }
-                });
-            }
-
-            if (descriptionInput) {
-                descriptionInput.addEventListener('blur', function () {
-                    const description = this.value.trim();
-                    if (description && description.length < 5) {
-                        displayErrorMessage("description-error", "Description must be at least 5 characters long");
-                    } else {
-                        document.getElementById("description-error").style.display = "none";
-                    }
-                });
-            }
-        });
 
     </script>
 

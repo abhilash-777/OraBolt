@@ -7480,6 +7480,7 @@ button.bg-secondary:focus {
 
 .bg-success {
   background-color: #28a745 !important;
+  color: white;
 }
 
 a.bg-success:hover,
@@ -11719,7 +11720,7 @@ a {
   -webkit-transition: .3s all ease;
   -o-transition: .3s all ease;
   transition: .3s all ease;
-  color: #dbcc8f;
+  color: #fff;
 }
 
 a:hover,
@@ -13386,9 +13387,10 @@ h5,
 }
 
 .table tbody tr td {
+  width: 10%;
   text-align: center !important;
   vertical-align: middle;
-  padding: 40px 10px;
+  padding: 30px 10px;
   border: 1px solid transparent !important;
   border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
 }
@@ -13413,7 +13415,7 @@ h5,
 }
 
 .table tbody tr td.quantity {
-  width: 20%;
+  width: 7%;
 }
 
 .table tbody tr td.image-prod .img {
@@ -13424,7 +13426,7 @@ h5,
 }
 
 .table tbody tr td.product-name {
-  width: 30%;
+  width: 10%;
 }
 
 .table tbody tr td.product-name h3 {
@@ -13442,13 +13444,15 @@ h5,
 .cart-wrap .btn-primary {
   display: block;
   width: 100%;
+  margin-top: 10px;
 }
 
 .cart-total {
   width: 100%;
   display: block;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.20);
   padding: 20px;
+  border-radius: 10px;
 }
 
 .cart-total h3 {

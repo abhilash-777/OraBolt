@@ -5,6 +5,7 @@ const categoryController = require('../controllers/admin/categoryController');
 const subCategoryController = require("../controllers/admin/subCategoryController");
 const brandController = require("../controllers/admin/brandController");
 const productController = require("../controllers/admin/productController");
+const orderController = require("../controllers/admin/orderController");
 const { adminAuth, userAuth } = require("../middlewares/auth");
 const multer = require("multer");
 const {uploadBrand,uploadProduct} = require("../utils/multer");
@@ -74,5 +75,18 @@ router.get("/productLists",productController.loadProductsList);
 router.get("/productLists/edit/:id",productController.loadEditProduct);
 router.post("/productLists/edit/:id",uploadProduct.array("croppedImages",10),productController.editProduct);
 router.post('/productLists/toggleList',productController.toggleList);
+
+//order Management
+router.get("/order-list", orderController.loadOrderList);
+router.get("/order-details/:id", orderController.loadOrderDetails);
+router.post("/order-edit/:id", orderController.updateOrder);
+router.post("/order-delete/:id", orderController.deleteOrder);
+// Update overall order status
+router.post("/order-status/:id", orderController.updateOrderStatus);
+router.post("/order/payment-status/:id", orderController.updatePaymentStatus);
+router.post("/order/item-status/:orderId/:itemId", orderController.updateItemStatus);
+// Update return request status (Approve / Reject)
+router.post("/order/item-return/:orderId/:itemId", orderController.handleReturnDecision);
+
 
 module.exports = router;

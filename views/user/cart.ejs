@@ -1,12 +1,14 @@
-<%-include("../partials/user/header.ejs")%>
-
+<%- include("../partials/user/header.ejs") %>
 
 	<div class="hero-wrap hero-bread" style="background-image: url('/images/bg_6.jpg');">
 		<div class="container">
 			<div class="row no-gutters slider-text align-items-center justify-content-center">
 				<div class="col-md-9 ftco-animate text-center">
-					<p class="breadcrumbs"><span class="mr-2"><a href="/">Home</a></span> <span>Cart</span></p>
-					<h1 class="mb-0 bread">My Wishlist</h1>
+					<p class="breadcrumbs">
+						<span class="mr-2"><a href="/">Home</a></span>
+						<span>Cart</span>
+					</p>
+					<h1 class="mb-0 bread">My Cart</h1>
 				</div>
 			</div>
 		</div>
@@ -29,92 +31,149 @@
 								</tr>
 							</thead>
 							<tbody>
-								<tr class="text-center">
-									<td class="product-remove"><a href="#"><span class="ion-ios-close"></span></a></td>
-
-									<td class="image-prod">
-										<div class="img">
-											<img src="/uploads/productsImages/<%= product.image && product.image.length ? product.image[0]:'default.png' %>"
-											 alt="<%= product.productName %>" style="width: 80px; height: 80px; margin-top: 30px;">
-										</div>
-									</td>
-
-									<td class="product-name">
-										<h3><%= product.productName %></h3>
-									</td>
-
-									<td class="price">&#8377;<%= product.regularPrice %></td>
-
-									<td class="quantity">
-										<div class="input-group mb-3">
-											<input type="text" name="quantity"
-												class="quantity form-control input-number" value="1" min="1" max="100">
-										</div>
-									</td>
-
-									<td class="total">&#8377;<%= product.regularPrice %></td>
-								</tr><!-- END TR-->
+								<% if (cartItems.length> 0) { %>
+									<% cartItems.forEach(item=> { %>
+										<tr class="text-center <%= item.isOutOfStock ? 'text-muted' : '' %>">
+											<td class="product-remove">
+												<a href="/cart/remove/<%= item.productId._id %>"><span class="ion-ios-close"></span></a>
+											</td>
+											<td class="image-prod">
+												<img src="/uploads/productsImages/<%= item.productId.image[0] %>" width="80" height="80">
+											</td>
+											<td class="product-name">
+												<a href="/product/<%= item.productId._id %>" style="color: black;" >
+													<%= item.productId?.productName %>
+												</a><br>
+												<% if (item.availabilityStatus === "Available") { %>
+                                                    <small class="text-success">Available</small>
+                                                <% } else if (item.availabilityStatus === "Out of Stock") { %>
+                                                    <small class="text-warning">Out of Stock</small>
+                                                <% } else { %>
+                                                    <small class="text-danger">Not Available</small>
+                                                <% } %>
+											</td>
+											<td class="price">&#8377;<%= item.price %></td>
+											<td class="quantity align-middle">
+												<div class="input-group input-group-sm justify-content-center" style="max-width: 130px;">
+													<button class="btn btn-outline-dark btn-sm decrease" data-id="<%= item.productId._id %>"
+														style="width:35px; border-radius: 6px 0 0 6px;" 
+														<%= item.isOutOfStock ? 'disabled' : '' %> >−</button>
+													<input type="text" class="form-control text-center border-dark" value="<%= item.quantity %>" readonly
+														style="max-width: 55px;">
+													<button class="btn btn-outline-dark btn-sm increase" data-id="<%= item.productId._id %>"
+														style="width:35px; border-radius: 0 6px 6px 0;" 
+														<%= item.isOutOfStock ? 'disabled' : '' %> >+</button>
+												</div>
+											</td>
+											<td class="total">&#8377;<%= item.totalPrice = item.quantity * item.price %></td>
+										</tr>
+									<% }) %>
+								<% } else { %>
+									<tr>
+										<td colspan="6" class="text-center py-5">
+                                            <div>
+                                                <h5 class="mb-3">Your cart is empty</h5>
+                                                <a href="/shop" class="btn btn-primary px-4 py-2">Start Shopping</a>
+                                            </div>
+                                        </td>
+									</tr>
+								<% } %>
 							</tbody>
 						</table>
 					</div>
 				</div>
 			</div>
-			<div class="row justify-content-start">
-				<div class="col col-lg-5 col-md-6 mt-5 cart-wrap ftco-animate">
-					<div class="cart-total mb-3">
-						<h3>Cart Totals</h3>
-						<p class="d-flex">
-							<span>Subtotal</span>
-							<span>&#8377;<%= product.regularPrice %></span>
-						</p>
-						<p class="d-flex">
-							<span>Delivery</span>
-							<span>&#8377;0.00</span>
-						</p>
-						<p class="d-flex">
-							<span>Discount</span>
-							<span>&#8377;0.00</span>
-						</p>
-						<hr>
-						<p class="d-flex total-price">
-							<span>Total</span>
-							<span>&#8377;<%= product.regularPrice %></span>
+
+			<% if (cartItems && cartItems.length> 0) {
+				const subTotal = cartItems.reduce((sum, item) => sum + item.totalPrice, 0);
+				%>
+				<div class="row justify-content-start">
+					<div class="col col-lg-5 col-md-6 mt-5 cart-wrap ftco-animate">
+						<div class="cart-total mb-3">
+							<h3>Cart Totals</h3>
+							<p class="d-flex">
+								<span>Subtotal</span>
+								<span>&#8377;<%= subTotal %></span>
+							</p>
+							<p class="d-flex">
+								<span>Delivery</span>
+								<span>&#8377;0.00</span>
+							</p>
+							<p class="d-flex">
+								<span>Discount</span>
+								<span>&#8377;0.00</span>
+							</p>
+							<hr>
+							<p class="d-flex total-price">
+								<span>Total</span>
+								<span>&#8377;<%= subTotal %></span>
+							</p>
+						</div>
+						<p class="text-center">
+							<a href="/checkout" class="btn btn-primary py-3 px-4">
+								Proceed to Checkout
+							</a>
 						</p>
 					</div>
-					<p class="text-center"><a href="/checkout/<%= product._id %>" class="btn btn-primary py-3 px-4">
-						Proceed to Checkout</a></p>
 				</div>
-			</div>
+			<% } %>
 		</div>
 	</section>
 
-
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 	<script>
-		$(document).ready(function () {
+        document.addEventListener("DOMContentLoaded", () => {
+            const increaseBtns = document.querySelectorAll(".increase");
+			const decreaseBtns = document.querySelectorAll(".decrease");
 
-			var quantitiy = 0;
-			$('.quantity-right-plus').click(function (e) {
+			// Function to update quantity
+			const updateQuantity = async (productId, action) => {
+				try {
+					const response = await fetch("/cart/update", {
+						method: "PUT",
+						headers: { "Content-Type": "application/json" },
+						body: JSON.stringify({ productId, action }),
+					});
 
-				e.preventDefault();
-
-				var quantity = parseInt($('#quantity').val());
-
-				$('#quantity').val(quantity + 1);
-
-			});
-
-			$('.quantity-left-minus').click(function (e) {
-
-				e.preventDefault();
-
-				var quantity = parseInt($('#quantity').val());
-				if (quantity > 0) {
-					$('#quantity').val(quantity - 1);
+					const data = await response.json();
+					if(data.success){
+						window.location.reload();
+					}else{
+						Swal.fire({
+							icon:"error",
+							title:"Max quantity reached!",
+							text:data.message||"You can only add upto 5 unit of this product",
+							showConfirmButton:true
+						})
+					}
+				} catch (error) {
+					console.error("Error updating quantity:", error);
+					Swal.fire({
+						icon:"error",
+						title:"Oops!",
+						text:data.message||"Something went wrong while upading quantity",
+						showConfirmButton:false,
+						timer:1000
+					})
 				}
+			};
+
+			// Increase quantity
+			increaseBtns.forEach(btn => {
+				btn.addEventListener("click", () => {
+					const productId = btn.dataset.id;
+					updateQuantity(productId, "increase");
+				});
 			});
 
+			// Decrease quantity
+			decreaseBtns.forEach(btn => {
+				btn.addEventListener("click", () => {
+					const productId = btn.dataset.id;
+					updateQuantity(productId, "decrease");
+				});
+			});
 		});
-	</script>
+    </script>
 
-
-<%-include("../partials/user/footer.ejs")%>
+	<%- include("../partials/user/footer.ejs") %>

@@ -53,30 +53,35 @@
         </div>
         <div class="card mb-4">
             <header class="card-header">
-                <div class="row align-items-center">
-                    <div class="col-md-3 col-12 me-auto mb-md-0 mb-3">
-                        <select class="form-select">
-                            <option value="">All category</option>
-                            <% for(let i = 0; i < category.length; i++){ %>
-                                <option value="<%= category[i].name %>">
-                                    <%= category[i].name %>
-                                </option>
-                            <% } %>
-                        </select>
-                        <div id="brand-error" class="error-message text-danger" style="display: none;"></div>
+                <form id="filterForm" method="GET" action="/admin/productLists">
+                    <div class="row g-2 align-items-center">
+                        <div class="col-md-3 col-12 me-auto mb-md-0 mb-3">
+                            <select class="form-select" name="category">
+                                <option value="">All categories</option>
+                                <% if(category && category.length > 0){ %>
+                                    <% category.forEach(c => { %>
+                                        <option value="<%= c._id %>" <%= query.category == c._id ? "selected" : "" %>>
+                                            <%= c.name %>
+                                        </option>
+                                    <% }) %>
+                                <% } else { %>
+                                    <option disabled>No categories found</option>
+                                <% } %>
+                            </select>
+                        </div>
+                        <div class="col-md-2 col-6">
+                            <select class="form-select" name="status">
+                                <option value="all">All Status</option>
+                                <option value="Available" <%= query.status == "Available" ?"selected":"" %>>Available</option>
+                                <option value="Out of Stock" <%= query.status == "Out of Stock" ?"selected":"" %>>Out of Stock</option>
+                                <option value="Not Available" <%= query.status == "Not Available" ?"selected":"" %>>Not Available</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2 col-12">
+                            <button type="submit" class="btn btn-primary w-100">Filter</button>
+                        </div>
                     </div>
-                    <div class="col-md-2 col-6">
-                        <input type="date" value="new Date()" class="form-control">
-                    </div>
-                    <div class="col-md-2 col-6">
-                        <select class="form-select">
-                            <option selected>Status</option>
-                            <option>Active</option>
-                            <option>Disabled</option>
-                            <option>Show all</option>
-                        </select>
-                    </div>
-                </div>
+                </form>
             </header> <!-- card-header end// -->
             <div class="col-md-9 table">
                 <div class="table-responsive">

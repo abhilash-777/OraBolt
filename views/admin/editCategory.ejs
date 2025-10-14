@@ -19,7 +19,7 @@
                     <div class="col-md-3">
                         <form id="editCategoryForm">
                             <div class="mb-4">
-                                <label for="product_name" class="form-label">Name</label>
+                                <label for="name" class="form-label">Name</label>
                                 <input type="text" placeholder="Type here" name="name" value="<%= category.name %>"
                                     class="form-control" id="name" />
                                 <div class="error-message" id="name-error" style="display:none;"></div>
@@ -67,7 +67,7 @@
                     Swal.fire({
                         icon: "success",
                         title: "Success!",
-                        text: "Category added successfully",
+                        text: "Category updated successfully",
                         timer: 1000,
                         showConfirmButton: false
                     }).then(() => {
@@ -77,7 +77,7 @@
                     Swal.fire({
                         icon: "error",
                         title: "Oops",
-                        text: data.error||"An error occur while updating the category"
+                        text: data.message||"Category already exists",
                     });
                 }
             })
@@ -85,7 +85,7 @@
                 Swal.fire({
                     icon: "error",
                     title: "Oops",
-                    text: err.message||"Category already exists"
+                    text: err.message||"An error occur while updating the category"
                 });
             });
         }
@@ -140,33 +140,6 @@
                 element.style.display = "none";
             });
         }
-
-        document.addEventListener('DOMContentLoaded', function () {
-            const nameInput = document.getElementById('name');
-            const descriptionInput = document.getElementById('description');
-
-            if (nameInput) {
-                nameInput.addEventListener('blur', function () {
-                    const name = this.value.trim();
-                    if (name && !/^[a-zA-Z\s]+$/.test(name)&&name.length < 3) {
-                        displayErrorMessage("name-error", "Category name should contain atleast 3 , alphabetic characters");
-                    } else {
-                        document.getElementById("name-error").style.display = "none";
-                    }
-                });
-            }
-
-            if (descriptionInput) {
-                descriptionInput.addEventListener('blur', function () {
-                    const description = this.value.trim();
-                    if (description && description.length < 5) {
-                        displayErrorMessage("description-error", "Description must be at least 5 characters long");
-                    } else {
-                        document.getElementById("description-error").style.display = "none";
-                    }
-                });
-            }
-        });
 
     </script>
 

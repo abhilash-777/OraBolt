@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="/css/icomoon.css">
     <link rel="stylesheet" href="/css/style.css">
 
+
     <!-- Favicon -->
     <link rel="shortcut icon" type="image/x-icon" href="admin/assets/imgs/theme/favicon-96x96.png">
 
@@ -127,7 +128,7 @@
                         <div class="dropdown">
                             <a href="#" class="nav-link dropdown-toggle" href="#" id="dropdown04" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" ><%= user.name %></a>
                             <div class="dropdown-menu" aria-labelledby="dropdown04" >
-                                <a href="/userProfile" >Profile</a>
+                                <a href="/profile/<%= user._id %>" >Profile</a>
                                 <a href="/logout" >Logout</a>
                             </div>
                         </div>

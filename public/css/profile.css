@@ -1,0 +1,753 @@
+/* profile.css */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    min-height: 100vh;
+}
+
+/* Header */
+.header {
+    background: #2d3748;
+    color: white;
+    padding: 1rem 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: bold;
+    letter-spacing: 2px;
+}
+
+.nav {
+    display: flex;
+    gap: 2rem;
+}
+
+.nav-link {
+    color: white;
+    text-decoration: none;
+    transition: color 0.3s;
+}
+
+.nav-link:hover {
+    color: #ffffff;
+}
+
+/* Main Container */
+.main-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 2rem;
+}
+
+.profile-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 2rem;
+    margin-top: 80px;
+}
+
+/* Sidebar */
+.sidebar {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    height: fit-content;
+}
+
+.sidebar-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1rem 1.5rem;
+    color: #4a5568;
+    text-decoration: none;
+    transition: all 0.3s;
+    border-left: 4px solid transparent;
+    font-weight: 500;
+    font-size: 0.95rem;
+}
+
+.sidebar-item:hover {
+    background: #f7fafc;
+}
+
+.sidebar-item.active {
+    background: #4a5d7a;
+    color: white;
+    border-left-color: #2d3748;
+}
+
+.sidebar-item.active .icon {
+    color: white;
+}
+
+.sidebar-item.logout {
+    color: #e53e3e;
+    border-top: 1px solid #e2e8f0;
+}
+
+.sidebar-item.logout:hover {
+    background: #fff5f5;
+}
+
+.icon {
+    width: 20px;
+    height: 20px;
+    stroke-width: 2;
+    flex-shrink: 0;
+    min-width: 20px;
+}
+
+/* Content Area */
+/* Main Content Area */
+.content {
+    flex: 1;
+    padding: 30px;
+    overflow-x: hidden; /* Prevent horizontal overflow */
+    max-width: 100%;
+}
+
+/* Content Header */
+.content-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.content-header h2 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 28px;
+}
+
+/* Order Table Styles */
+.orders-table-container {
+    overflow-x: auto;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    margin: 20px 0;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+}
+
+.orders-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 900px;
+}
+
+.orders-table thead {
+    background: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+}
+
+.orders-table th {
+    padding: 15px 12px;
+    text-align: left;
+    font-weight: 600;
+    font-size: 14px;
+    color: #495057;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+.orders-table td {
+    padding: 15px 12px;
+    border-bottom: 1px solid #f0f0f0;
+    vertical-align: middle;
+}
+
+.orders-table tbody tr {
+    transition: background-color 0.2s ease;
+}
+
+.orders-table tbody tr:hover {
+    background-color: #f8f9fa;
+}
+
+.order-id {
+    font-weight: 600;
+    color: #007bff;
+    font-family: monospace;
+    white-space: nowrap;
+}
+
+.order-date {
+    color: #6c757d;
+    font-size: 14px;
+    white-space: nowrap;
+}
+
+.order-items-cell {
+    min-width: 100px;
+}
+
+.items-preview {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 5px;
+}
+
+.item-mini {
+    width: 40px;
+    height: 40px;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid #e0e0e0;
+    flex-shrink: 0;
+}
+
+.item-mini img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.more-items {
+    background: #e9ecef;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+    color: #495057;
+    font-weight: 500;
+}
+
+.order-items-cell small {
+    color: #6c757d;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.order-total {
+    font-weight: 600;
+    color: #28a745;
+    font-size: 15px;
+    white-space: nowrap;
+}
+
+.badge {
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    display: inline-block;
+    text-transform: capitalize;
+    white-space: nowrap;
+}
+
+/* Order Status Badges */
+.badge-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.badge-processing {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+.badge-shipped {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.badge-delivered {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge-cancelled {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.badge-returned {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+/* Payment Status Badges */
+.badge-payment {
+    background: #e7f3ff;
+    color: #004085;
+}
+
+.badge-payment.badge-paid,
+.badge-payment.badge-completed {
+    background: #d4edda;
+    color: #155724;
+}
+
+.badge-payment.badge-failed {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.order-actions {
+    white-space: nowrap;
+}
+
+.btn-view-details {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 16px;
+    background: #007bff;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+.btn-view-details:hover {
+    background: #0056b3;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0,123,255,0.3);
+    text-decoration: none;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-state i {
+    font-size: 64px;
+    color: #dee2e6;
+    margin-bottom: 20px;
+}
+
+.empty-state p {
+    color: #6c757d;
+    font-size: 16px;
+    margin-bottom: 20px;
+}
+
+/* Tablet Responsive */
+@media (max-width: 1024px) {
+    .content {
+        padding: 20px;
+    }
+    
+    .content-header h2 {
+        font-size: 24px;
+    }
+    
+    .orders-table {
+        min-width: 850px;
+    }
+    
+    .orders-table th,
+    .orders-table td {
+        padding: 12px 10px;
+    }
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+    .content {
+        padding: 15px;
+        overflow-x: hidden;
+    }
+    
+    .content-header {
+        flex-direction: column;
+        align-items: flex-start;
+        margin-bottom: 20px;
+    }
+    
+    .content-header h2 {
+        font-size: 22px;
+    }
+    
+    .content-header .btn {
+        width: 100%;
+    }
+    
+    /* Scrollable Table for Mobile */
+    .orders-table-container {
+        border-radius: 0;
+        margin: 20px -15px;
+        box-shadow: none;
+        border-top: 1px solid #dee2e6;
+        border-bottom: 1px solid #dee2e6;
+        width: calc(100% + 30px);
+    }
+    
+    .orders-table {
+        font-size: 13px;
+        min-width: 800px;
+    }
+    
+    .orders-table th,
+    .orders-table td {
+        padding: 10px 8px;
+        font-size: 12px;
+    }
+    
+    .orders-table th {
+        font-size: 11px;
+        padding: 12px 8px;
+    }
+    
+    .order-id {
+        font-size: 13px;
+    }
+    
+    .order-date {
+        font-size: 12px;
+    }
+    
+    .order-total {
+        font-size: 14px;
+    }
+    
+    .badge {
+        padding: 4px 8px;
+        font-size: 11px;
+    }
+    
+    .btn-view-details {
+        padding: 6px 10px;
+        font-size: 11px;
+    }
+    
+    .btn-view-details span {
+        display: none;
+    }
+    
+    .item-mini {
+        width: 35px;
+        height: 35px;
+    }
+    
+    /* Address Cards Mobile */
+    .address-card {
+        margin-bottom: 15px;
+    }
+    
+    /* Profile Form Mobile */
+    .form-row {
+        flex-direction: column;
+    }
+    
+    .profile-photo-section {
+        margin-bottom: 20px;
+    }
+}
+
+/* Extra Small Mobile */
+@media (max-width: 576px) {
+    .content {
+        padding: 10px;
+    }
+    
+    .content-header h2 {
+        font-size: 20px;
+    }
+    
+    .orders-table {
+        min-width: 750px;
+    }
+    
+    .orders-table th,
+    .orders-table td {
+        padding: 8px 6px;
+    }
+    
+    .btn-view-details {
+        padding: 5px 8px;
+    }
+    
+    .empty-state {
+        padding: 40px 15px;
+    }
+    
+    .empty-state i {
+        font-size: 48px;
+    }
+}
+
+/* Profile Section Styles */
+.profile-photo-section {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.profile-photo {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #e0e0e0;
+}
+
+.profile-photo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-initial {
+    font-size: 2.5rem;
+    color: #333;
+    text-transform: uppercase;
+}
+
+.photo-upload-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: #3085d6;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.photo-upload-btn:hover {
+    background-color: #2874b5;
+}
+
+.icon-small {
+    width: 20px;
+    height: 20px;
+}
+
+.photo-remove-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    background-color: #d33;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.photo-remove-btn:hover {
+    background-color: #b32d2d;
+}
+
+.form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.input-wrapper {
+    position: relative;
+}
+
+.input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 20px;
+    height: 20px;
+    color: #6c757d;
+}
+
+.input-wrapper input {
+    width: 100%;
+    padding: 12px 12px 12px 45px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.input-wrapper input:focus {
+    outline: none;
+    border-color: #007bff;
+}
+
+/* Address Cards */
+.address-card {
+    background: white;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+}
+
+.address-card.default-address {
+    border-color: #28a745;
+    background: #f8fff9;
+}
+
+.address-header {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.address-card h3 {
+    margin: 10px 0;
+    font-size: 18px;
+}
+
+.address-card p {
+    margin: 5px 0;
+    color: #6c757d;
+}
+
+.address-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 15px;
+    flex-wrap: wrap;
+}
+
+.btn-link {
+    background: none;
+    border: none;
+    color: #007bff;
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: none;
+    padding: 5px 0;
+}
+
+.btn-link:hover {
+    text-decoration: underline;
+}
+
+.text-red {
+    color: #dc3545 !important;
+}
+
+.text-green {
+    color: #28a745 !important;
+}
+
+/* Wallet Card */
+.wallet-card {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 40px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.wallet-label {
+    font-size: 16px;
+    opacity: 0.9;
+    margin-bottom: 10px;
+}
+
+.wallet-amount {
+    font-size: 48px;
+    font-weight: bold;
+    margin: 0;
+}
+
+/* Password Form */
+.password-wrapper {
+    position: relative;
+}
+
+.password-wrapper input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.toggle-password {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #6c757d;
+}
+
+.errorMsg {
+    display: block;
+    color: #dc3545;
+    font-size: 12px;
+    margin-top: 5px;
+}
+
+/* Buttons */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+}
+
+.btn-primary {
+    background: #007bff;
+    color: white;
+}
+
+.btn-primary:hover {
+    background: #0056b3;
+}
+
+.btn-primary a {
+    color: white;
+    text-decoration: none;
+}
+
+.form-actions {
+    margin-top: 30px;
+}
+
+/* Badge Styles for Address */
+.badge-blue {
+    background: #cfe2ff;
+    color: #084298;
+}
+
+.badge-green {
+    background: #d4edda;
+    color: #155724;
+}

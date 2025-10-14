@@ -40,6 +40,12 @@ const uploadProduct = multer({
     storage:createStorage("productsImages"),
     limits:{fileSize:10*1024*1024,files:10},
     fileFilter
-})
+});
 
-module.exports = {uploadBrand,uploadProduct};
+const uploadProfileImage = multer({ // New instance for profile images
+    storage: createStorage("profileImage"),
+    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+    fileFilter
+});
+
+module.exports = {uploadBrand,uploadProduct,uploadProfileImage};

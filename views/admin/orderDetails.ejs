@@ -32,6 +32,7 @@
               <option value="Shipped" <%=order.status==='Shipped' ?'selected':'' %>>Shipped</option>
               <option value="Delivered" <%=order.status==='Delivered' ?'selected':'' %>>Delivered</option>
               <option value="Cancelled" <%=order.status==='Cancelled' ?'selected':'' %>>Cancelled</option>
+              <option value="Returned" <%=order.status==='Returned' ?'selected':'' %>>Returned</option>
             </select>
           </div>
           <div class="col-md-3 mt-3 mt-md-0">
@@ -119,7 +120,7 @@
                   <option value="Shipped" <%= item.status === 'Shipped' ? 'selected' : '' %>>Shipped</option>
                   <option value="Delivered" <%= item.status === 'Delivered' ? 'selected' : '' %>>Delivered</option>
                   <option value="Cancelled" <%= item.status === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
-                  <option value="Cancelled" <%= item.status === 'Return Approved' ? 'selected' : '' %>>Returned</option>
+                  <option value="Retur" <%= item.status === 'Return Approved' ? 'selected' : '' %>>Returned</option>
                 </select>
                 <button type="submit" class="btn btn-outline-primary btn-sm" 
                   <%= item.status === 'Cancelled' ? 'disabled' : '' %>>Update
