@@ -1,0 +1,229 @@
+<%-include("../partials/user/header.ejs") %>
+
+<link rel="stylesheet" href="/css/profile.css">
+
+<div class="main-container">
+    <div class="profile-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <a href="/profile/<%= user._id %>" class="sidebar-item active">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                    <circle cx="12" cy="7" r="4"></circle>
+                </svg>
+                <span>Profile</span>
+            </a>
+            
+            <a href="/addresses/<%= user._id %>" class="sidebar-item">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                    <circle cx="12" cy="10" r="3"></circle>
+                </svg>
+                <span>Manage Address</span>
+            </a>
+            
+            <a href="/orders/<%= user._id %>" class="sidebar-item">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                    <path d="M9 11l3 3 5-5"></path>
+                </svg>
+                <span>Orders</span>
+            </a>
+            
+            <a href="/wallet/<%= user._id %>" class="sidebar-item">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
+                    <path d="M16 12h.01"></path>
+                </svg>
+                <span>Wallet</span>
+            </a>
+            
+            <a href="/manage-password/<%= user._id %>" class="sidebar-item">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                </svg>
+                <span>Manage Password</span>
+            </a>
+            
+            <a href="/logout" class="sidebar-item logout">
+                <span>Logout</span>
+            </a>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="content">
+            <div class="content-header">
+                <h2>Edit Profile</h2>
+            </div>
+
+            <!-- Profile Photo -->
+            <div class="profile-photo-section">
+                <div class="profile-photo">
+                    <% if (user.photo) { %>
+                        <img src="<%= user.photo %>" alt="Profile" id="profilePhotoPreview">
+                    <% } else { %>
+                        <span class="profile-initial" id="profileInitial"><%= user.name.charAt(0).toUpperCase() %></span>
+                        <img src="" alt="Profile" id="profilePhotoPreview" style="display: none;">
+                    <% } %>
+                </div>
+                <button type="button" class="photo-upload-btn" onclick="document.getElementById('photoInput').click()">
+                    <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                        <circle cx="12" cy="13" r="4"></circle>
+                    </svg>
+                </button>
+                <input type="file" id="photoInput" accept="image/*" style="display: none;">
+            </div>
+
+            <!-- Profile Form - Edit Mode -->
+            <form id="profileForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
+                            </svg>
+                            <input type="text" name="name" value="<%= user.name %>" id="nameInput">
+                        </div>
+                        <small id="nameError" class="errorMsg"></small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Phone Number</label>
+                        <div class="input-wrapper">
+                            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+                            </svg>
+                            <input type="tel" name="phone" value="<%= user.phone %>" id="phoneInput">
+                        </div>
+                        <small id="phoneError" class="errorMsg"></small>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <div class="input-wrapper">
+                        <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                            <polyline points="22,6 12,13 2,6"></polyline>
+                        </svg>
+                        <input type="email" name="email" value="<%= user.email %>" id="emailInput">
+                    </div>
+                    <small id="emailError" class="errorMsg"></small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">
+                        Save Changes
+                    </button>
+                    <a href="/profile/<%= user._id %>" class="btn btn-secondary">
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </main>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    const profileForm = document.getElementById("profileForm");
+    const nameInput = document.getElementById("nameInput");
+    const phoneInput = document.getElementById("phoneInput");
+    const emailInput = document.getElementById("emailInput");
+
+    function validation(){
+        const name = nameInput.value.trim();
+        const phone = phoneInput.value.trim();
+        const email = emailInput.value.trim();
+        const nameError = document.getElementById("nameError");
+        const phoneError = document.getElementById("phoneError");
+        const emailError = document.getElementById("emailError");
+        let isValid = true;
+        
+        nameError.textContent = "";
+        phoneError.textContent = "";
+        emailError.textContent = "";
+
+        if(!name || !/^[a-zA-Z\s._]+$/.test(name)){
+            nameError.textContent = "Name should contain alphabetics only";
+            isValid = false;
+        } else if(name.length < 3 || name.length > 20){
+            nameError.textContent = "Name length should be between 3 to 20 characters";
+            isValid = false;
+        }
+
+        if(!phone || !/^[0-9]{10}$/.test(phone)){
+            phoneError.textContent = "Phone number should be 10 digits";
+            isValid = false;
+        }
+
+        if(!email){
+            emailError.textContent = "Email is required";
+            isValid = false;
+        } else if(!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)){
+            emailError.textContent = "Email must be in a valid format";
+            isValid = false;
+        }
+
+        return isValid;
+    }
+
+    profileForm.addEventListener("submit", async (event) => {
+        try {
+            event.preventDefault();
+            if(!validation()) return;
+
+            const name = nameInput.value.trim();
+            const phone = phoneInput.value.trim();
+            const email = emailInput.value.trim();
+
+            const response = await fetch(`/editProfile/${"<%= user._id %>"}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    name: name,
+                    phone: phone,
+                    email: email
+                })
+            });
+
+            const data = await response.json();
+
+            if(data.success){
+                Swal.fire({
+                    icon: "success",
+                    title: "OTP sent successfully",
+                    showConfirmButton: false,
+                    timer: 500
+                }).then(() => {
+                    window.location.href = data.redirectUrl;
+                });
+            } else {
+                Swal.fire({
+                    icon: "error",
+                    title: "Failed",
+                    text: data.message || "An error occurred while updating user profile",
+                    showConfirmButton: false,
+                    timer: 500
+                });
+            }
+        } catch (error) {
+            Swal.fire({
+                icon: "error",
+                title: "Server error",
+                text: "Something went wrong!",
+                showConfirmButton: false,
+                timer: 1500
+            });
+        }
+    });
+</script>
+
+</body>
+</html>

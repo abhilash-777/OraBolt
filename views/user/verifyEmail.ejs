@@ -1,0 +1,164 @@
+<%- include("../partials/user/header.ejs") %>
+<link rel="stylesheet" href="/css/profile.css">
+
+<div class="main-container">
+    <div class="profile-layout">
+        <!-- Sidebar (optional) -->
+        <aside class="sidebar">
+            <a href="/profile/<%= user._id %>" class="sidebar-item">
+                <span>⬅ Back to Profile</span>
+            </a>
+        </aside>
+
+        <!-- OTP Verification Content -->
+        <main class="content">
+            <div class="content-header">
+                <h2>Email Verification</h2>
+                <p>We’ve sent a verification code to your new email:<strong><%= newEmail %></strong></p>
+            </div>
+
+            <form id="otpForm">
+                <div class="form-group">
+                    <label>Enter 6-digit OTP</label>
+                    <div class="input-wrapper">
+                        <input type="text" name="otp" id="otpInput"248319 placeholder="Enter OTP">
+                    </div>
+                    <small id="otpError" class="errorMsg"></small>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary" id="verifyBtn">Verify</button>
+                </div>
+
+                <div class="timer-section">
+                    <p id="timerText">Resend OTP in <span id="countdown">60</span> seconds</p>
+                    <button type="button" class="btn btn-secondary" id="resendBtn" style="display: none;">Resend
+                        OTP</button>
+                </div>
+            </form>
+        </main>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    let timer = 60;
+    const countdownEl = document.getElementById("countdown");
+    const timerText = document.getElementById("timerText");
+    const otpVerifyForm = document.getElementById("otpForm");
+    const resendBtn = document.getElementById("resendBtn");
+    let interval;
+
+    // Countdown timer
+    function startTimer(){
+        clearInterval(interval);
+        timer = 60;
+        countdownEl.textContent = "timer";
+        timerText.style.display = "block";
+        resendBtn.style.display = "none";
+        interval = setInterval(() => {
+            timer--;
+            countdownEl.textContent = timer;
+            if(timer <= 0){
+                clearInterval(interval);
+                timerText.style.display = "none";
+                resendBtn.style.display = "inline-block";
+            }
+        },1000);
+    }
+
+    function validation(){
+        const otp = document.getElementById("otpInput").value.trim();
+        const errorMsg = document.getElementById("otpError");
+        let isValid = true;
+
+        errorMsg.textContent = "";
+        if(!otp || !/^\d{6}$/.test(otp)){
+            errorMsg.textContent = "OTP should be a valid 6 digit number(ex:123456)"
+            isValid = false;
+        }
+        return isValid
+    }
+
+    startTimer();
+
+    otpVerifyForm.addEventListener("submit",async (event) => {
+        try {
+            event.preventDefault();
+            const otp = document.getElementById("otpInput").value.trim();
+            if(!validation())return
+
+            const response = await fetch("/verifyUpdate/<%= user._id %>",{
+                method:"PUT",
+                headers:{
+                    'Content-Type':'application/json'
+                },
+                body:JSON.stringify({userInputOtp:otp})
+            });
+            const data = await response.json();
+            if(data.success){
+                Swal.fire({
+                    icon:"success",
+                    title:"Done",
+                    text:data.message||"Profile updated successfully",
+                    showConfirmButton:false,
+                    timer:500
+                })
+                .then(() => window.location.href = data.redirectUrl||"/profile/<%= user._id %>")
+            }else{
+                Swal.fire({
+                    icon:"error",
+                    title:"Error occured",
+                    text:data.message||"An error occure while updating profile",
+                    showConfirmButton:false,
+                    timer:500
+                })
+            }
+
+        } catch (error) {
+            console.log("someting went wrong:",error),
+            Swal.fire({
+                icon:"error",
+                title:"Error!",
+                text:"Something went wrong",
+                timer:500,
+                showConfirmButton:false
+            })
+        }
+    })
+
+    // Resend OTP
+    resendBtn.addEventListener("click", async () => {
+        try {
+            const res = await fetch("/resend-otp/<%= user._id %>", {
+                method: "POST"
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                Swal.fire({
+                    icon: "success",
+                    title: "OTP Sent Again",
+                    showConfirmButton: false,
+                    timer: 1000
+                });
+
+                startTimer();
+            } else {
+                Swal.fire({
+                    icon: "error",
+                    title: "Failed to resend OTP",
+                    text: data.message || "Please try again"
+                });
+            }
+        } catch (err) {
+            Swal.fire({
+                icon: "error",
+                title: "Server error",
+                text: "Could not resend OTP"
+            });
+        }
+    });
+</script>
+</body>
+</html>

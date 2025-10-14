@@ -1,0 +1,34 @@
+<%-include("../partials/user/header.ejs")%>
+
+<div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card shadow-lg border-0 p-5 text-center order-success-card">
+        <div class="mb-4">
+            <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
+        </div>
+        <h2 class="fw-bold mb-3 text-success">Order Placed Successfully!</h2>
+        <p class="text-muted mb-4">Thank you for shopping with us! Your order has been confirmed.</p>
+    
+        <div class="order-info text-start mx-auto" style="max-width: 350px;">
+            <p><strong>Order ID:</strong>
+                <%= order.orderId %>
+            </p>
+            <p><strong>Total Amount:</strong> ₹<%= order.finalPrice %>
+            </p>
+            <p><strong>Email:</strong>
+                <%= user.email %>
+            </p>
+        </div>
+    
+        <div class="mt-4">
+            <a href="/shop" class="btn btn-success px-4 me-2">
+                <i class="bi bi-bag-fill me-2"></i>Continue Shopping
+            </a>
+            <a href="/orders/<%= user._id %>" class="btn btn-outline-secondary px-4">
+                <i class="bi bi-receipt me-2"></i>View Order Details
+            </a>
+        </div>
+    </div>
+</div>
+
+
+<%-include("../partials/user/footer.ejs")%>
