@@ -1,0 +1,174 @@
+<%- include("../partials/admin/header.ejs") %>
+
+<section class="content-main">
+    <div class="content-header">
+        <div>
+            <h2 class="content-title card-title">Order List</h2>
+            <p class="text-muted">Total Orders: <%= totalOrders %></p>
+        </div>
+        <div>
+            <form action="/admin/order-list" method="GET" class="d-flex">
+                <input type="text" name="search" id="searchInput" value="<%= searchQuery %>" 
+                       placeholder="Search order ID, name, email" class="form-control bg-white">
+                <input type="hidden" name="status" value="<%= statusFilter %>">
+                <input type="hidden" name="limit" value="<%= limit %>">
+                <button type="submit" class="btn btn-primary ms-2">Search</button>
+                <% if (searchQuery) { %>
+                    <a href="/admin/order-list?status=<%= statusFilter %>&limit=<%= limit %>" 
+                       class="btn btn-secondary ms-2">Clear</a>
+                <% } %>
+            </form>
+        </div>
+    </div>
+    
+    <div class="card mb-4">
+        <header class="card-header">
+            <div class="row gx-3">
+                <div class="col-lg-4 col-md-6 me-auto">
+                    <!-- Empty space or additional filters can be added here -->
+                </div>
+                <div class="col-lg-2 col-6 col-md-3">
+                    <form action="/admin/order-list" method="GET" id="statusForm">
+                        <select class="form-select" name="status" onchange="this.form.submit()">
+                            <option value="">Show all</option>
+                            <option value="Pending" <%= statusFilter === 'Pending' ? 'selected' : '' %>>Pending</option>
+                            <option value="Processing" <%= statusFilter === 'Processing' ? 'selected' : '' %>>Processing</option>
+                            <option value="Shipped" <%= statusFilter === 'Shipped' ? 'selected' : '' %>>Shipped</option>
+                            <option value="Delivered" <%= statusFilter === 'Delivered' ? 'selected' : '' %>>Delivered</option>
+                            <option value="Cancelled" <%= statusFilter === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
+                        </select>
+                        <input type="hidden" name="search" value="<%= searchQuery %>">
+                        <input type="hidden" name="limit" value="<%= limit %>">
+                    </form>
+                </div>
+                <div class="col-lg-2 col-6 col-md-3">
+                    <form action="/admin/order-list" method="GET" id="limitForm">
+                        <select class="form-select" name="limit" onchange="this.form.submit()">
+                            <option value="20" <%= limit === 20 ? 'selected' : '' %>>Show 20</option>
+                            <option value="30" <%= limit === 30 ? 'selected' : '' %>>Show 30</option>
+                            <option value="40" <%= limit === 40 ? 'selected' : '' %>>Show 40</option>
+                            <option value="50" <%= limit === 50 ? 'selected' : '' %>>Show 50</option>
+                        </select>
+                        <input type="hidden" name="search" value="<%= searchQuery %>">
+                        <input type="hidden" name="status" value="<%= statusFilter %>">
+                    </form>
+                </div>
+            </div>
+        </header>
+        
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>#ID</th>
+                            <th scope="col">Name</th>
+                            <th scope="col">Email</th>
+                            <th scope="col">Total</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Date</th>
+                            <th scope="col" class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <% if (orders && orders.length > 0) { %>
+                            <% orders.forEach(order => { %>
+                                <tr>
+                                    <td><%= order.orderId %></td>
+                                    <td><b><%= order.userId ? order.userId.name : "Deleted User" %></b></td>
+                                    <td><%= order.userId ? order.userId.email : "-" %></td>
+                                    <td>₹<%= order.totalPrice.toFixed(2) %></td>
+                                    <td>
+                                        <% if(order.status === 'Pending') { %>
+                                            <span class="badge rounded-pill alert-warning">Pending</span>
+                                        <% } else if(order.status === 'Delivered') { %>
+                                            <span class="badge rounded-pill alert-success">Delivered</span>
+                                        <% } else if(order.status === 'Cancelled') { %>
+                                            <span class="badge rounded-pill alert-danger">Cancelled</span>
+                                        <% } else { %>
+                                            <span class="badge rounded-pill alert-secondary"><%= order.status %></span>
+                                        <% } %>
+                                    </td>
+                                    <td><%= order.createdOn.toLocaleDateString() %></td>
+                                    <td class="text-end">
+                                        <a href="/admin/order-details/<%= order._id %>" 
+                                           class="btn btn-md rounded font-sm">Detail</a>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="7" class="text-center">No orders found</td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Pagination -->
+    <% if (totalPages > 1) { %>
+        <div class="pagination-area mt-15 mb-50">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-start">
+                    <!-- Previous Button -->
+                    <% if (currentPage > 1) { %>
+                        <li class="page-item">
+                            <a class="page-link" 
+                               href="/admin/order-list?page=<%= currentPage - 1 %>&limit=<%= limit %>&search=<%= searchQuery %>&status=<%= statusFilter %>">
+                                <i class="material-icons md-chevron_left"></i>
+                            </a>
+                        </li>
+                    <% } %>
+                    
+                    <!-- First Page -->
+                    <% if (currentPage > 3) { %>
+                        <li class="page-item">
+                            <a class="page-link" 
+                               href="/admin/order-list?page=1&limit=<%= limit %>&search=<%= searchQuery %>&status=<%= statusFilter %>">1</a>
+                        </li>
+                        <% if (currentPage > 4) { %>
+                            <li class="page-item"><span class="page-link dot">...</span></li>
+                        <% } %>
+                    <% } %>
+                    
+                    <!-- Page Numbers -->
+                    <% for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) { %>
+                        <li class="page-item <%= i === currentPage ? 'active' : '' %>">
+                            <a class="page-link" 
+                               href="/admin/order-list?page=<%= i %>&limit=<%= limit %>&search=<%= searchQuery %>&status=<%= statusFilter %>">
+                                <%= i < 10 ? '0' + i : i %>
+                            </a>
+                        </li>
+                    <% } %>
+                    
+                    <!-- Last Page -->
+                    <% if (currentPage < totalPages - 2) { %>
+                        <% if (currentPage < totalPages - 3) { %>
+                            <li class="page-item"><span class="page-link dot">...</span></li>
+                        <% } %>
+                        <li class="page-item">
+                            <a class="page-link" 
+                               href="/admin/order-list?page=<%= totalPages %>&limit=<%= limit %>&search=<%= searchQuery %>&status=<%= statusFilter %>">
+                                <%= totalPages < 10 ? '0' + totalPages : totalPages %>
+                            </a>
+                        </li>
+                    <% } %>
+                    
+                    <!-- Next Button -->
+                    <% if (currentPage < totalPages) { %>
+                        <li class="page-item">
+                            <a class="page-link" 
+                               href="/admin/order-list?page=<%= currentPage + 1 %>&limit=<%= limit %>&search=<%= searchQuery %>&status=<%= statusFilter %>">
+                                <i class="material-icons md-chevron_right"></i>
+                            </a>
+                        </li>
+                    <% } %>
+                </ul>
+            </nav>
+        </div>
+    <% } %>
+</section>
+
+<%- include("../partials/admin/footer.ejs") %>

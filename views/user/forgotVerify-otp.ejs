@@ -1,5 +1,4 @@
 <%-include("../partials/user/header.ejs") %>
-    
 
     <style>
         body,
@@ -107,6 +106,7 @@
                     <div class="form-group">
                         <label for="otp">Enter OTP:</label>
                         <input type="text" id="otp" name="otp" class="form-control" required maxlength="6" pattern="\d*" />
+                        <small id="otpError" style="color: red;"></small>
                     </div>
                     <button type="submit" class="btn btn-primary">Verify Email</button>
                     <div class="form-group text-center">
@@ -130,6 +130,22 @@
     <script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+        
+        function validation(){
+            const otp = document.getElementById("otp").value.trim();
+            let isValid = true;
+            const errorMsg = document.getElementById("otp");
+            errorMsg.textContent = "";
+
+            if(!otp){
+                errorMsg.textContent = "OTP is required!";
+                isValid = false;
+            }else if(!/^\d{6}$/.test(otp)){
+                errorMsg.textContent = "OTP is 6 digit number"
+                isValid = false;
+            }
+            return isValid
+        }
 
         document.getElementById("otp").focus();
         let timerInterval;
@@ -159,7 +175,7 @@
 
         document.getElementById('forgotOtpForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-
+            if(!validation())return
             const otpInput = document.getElementById('otp').value.trim();
 
             try {
@@ -172,14 +188,14 @@
                 const response = await res.json();
 
                 if (response.success) {
-                    await Swal.fire({ icon: 'success', title: 'OTP verified successfully', showConfirmButton: false, timer: 900 });
+                    await Swal.fire({ icon: 'success', title: 'OTP verified successfully', showConfirmButton: false, timer: 500 });
                     window.location.href = response.redirectUrl;
                 } else {
-                    Swal.fire({ icon: 'error', title: 'Error', text: response.message });
+                    await Swal.fire({ icon: 'error', title: 'Error', text: response.message||"Invalid OTP" });
                 }
             } catch (err) {
                 console.error('Fetch error:', err);
-                Swal.fire({ icon: 'error', title: 'Invalid OTP', text: 'Please try again' });
+                await Swal.fire({ icon: 'error', title: 'Something went wrong', text: 'Please try again' });
             }
         });
 
@@ -195,7 +211,7 @@
                         icon: "success",
                         title: "Resend OTP successfull",
                         showConfirmButton: false,
-                        timer: 1500
+                        timer: 500
                     });
                 } else {
                     Swal.fire({
@@ -207,8 +223,8 @@
             } catch (error) {
                 Swal.fire({
                     icon: "error",
-                    title: "Error",
-                    text: "Something went wrong. Please try again"
+                    title: "Something went wrong!",
+                    text: "Please try again"
                 });
             }
         });

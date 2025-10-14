@@ -1,3 +1,4 @@
+const { default: mongoose } = require("mongoose");
 const Category = require("../../models/categorySchema");
 
 
@@ -75,6 +76,9 @@ const loadEditCategory = async function (req,res) {
 
     try {
         const categoryId = req.params.id;
+        if(!mongoose.Types.ObjectId.isValid(categoryId)){
+            return res.redirect("/admin/pageError")
+        }
         const category = await Category.findById(categoryId);
         if(!category){
             return res.status(400).json({error:"error Category not found"});
@@ -92,6 +96,9 @@ const editCategory = async function (req,res) {
     try {
         const {name,description} = req.body;
         const categoryId = req.params.id;
+        if(!mongoose.Types.ObjectId.isValid(categoryId)){
+            return res.redirect("/admin/pageError")
+        }
         if(!name||!description){
             return res.status(400).json({success:false,error:"Invalid fields.All fields are required!"});
         }
@@ -132,6 +139,9 @@ const deleteCategory = async function (req,res) {
 
     try {
         const categoryId = req.params.id;
+        if(!mongoose.Types.ObjectId.isValid(categoryId)){
+            return res.redirect("/admin/pageError")
+        }
         const category = await Category.findById(categoryId);
         if(!category){
             return res.status(400).json({success:false,message:"Category not found"});
@@ -184,7 +194,6 @@ const addOffer = async function (req,res) {
     }
     
 }
-
 
 
 module.exports = {

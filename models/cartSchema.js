@@ -26,6 +26,10 @@ const cartSchema = new Schema ({
             type : Number,
             required : true
         },
+        offer:{
+            type:Number,
+            default:0
+        },
         status : {
             type : String ,
             default : "Placed"
@@ -35,7 +39,7 @@ const cartSchema = new Schema ({
             default : "none"
         }
     }]
-})
+},{timestamps:true})
 
 
 const Cart = mongoose.model("Cart",cartSchema);

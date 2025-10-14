@@ -36,6 +36,10 @@ const userSchema = new Schema({
         type : Boolean,
         default : false
     },
+    profileImage:{
+        type:String,
+        default:null
+    },
     cart : [{
         type : Schema.Types.ObjectId,
         ref : "Cart"
@@ -59,7 +63,7 @@ const userSchema = new Schema({
     referalCode : {
         type : String
     },
-    redeed : {
+    redeemed : {
         type : Boolean
     },
     redeemedUsers : [{

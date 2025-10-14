@@ -1,172 +1,592 @@
 <%-include("../partials/user/header.ejs")%>
 
+<style>
+	.errorMsg{
+		color: red;
+	}
+	.card{
+		margin: 10px 0px;
+	}
+</style>
+
 	<div class="hero-wrap hero-bread" style="background-image: url('/images/bg_6.jpg');">
 		<div class="container">
 			<div class="row no-gutters slider-text align-items-center justify-content-center">
 				<div class="col-md-9 ftco-animate text-center">
-					<p class="breadcrumbs"><span class="mr-2"><a href="/">Home</a></span> <span>Checkout</span>
-					</p>
+					<p class="breadcrumbs"><span class="mr-2"><a href="/" style="font-weight: 600;">Home</a></span> <span>Checkout</span></p>
+					<hr>
 					<h1 class="mb-0 bread">Checkout</h1>
 				</div>
 			</div>
 		</div>
 	</div>
 
-	<section class="ftco-section">
-		<div class="container">
-			<div class="row justify-content-center">
-				<div class="col-xl-10 ftco-animate">
-					<form action="#" class="billing-form">
-						<h3 class="mb-4 billing-heading">Billing Details</h3>
-						<div class="row align-items-end">
-							<div class="col-md-6">
-								<div class="form-group">
-									<label for="firstname">Firt Name</label>
-									<input type="text" class="form-control" placeholder="">
-								</div>
-							</div>
-							<div class="col-md-6">
-								<div class="form-group">
-									<label for="lastname">Last Name</label>
-									<input type="text" class="form-control" placeholder="">
-								</div>
-							</div>
-							<div class="w-100"></div>
-							<div class="col-md-12">
-								<div class="form-group">
-									<label for="country">State / Country</label>
-									<div class="select-wrap">
-										<div class="icon"><span class="ion-ios-arrow-down"></span></div>
-										<select name="" id="" class="form-control">
-											<option value="">France</option>
-											<option value="">Italy</option>
-											<option value="">Philippines</option>
-											<option value="">South Korea</option>
-											<option value="">Hongkong</option>
-											<option value="">Japan</option>
-										</select>
+	<section class="container py-4">
+		<div class="row">
+            <!-- LEFT SIDE: Address List -->
+			<div class="col-md-6 mb-4">
+				<h5 class="mb-3 fw-semibold">Select Delivery Address</h5>
+			
+				<% if (addresses && addresses.length> 0) { %>
+					<% addresses.forEach((address, index)=> { %>
+						<div class="card mb-3 border <%= address.isDefault ? 'border-success' : '' %>">
+							<div class="card-body d-flex justify-content-between align-items-start"">
+								<div>
+									<div class="d-flex align-items-center gap-2 mb-1">
+										<strong><%= address.addressType %> — <%= address.name %></strong>
+										<% if (address.isDefault) { %>
+											<span class="badge bg-success">Default</span>
+										<% } %>
+									</div>
+									<div class="text-muted small">
+										<%= address.address %><br>
+										<%= address.street %>, <%= address.city %><br>
+										<%= address.state %> — <%= address.pincode %><br>
+										Phone: <%= address.phone %>
 									</div>
 								</div>
-							</div>
-							<div class="w-100"></div>
-							<div class="col-md-6">
-								<div class="form-group">
-									<label for="streetaddress">Street Address</label>
-									<input type="text" class="form-control" placeholder="House number and street name">
-								</div>
-							</div>
-							<div class="col-md-6">
-								<div class="form-group">
-									<input type="text" class="form-control"
-										placeholder="Appartment, suite, unit etc: (optional)">
-								</div>
-							</div>
-							<div class="w-100"></div>
-							<div class="col-md-6">
-								<div class="form-group">
-									<label for="towncity">Town / City</label>
-									<input type="text" class="form-control" placeholder="">
-								</div>
-							</div>
-							<div class="col-md-6">
-								<div class="form-group">
-									<label for="postcodezip">Postcode / ZIP *</label>
-									<input type="text" class="form-control" placeholder="">
-								</div>
-							</div>
-							<div class="w-100"></div>
-							<div class="col-md-6">
-								<div class="form-group">
-									<label for="phone">Phone</label>
-									<input type="text" class="form-control" placeholder="">
-								</div>
-							</div>
-							<div class="col-md-6">
-								<div class="form-group">
-									<label for="emailaddress">Email Address</label>
-									<input type="text" class="form-control" placeholder="">
-								</div>
-							</div>
-							<div class="w-100"></div>
-							<div class="col-md-12">
-								<div class="form-group mt-4">
-									<div class="radio">
-										<label class="mr-3"><input type="radio" name="optradio"> Create an Account?
-										</label>
-										<label><input type="radio" name="optradio"> Ship to different address</label>
+								<div class="text-end">
+									<button class="btn btn-sm btn-outline-primary editAddressBtn" data-bs-toggle="modal"
+										data-bs-target="#addAddressModal" data-id="<%= address._id %>"
+										data-addresstype="<%= address.addressType %>" data-name="<%= address.name %>"
+										data-address="<%= address.address %>" data-street="<%= address.street %>"
+										data-city="<%= address.city %>" data-state="<%= address.state %>"
+										data-pincode="<%= address.pincode %>" data-landmark="<%= address.landMark %>"
+										data-phone="<%= address.phone %>" data-altphone="<%= address.altPhone %>">Edit</button>
+									<div class="form-check mt-2">
+										<input class="form-check-input" type="radio" name="selectedAddress"
+											value="<%= address._id %>" <%=address.isDefault ? 'checked' : '' %>>
+										<label class="form-check-label small">Deliver here</label>
 									</div>
 								</div>
 							</div>
 						</div>
-					</form><!-- END -->
-
-
-
-					<div class="row mt-5 pt-3 d-flex">
-						<div class="col-md-6 d-flex">
-							<div class="cart-detail cart-total bg-light p-3 p-md-4">
-								<h3 class="billing-heading mb-4">Cart Total</h3>
-								<p class="d-flex">
-									<span>Subtotal</span>
-									<span>&#8377;<%= product.regularPrice %></span>
-								</p>
-								<p class="d-flex">
-									<span>Delivery</span>
-									<span>&#8377;0.00</span>
-								</p>
-								<p class="d-flex">
-									<span>Discount</span>
-									<span>&#8377;0.00</span>
-								</p>
-								<hr>
-								<p class="d-flex total-price">
-									<span>Total</span>
-									<span>&#8377;<%= product.regularPrice %></span>
-								</p>
-							</div>
-						</div>
-						<div class="col-md-6">
-							<div class="cart-detail bg-light p-3 p-md-4">
-								<h3 class="billing-heading mb-4">Payment Method</h3>
-								<div class="form-group">
-									<div class="col-md-12">
-										<div class="radio">
-											<label><input type="radio" name="optradio" class="mr-2"> Direct Bank
-												Tranfer</label>
+					<% }); %>
+				<% } else { %>
+					<p class="text-muted">No address found. Please add one.</p>
+				<% } %>
+			
+				<button id="addNewAddressBtn" class="btn btn-success mt-2" data-bs-toggle="modal"
+					data-bs-target="#addAddressModal">
+					+ Add New Address
+				</button>
+			</div>
+			
+			<!-- RIGHT SIDE: Order Summary & Payment -->
+			<div class="col-md-6">
+				<div class="card mb-4">
+					<div class="card-header fw-semibold">Order Summary</div>
+					<div class="card-body">
+						<% if (cartItems && cartItems.length> 0) { %>
+							<% let hasBlockedItems=false; %>
+							<% cartItems.forEach(item=> { %>
+								<% const isBlocked=item.productId?.isBlocked || item.productId?.status==='unlisted' ; if (isBlocked)
+									hasBlockedItems=true; %>
+								<div class="d-flex align-items-center mb-3 border-bottom pb-2">
+									<% if (item.productId && item.productId.image && item.productId.image.length> 0) { %>
+										<img src="/uploads/productsImages/<%= item.productId?.image[0] %>"
+											alt="<%= item.productId?.productName || item.productId?.name %>"
+											style="width: 70px; height: 70px; object-fit: cover; border-radius: 8px; <%= isBlocked ? 'opacity: 0.6;' : '' %>">
+									<% } else { %>
+										<div class="bg-light d-flex align-items-center justify-content-center"
+											style="width: 70px; height: 70px; border-radius: 8px;">
+											<small>No Image</small>
 										</div>
+									<% } %>
+									<div class="ms-3 flex-grow-1">
+										<div class="d-flex align-items-center gap-2 mb-1 flex-wrap">
+										    <strong><%= item.productId?.productName || 'Unknown Product' %></strong>
+											<% if (item.productId?.isBlocked) { %>
+												<span class="badge bg-danger" style="color: white;">Product Blocked</span>
+											<% } else if (item.productId?.status==='unlisted' ) { %>
+												<span class="badge bg-warning text-dark">Product Unlisted</span>
+											<% } %>
+										</div>
+										<small class="text-muted">Status: <%= item.productId?.status || 'In stock' %></small><br>
+										<small>Qty: <%= item.quantity %></small>
+										<% if (isBlocked) { %>
+		    								<br><small class="text-danger"> Remove this item to proceed</small>
+										<% } %>
+									</div>
+									<div class="text-end">
+										<div class="mb-2">₹ <%= item.totalPrice || (item.productId?.regularPrice * item.quantity) %></div>
+										<% if (isBlocked) { %>
+											<button class="btn btn-sm btn-outline-danger"
+												onclick="removeFromCart('<%= item.productId._id %>')">
+												Remove
+											</button>
+										<% } %>
 									</div>
 								</div>
-								<div class="form-group">
-									<div class="col-md-12">
-										<div class="radio">
-											<label><input type="radio" name="optradio" class="mr-2"> Check
-												Payment</label>
-										</div>
-									</div>
+							<% }); %>
+					
+							<% if (hasBlockedItems) { %>
+								<div class="alert alert-warning mt-3 mb-0" role="alert">
+									<strong><i class="bi bi-exclamation-triangle-fill me-2"></i>Action Required!</strong><br>
+									<small>Some items are blocked or unlisted by admin. Please remove them from your cart to
+										continue placing your order.</small>
 								</div>
-								<div class="form-group">
-									<div class="col-md-12">
-										<div class="radio">
-											<label><input type="radio" name="optradio" class="mr-2"> Paypal</label>
-										</div>
-									</div>
-								</div>
-								<div class="form-group">
-									<div class="col-md-12">
-										<div class="checkbox">
-											<label><input type="checkbox" value="" class="mr-2"> I have read and accept
-												the terms and conditions</label>
-										</div>
-									</div>
-								</div>
-								<p><a href="/placeOrder" class="btn btn-primary py-3 px-4">Place an order</a></p>
-							</div>
+							<% } %>
+						<% } else { %>
+							<p class="text-muted">Your cart is empty.</p>
+						<% } %>
+					
+						<div class="d-flex justify-content-between fw-semibold mt-3">
+							<span>Subtotal</span>
+							<span>₹ <%= subTotal %></span>
 						</div>
 					</div>
-				</div> <!-- .col-md-8 -->
-			</div>
+					</div>
+					
+					<div class="card">
+						<div class="card-header fw-semibold">Payment Options</div>
+						<div class="card-body">
+							<% if (cartItems && cartItems.length> 0) { %>
+								<% let hasBlockedItems=false; %>
+									<% cartItems.forEach(item=> {
+										if (item.productId?.isBlocked || item.productId?.status === 'unlisted') {
+										    hasBlockedItems = true;
+										}
+									}); %>
+					
+									<div class="form-check mb-2">
+										<input class="form-check-input" type="radio" name="paymentMethod" id="cod" value="Cash On Delivery"
+											<%=hasBlockedItems ? 'disabled' : 'checked' %>>
+										<label class="form-check-label <%= hasBlockedItems ? 'text-muted' : '' %>" for="cod">
+											Cash on Delivery
+										</label>
+									</div>
+									<div class="form-check mb-2">
+										<input class="form-check-input" type="radio" name="paymentMethod" id="razorpay" value="Razorpay"
+											<%=hasBlockedItems ? 'disabled' : '' %>>
+										<label class="form-check-label <%= hasBlockedItems ? 'text-muted' : '' %>" for="razorpay">
+											Pay with Razorpay
+										</label>
+									</div>
+									<div class="form-check mb-2">
+										<input class="form-check-input" type="radio" name="paymentMethod" id="wallet" value="Wallet"
+											<%=hasBlockedItems ? 'disabled' : '' %>>
+										<label class="form-check-label <%= hasBlockedItems ? 'text-muted' : '' %>" for="wallet">
+											Pay with Wallet
+										</label>
+									</div>
+				
+									<% if (!hasBlockedItems) { %>
+										<button id="placeOrderBtn" class="btn btn-warning w-100 fw-semibold">
+											Place Order
+										</button>
+						            <% } else { %>
+							            <div class="d-grid">
+								            <button class="btn btn-secondary w-100 fw-semibold" disabled>
+								                <i class="bi bi-lock-fill me-2"></i>Remove Blocked Items to Place Order
+								            </button>
+							            </div>
+							        <% } %>
+						    <% } else { %>
+							    <button class="btn btn-secondary w-100 fw-semibold" disabled>
+							        Cart is Empty
+						        </button>
+					        <% } %>
+					    </div>
+				    </div>
+				<!-- ADD NEW ADDRESS MODAL -->
+				<div class="modal fade" id="addAddressModal" tabindex="-1" aria-labelledby="addAddressModalLabel" aria-hidden="true">
+					<div class="modal-dialog modal-lg">
+						<div class="modal-content">
+							<form action="/address/add" method="POST" id="newAddressForm">
+								<input type="hidden" id="addressId" name="addressId">
+								<div class="modal-header">
+									<h5 class="modal-title" id="addAddressModalLabel">Add New Address</h5>
+									<button type="button" class="btn btn-sm btn-outline-success" id="addNewAddressBtn"
+                                    data-bs-toggle="modal" data-bs-target="#addAddressModal"></button>
+								</div>
+								<div class="modal-body">
+									<div class="row g-3">
+										<div class="col-md-6">
+											<label class="form-label">Address Type</label>
+											<select name="addressType" class="form-select" >
+												<option value="Home">Home</option>
+												<option value="Work">Work</option>
+												<option value="Other">Other</option>
+											</select>
+											<small class="errorMsg" id="addressTypeError"></small>
+										</div>
+										<div class="col-md-6">
+											<label class="form-label">Name</label>
+											<input type="text" name="name" class="form-control" placeholder="Please Enter Name">
+											<small class="errorMsg" id="nameError"></small>
+										</div>
+										<div class="col-12">
+											<label class="form-label">Address</label>
+											<input type="text" name="address" class="form-control" placeholder="Please Enter Address">
+											<small class="errorMsg" id="addressError"></small>
+										</div>
+										<div class="col-md-6">
+											<label class="form-label">Street</label>
+											<input type="text" name="street" class="form-control" placeholder="Please Enter Street">
+											<small class="errorMsg" id="streetError"></small>
+										</div>
+										<div class="col-md-6">
+											<label class="form-label">City</label>
+											<input type="text" name="city" class="form-control" placeholder="Please Enter City">
+											<small class="errorMsg" id="cityError"></small>
+										</div>
+										<div class="col-md-6">
+											<label class="form-label">State</label>
+											<input type="text" name="state" class="form-control" placeholder="Please Enter State">
+											<small class="errorMsg" id="stateError"></small>
+										</div>
+										<div class="col-md-6">
+											<label class="form-label">Pincode</label>
+											<input type="number" name="pincode" class="form-control" placeholder="Please Enter Pincode">
+											<small class="errorMsg" id="pincodeError"></small>
+										</div>
+										<div class="col-md-6">
+											<label class="form-label">Landmark</label>
+											<input type="text" name="landMark" class="form-control" placeholder="Please Enter landMark">
+											<small class="errorMsg" id="landmarkError"></small>
+										</div>
+										<div class="col-md-6">
+											<label class="form-label">Phone</label>
+											<input type="text" name="phone" class="form-control" placeholder="Please Enter Phone Number">
+											<small class="errorMsg" id="phoneError"></small>
+										</div>
+										<div class="col-md-6">
+											<label class="form-label">Alt Phone (Optional)</label>
+											<input type="text" name="altPhone" class="form-control" placeholder="Please Enter Phone Number">
+											<small class="errorMsg" id="altPhoneError"></small>
+										</div>
+									</div>
+								</div>
+								<div class="modal-footer">
+									<button type="submit" class="btn btn-primary">Save Address</button>
+								</div>
+							</form>
+						</div>
+					</div>
+				</div>
+
+			</div> <!-- .col-md-8 -->
 		</div>
 	</section> <!-- .section -->
 
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+	<script>
+		
+        document.addEventListener('DOMContentLoaded', function () {
+			
+			const modal = document.getElementById("addAddressModal");
+			const modalTitle = document.getElementById("addAddressModalLabel");
+			const form = document.getElementById('newAddressForm');
+			const submitBtn = form.querySelector("button[type='submit']");
+			const editButtons = document.querySelectorAll(".editAddressBtn");
+			const addNewBtn = document.getElementById("addNewAddressBtn");
+
+			editButtons.forEach(btn => {
+                btn.addEventListener("click", () => {
+					modalTitle.textContent = "Edit Address";
+					submitBtn.textContent = "Update Address";
+
+					document.getElementById("addressId").value = btn.dataset.id;
+					form.querySelector("select[name='addressType']").value = btn.dataset.addresstype;
+					form.querySelector("input[name='name']").value = btn.dataset.name;
+					form.querySelector("input[name='address']").value = btn.dataset.address;
+					form.querySelector("input[name='street']").value = btn.dataset.street;
+					form.querySelector("input[name='city']").value = btn.dataset.city;
+					form.querySelector("input[name='state']").value = btn.dataset.state;
+					form.querySelector("input[name='pincode']").value = btn.dataset.pincode;
+					form.querySelector("input[name='landMark']").value = btn.dataset.landmark;
+					form.querySelector("input[name='phone']").value = btn.dataset.phone;
+					form.querySelector("input[name='altPhone']").value = btn.dataset.altphone;
+				});
+			});
+
+            addNewBtn.addEventListener("click", () => {
+                modalTitle.textContent = "Add New Address";
+				submitBtn.textContent = "Save Address";
+				form.reset();
+				document.getElementById("addressId").value = "";
+			});
+
+			function validation(payload){
+				let isValid = true;
+				let errors = {
+					addressTypeError:"",
+					nameError:"",
+					addressError:"",
+					phoneError:"",
+					altPhoneError:"",
+					streetError:"",
+					cityError:"",
+					stateError:"",
+					pincodeError:"",
+					landmarkError:""
+				};
+
+				if(!payload.addressType)errors.addressTypeError = "Please select an address type";
+
+                if(!payload.name){
+                    errors.nameError = "Name should required"
+                }else if(payload.name.length < 5 || payload.name.length > 20)errors.nameError = "Name should contain 5 to 20 characters";
+                if(!payload.address)errors.addressError = "Address should required";
+                if(!payload.phone||!/^\d{10}$/.test(payload.phone))errors.phoneError = "Phone number should be 10 digit number";
+				if(!/^\d{10}$/.test(payload.altPhone))errors.altPhoneError = "Phone number should be 10 digit number";
+                if(!payload.city||!/^[A-Za-z\s]+$/.test(payload.city))errors.cityError = "City name should required";
+                if(!payload.state||!/^[A-Za-z\s]+$/.test(payload.state))errors.stateError = "State name should required";
+                if(!payload.street)errors.streetError = "Street name should required";
+                if(!payload.pincode || !/^\d{6}$/.test(payload.pincode))errors.pincodeError = "Pincode should required(6-digits number)";
+                if(!payload.landMark ||!/^[A-Za-z\s]+$/.test(payload.landMark))errors.landmarkError = "Landmark should required";
+
+				Object.keys(errors).forEach(id => {
+					document.getElementById(id).textContent = errors[id]
+					if(errors[id])isValid = false
+				});
+				return isValid
+
+			}
+
+			form.addEventListener('submit', async (e) => {
+				e.preventDefault();
+				const id = document.getElementById("addressId").value;
+				const payload = {
+			        addressType: form.querySelector("select[name='addressType']").value.trim(),
+					name: form.querySelector("input[name='name']").value.trim(),
+					address: form.querySelector("input[name='address']").value.trim(),
+					street: form.querySelector("input[name='street']").value.trim(),
+					city: form.querySelector("input[name='city']").value.trim(),
+					state: form.querySelector("input[name='state']").value.trim(),
+					pincode: form.querySelector("input[name='pincode']").value.trim(),
+					landMark: form.querySelector("input[name='landMark']").value.trim(),
+					phone: form.querySelector("input[name='phone']").value.trim(),
+					altPhone: form.querySelector("input[name='altPhone']").value.trim(),
+				};
+
+				if(!validation(payload))return
+
+				const uri = id ? `/address/edit/${id}` : "/address/add";
+				if(uri === `/address/edit/${id}`){
+					let result = await Swal.fire({
+						icon:"warning",
+						title:"Are you sure?",
+						text:"Do you really want to update this address?",
+						showCancelButton:true,
+						confirmButtonColor:"#3085d6",
+                        cancelButtonColor:"#d33",
+                        confirmButtonText:"Yes, update it!",
+						cancelButtinText:"Cancel"
+					});
+					if(!result.isConfirmed)return
+				}
+
+				try {
+					const res = await fetch(uri, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+						body: JSON.stringify(payload)
+					});
+
+					const data = await res.json().catch(() => ({}));
+
+					if (res.status === 401 && data.redirectUrl) {
+						// not logged in
+						window.location.href = data.redirectUrl;
+						return;
+					}
+
+					if (res.ok) {
+						Swal.fire({ icon: 'success', title: 'Saved', text: 'Address saved successfully.', timer: 1100, showConfirmButton: false })
+						.then(() => {
+							window.location.reload();
+						});
+					} else {
+						Swal.fire({ icon: 'error', title: 'Error', text: data.message || 'Failed to save address.' });
+					}
+				} catch (err) {
+					console.error('Address save error', err);
+					Swal.fire({ icon: 'error', title: 'Network error', text: 'Could not reach server.' });
+				}
+			});
+
+			modal.addEventListener("hidden.bs.modal", () => {
+                form.reset();
+				document.getElementById("addressId").value = "";
+				modalTitle.textContent = "Add New Address";
+				submitBtn.textContent = "Save Address";
+			});
+
+			const placeOrderBtn = document.getElementById('placeOrderBtn');
+            if (!placeOrderBtn) {
+                console.error("Place Order button not found!");
+                return;
+            }
+			placeOrderBtn.addEventListener('click', async () => {
+				
+                const selectedAddress = document.querySelector('input[name="selectedAddress"]:checked')?.value;
+                if (!selectedAddress) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'No Address Selected',
+                        text: 'Please select a delivery address before placing your order.',
+                        confirmButtonColor: '#ffc107'
+                    });
+                    return;
+                }
+
+                // Step 1: Save selected address
+                const addressResponse = await fetch('/checkout/select-address', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ selectedAddress })
+                });
+				
+                const addressData = await addressResponse.json();
+				console.log("address response:",addressData)
+
+                if (!addressData.success) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: addressData.message || "Failed to select address"
+                    });
+                    return;
+                }
+
+				// Step 2: Get selected payment method
+                const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked')?.value;
+        
+                if (!paymentMethod) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Select Payment Method',
+                        text: 'Please select a payment method',
+                        confirmButtonColor: '#ffc107'
+                    });
+                    return;
+                }
+
+                // Step 3: Place order
+				const confirm = await Swal.fire({
+                    title: 'Confirm Cash on Delivery Order',
+                    html: `
+                        <div style="text-align:left">
+                            <p><b>Payment Method:</b> ${paymentMethod}</p>
+                            <p><b>Total Amount:</b> ₹<%= subTotal %></p>
+                            <p>${paymentMethod === 'Cash On Delivery' ? 'You will pay when you receive your order.' : 'Proceed to complete payment.'}</p>
+                        </div>
+                    `,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, Confirm Order!',
+                    cancelButtonText: 'Cancel',
+                    confirmButtonColor: '#198754',
+                    cancelButtonColor: '#6c757d'
+                });
+
+                if (!confirm.isConfirmed) return;
+
+                const orderResponse = await fetch('/checkout/place-order', {
+                    method: 'POST',
+					headers:{
+						'Content-Type':'application/json'
+					},
+					body:JSON.stringify({paymentMethod})
+                });
+                const orderData = await orderResponse.json();
+
+                if (orderData.success) {
+                    Swal.fire({
+                        title: '🎉 Order Placed Successfully!',
+                        html: `
+                            <p><b>Order ID:</b> ${orderData.orderId}</p>
+                            <p><b>Total Amount:</b> ₹${orderData.amount}</p>
+                        `,
+                        icon: 'success',
+						showConfirmButton:false,
+						timer:1500,
+                        confirmButtonText: 'View Order',
+                        confirmButtonColor: '#3085d6'
+                    }).then(() => {
+                        window.location.href = `/order-success?orderId=${orderData.orderId}`;
+                    });
+                } else {
+                    Swal.fire('Error', data.message || 'Something went wrong!', 'error');
+                }
+            });
+
+		});
+
+		async function removeFromCart(productId) {
+            try {
+                console.log("Removing product:", productId); // Debug log
+        
+                const result = await Swal.fire({
+                    icon: 'warning',
+                    title: 'Are you sure?',
+                    text: 'Do you want to remove this item from checkout?',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Yes, remove it!',
+                    cancelButtonText: 'Cancel'
+                });
+        
+                if (!result.isConfirmed) {
+                    console.log("User cancelled removal");
+                    return;
+                }
+
+                console.log("Sending DELETE request to:", `/checkout/remove/${productId}`);
+
+                const response = await fetch(`/checkout/remove/${productId}`, {
+                    method: "DELETE",
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    }
+                });
+
+                console.log("Response status:", response.status);
+
+                // Check if response is JSON
+                const contentType = response.headers.get("content-type");
+        
+                if (!contentType || !contentType.includes("application/json")) {
+                    console.error("Non-JSON response received");
+                    throw new Error("Server returned non-JSON response");
+                }
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    await Swal.fire({
+                        icon: "success",
+                        title: "Removed!",
+                        text: data.message,
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
+                    window.location.href = data.redirectUrl || '/checkout';
+            
+                } else {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Error!",
+                        text: data.message || "Failed to remove item",
+                        showConfirmButton: true
+                    });
+                }
+
+            } catch (error) {
+                console.error('Remove from cart error:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to remove item from cart. Please try again.',
+                    showConfirmButton: true
+                });
+            }
+        }
+
+    </script>
 
 <%-include("../partials/user/footer.ejs")%>

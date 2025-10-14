@@ -76,6 +76,9 @@ const loadEditSubCategory = async function (req,res) {
     try {
 
         const subCategoryId = req.params.id;
+        if(!mongoose.Types.ObjectId.isValid(subCategoryId)){
+            return res.redirect("/admin/pageError")
+        }
         const subcategory = await subCategory.findById(subCategoryId).populate("categoryId");
         if(!subcategory){
             return res.status(404).json({error:"error sub category not found"});
@@ -94,6 +97,9 @@ const editSubCategory = async function (req,res) {
     try {
         const {name,description,categoryId} = req.body;
         const subcategoryId = req.params.id;
+        if(!mongoose.Types.ObjectId.isValid(subcategoryId)){
+            return res.redirect("/admin/pageError")
+        }
 
         if(!name||!description ||!categoryId){
             return res.status(400).json({success:false,error:"All fields are required"});
@@ -134,6 +140,9 @@ const deleteSubCategory = async function (req,res) {
 
     try {
         const subCategoryId = req.params.id;
+        if(!mongoose.Types.ObjectId.isValid(subCategoryId)){
+            return res.redirect("/admin/pageError")
+        }
         const subcategory = await subCategory.findById(subCategoryId);
         if(!subcategory){
             return res.status(404).json({success:false,error:"SubCategory not found!"});
@@ -158,7 +167,7 @@ const toggleList = async function (req,res) {
             return res.status(400).json({success:false,error:"Missing Sub CategoryId"});
         }
         await subCategory.findByIdAndUpdate(subCategoryId,{isListed:isListed});
-        res.status(200).json({success:true,message:`Sub Category${isListed}?'listed':'Unlisted'`});
+        res.status(200).json({success:true,message:`Sub Category${isListed?'listed':'Unlisted'}`});
         
     } catch (error) {
         console.error("error listing and unlisting sub Category:",error);
