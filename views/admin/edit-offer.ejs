@@ -1,0 +1,242 @@
+<%-include ("../partials/admin/header.ejs") %>
+
+    <link rel="stylesheet" href="/css/offer.css">
+
+    <div class="offers-container">
+        <div class="card" id="add-offer-form">
+            <div class="card-header">
+                <h2 class="card-title"><i class="fas fa-plus-circle"></i> Edit Offer</h2>
+            </div>
+            
+            <form id="editOfferForm">
+                <input type="hidden" name="id" value="<%= offer._id %>">
+                <div class="form-group">
+                    <label for="offerName">Offer Name</label>
+                    <input type="text" id="offerName" name="offerName" value="<%= offer.name %>" >
+                    <small class="errorMsg" id="nameError"></small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="offerType">Offer Type</label>
+                    <select id="offerType" name="offerType">
+                        <option value="percentage" <%= offer.offerType === "percentage" ? "Selected" : "" %>>Percentage</option>
+                    </select>
+                    <small class="errorMsg" id="typeError"></small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="offerValue">Offer Value (%)</label>
+                    <input type="text" id="offerValue" name="offerValue" value="<%= offer.percentage %>" >
+                    <small class="errorMsg" id="valueError"></small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="offerAppliedTo">Offer Applied To</label>
+                    <select id="offerAppliedTo" name="offerAppliedTo">
+                        <option value="">Select where to apply offer</option>
+                        <option value="category" <%= offer.offerAppliedTo === "category" ? "selected" : "" %>>Category</option>
+                        <option value="product" <%= offer.offerAppliedTo === "product" ? "selected" : "" %>>Product</option>
+                    </select>
+                    <small class="errorMsg" id="appliedToError"></small>
+                </div>
+                
+                <div id="categoryField" class="form-group conditional-field"
+                    style="display:<%= offer.offerAppliedTo === 'category' ? 'block' : 'none' %>;">
+                    <label for="category">Select Category</label>
+                    <select id="category" name="category" multiple size="5">
+                        <% categories.forEach(cat => { %>
+                            <option value="<%= cat._id %>" <%= offer.category && offer.category.some(c => c.toString() === cat._id.toString()) ? "selected" : "" %>>
+                                <%= cat.name %>
+                            </option>
+                        <% }) %>
+                    </select>
+                    <small class="form-text">Hold ctrl (cmd on mac) to select multiple categories</small>
+                    <small class="errorMsg" id="categoryError"></small>
+                </div>
+                
+                <div id="productField" class="form-group conditional-field"
+                    style="display:<%= offer.offerAppliedTo === 'product' ? 'block' : 'none' %>;">
+                    <label for="product">Select Product</label>
+                    <select id="product" name="product" multiple size="5">
+                        <option value="product">Select one product</option>
+                        <% products.forEach(pro => { %>
+                            <option value="<%= pro._id %>" <%= offer.product && offer.product.some(p => p.toString() === pro._id.toString()) ? "selected" : "" %>>
+                                <%= pro.productName %>
+                            </option>
+                        <% }) %>
+                    </select>
+                    <small class="form-text">Hold ctrl (cmd on mac) to select multiple products</small>
+                    <small class="errorMsg" id="productError"></small>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="startDate">Start Date</label>
+                        <input type="date" id="startDate" name="startDate" 
+                            value="<%= offer.startDate.toISOString().split('T')[0] %>">
+                        <small class="errorMsg" id="startDateError"></small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="endDate">End Date</label>
+                        <input type="date" id="endDate" name="endDate"
+                            value="<%= offer.endDate.toISOString().split('T')[0] %>">
+                        <small class="errorMsg" id="endDateError"></small>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-check"></i> Update Offer
+                    </button>
+                    <a href="/admin/offers">
+                        <button type="button" class="btn btn-secondary" id="cancelBtn">
+                            <i class="fas fa-times"></i>Cancel
+                        </button>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+
+        const editOfferForm = document.getElementById("editOfferForm");
+        const offerApplied = document.getElementById("offerAppliedTo");
+        const categoryField = document.getElementById("categoryField");
+        const productField = document.getElementById("productField");
+
+        const startDateInput = document.getElementById("startDate");
+        const endDateInput = document.getElementById("endDate");
+        const today = new Date().toISOString().split('T')[0];
+        startDateInput.min = today;
+        startDateInput.addEventListener("change",() => {
+            const start = startDateInput.value;
+            if(start){
+                endDateInput.min = start
+                if(endDateInput.value && endDateInput.value < start){
+                    endDateInput.value = ""
+                }
+            }else{
+                endDateInput.min = today
+            }
+        });
+
+        offerApplied.addEventListener("change",() => {
+            categoryField.style.display = offerApplied.value === "category" ? "block" : "none";
+            productField.style.display = offerApplied.value === "product" ? "block" : "none";
+        });
+
+        function validation(payload){
+            let isValid = true;
+            let errors = {
+                nameError : "",
+                typeError : "",
+                valueError : "",
+                appliedToError : "",
+                categoryError : "",
+                productError : "",
+                startDateError : "",
+                endDateError : ""
+            };
+
+            if(!payload.offerName || !/^(?=.*[A-Za-z])[A-Za-z0-9\s._]+$/.test(payload.offerName.trim())){
+                errors.nameError = "Offer name should contain atleast one charactor";
+            }
+            if(!payload.offerType)errors.typeError = "Please select offer type";
+            if(!payload.offerValue.trim()||!/^\d+(\.\d+)?$/.test(payload.offerValue.trim())){
+                errors.valueError = "Offer value should be a digit";
+            }else{
+                const value = Number(payload.offerValue.trim());
+                if(value < 1||value > 100){
+                    errors.valueError = "Offer value should in between 1 to 100";
+                }
+            }
+            if(!payload.offerAppliedTo){
+                errors.appliedToError = "Please select any of one to apply offer";
+            }else{
+                if(payload.offerAppliedTo === "category"){
+                    if(!Array.isArray(payload.category) || payload.category.length === 0){
+                        errors.categoryError = "Please select atleast one category";
+                    }
+                }
+                if(payload.offerAppliedTo === "product"){
+                    if(!Array.isArray(payload.product)||payload.product.length === 0){
+                        errors.productError = "Please select atleast one product";
+                    }
+                }
+            }
+            if(!payload.startDate)errors.startDateError = "Should need a offer starting date";
+            if(!payload.endDate)errors.endDateError = "Should need a offer ending date";
+            if(payload.startDate && payload.endDate){
+                const start = new Date(payload.startDate);
+                const end = new Date(payload.endDate);
+                if(end < start){
+                    errors.endDateError = "Offer ending date can't be before starting date";
+                }
+            }
+
+            Object.keys(errors).forEach(id => {
+                const ele = document.getElementById(id);
+                if(ele && errors[id]){
+                    ele.textContent = errors[id]
+                    isValid = false;
+                }
+            });
+            return isValid
+        }
+
+        editOfferForm.addEventListener("submit",async (e) => {
+            e.preventDefault();
+            const formData = new FormData(editOfferForm);
+            let payload = {};
+
+            for(let [key,value] of formData.entries()){
+                if(key === "category"||key === "product"){
+                    if(!payload[key]){
+                        payload[key] = formData.getAll(key).filter(val => val !== "")
+                    }
+                }else{
+                    payload[key] = value;
+                }
+            }
+
+            if(!validation(payload))return
+
+            const confirmResult = await Swal.fire({
+                icon:"warning",
+                title:"Are you sure ?",
+                text:"your entire data will change corresponding to the input data",
+                showCancelButton:true,
+                cancelButtonColor:"#d33",
+                confirmButtonColor:"#3085d6",
+                confirmButtonText:"Yes , Update it."
+            });
+            if(!confirmResult.isConfirmed)return
+
+            try {
+                const response = await fetch("/admin/offers/edit",{
+                    method:"PUT",
+                    headers:{
+                        'Content-Type':'application/json'
+                    },
+                    body:JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                if(data.success){
+                    Swal.fire({icon:"success",title:"Updated.",text:data.message||"Offer updated successsfully",timer:1500,showConfirmButton:false})
+                    window.location.href = "/admin/offers";
+                }else{
+                    Swal.fire({icon:"error",title:"Failed!",text:data.message||"Failed to update offer"});
+                }
+            } catch (error) {
+                console.log("something went wrong while editing offer:",error);
+                Swal.fire({icon:"error",title:"Oops!",text:"something went wrong while editing offer"});
+            }
+        });
+
+    </script>
+
+<%-include ("../partials/admin/footer.ejs") %>
