@@ -1,0 +1,165 @@
+<%-include("../partials/admin/header.ejs") %>
+
+            <!-- Main content -->
+            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                    <h1 class="h2">Coupon Management</h1>
+                    <a href="/admin/coupons/create" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Create New Coupon
+                    </a>
+                </div>
+
+                <!-- Coupons Table -->
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title mb-0">All Coupons</h5>
+                    </div>
+                    <div class="card-body">
+                        <% if (coupons.length === 0) { %>
+                            <div class="alert alert-info">No coupons found. Create your first coupon!</div>
+                        <% } else { %>
+                            <div class="table-responsive">
+                                <table class="table table-striped table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>Coupon Name</th>
+                                            <th>Amount</th>
+                                            <th>Min Amount</th>
+                                            <th>used</th>
+                                            <th>Start Date</th>
+                                            <th>End Date</th>
+                                            <th>Limit</th>
+                                            <th>Status</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <% coupons.forEach(coupon => { %>
+                                            <tr>
+                                                <td>
+                                                    <strong><%= coupon.name %></strong>
+                                                    <% if (coupon.usedBy.length> 0) { %>
+                                                        <br>
+                                                        <small class="text-muted">
+                                                            Used by <%= coupon.usedBy.length %> user(s)
+                                                        </small>
+                                                    <% } %>
+                                                </td>
+                                                <td>₹<%= coupon.offerPrice %></td>
+                                                <td>₹<%= coupon.minimumPrice %></td>
+                                                <td><%= coupon.usedBy.length %></td>
+                                                <td><%= coupon.createdOn.toLocaleDateString() %></td>
+                                                <td><%= coupon.expireOn.toLocaleDateString() %></td>
+                                                <td>
+                                                    <%= coupon.usageLimit ? coupon.usageLimit : 'Unlimited' %>
+                                                    <% if (coupon.usageLimit) { %>
+                                                        <br>
+                                                        <small class="text-muted">
+                                                            <%= coupon.usageLimit - coupon.usedBy.length %> left
+                                                        </small>
+                                                    <% } %>
+                                                </td>
+                                                <td>
+                                                    <form class="d-inline">
+                                                        <button type="button" data-id="<%= coupon._id %>" class="btn btn-sm <%= coupon.isList ? 'btn-success' : 'btn-secondary' %> status-btn">
+                                                            <%= coupon.isList ? 'Active' : 'Inactive' %>
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                                <td>
+                                                    <form class="d-inline">
+                                                        <button type="button" class="btn btn-danger btn-sm delete-btn" data-id="<%= coupon._id %>">
+                                                            Delete
+                                                        </button>
+                                                    </form>
+                                                </td>
+                                            </tr>
+                                        <% }) %>
+                                    </tbody>
+                                </table>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+
+        document.querySelectorAll(".delete-btn").forEach(btn => {
+            btn.addEventListener("click",async () => {
+                const couponId = btn.dataset.id;
+                console.log("coupon id:",couponId);
+                const confirmResult = await Swal.fire({
+                    icon:"warning",
+                    title:"Are you sure ?",
+                    text:"This coupon removes permanently",
+                    showCancelButton:true,
+                    cancelButtonColor:"#d33",
+                    confirmButtonColor:"#3085d6",
+                    confirmButtonText:"Yes , Delete it."
+                });
+                if(!confirmResult.isConfirmed)return
+                try {
+                    const response = await fetch(`/admin/coupons/delete/${couponId}`,{
+                        method:"DELETE",
+                    });
+                    const data = await response.json();
+                    if(data.success){
+                        Swal.fire({
+                            icon:"success",
+                            title:"Deleted.",
+                            text:"Coupon deleted successfully.",
+                            showConfirmButton:false,
+                            timer:1500
+                        })
+                        .then(() => window.location.href = "/admin/coupons");
+                    }else{
+                        Swal.fire({icon:"error",title:"Failed!",text:"Failed to delete coupon."});
+                    }
+                } catch (error) {
+                    console.log("something wrong while processing");
+                    Swal.fire({icon:"error",title:"Oops!",text:"something wrong while processing"});
+                }
+            });
+        });
+
+        document.querySelectorAll(".status-btn").forEach(btn => {
+            btn.addEventListener("click",async () => {
+               const couponId = btn.dataset.id;
+               const confirmResult = await Swal.fire({
+                    icon:"warning",
+                    title:"Are you sure ?",
+                    text:"Do you want to change coupon status",
+                    showCancelButton:true,
+                    cancelButtonColor:"#d33",
+                    confirmButtonColor:"#3085d6",
+                    confirmButtonText:"Yes , Do it."
+                });
+                if(!confirmResult.isConfirmed)return
+                try {
+                    const response = await fetch(`/admin/coupons/toggle-status/${couponId}`,{
+                        method:"PATCH",
+                    });
+                    const data = await response.json();
+                    if(data.success){
+                        Swal.fire({
+                            icon:"success",
+                            title:"Updated.",
+                            text:"Coupon status updated successfully.",
+                            showConfirmButton:false,
+                            timer:1500
+                        })
+                        .then(() => window.location.href = "/admin/coupons");
+                    }else{
+                        Swal.fire({icon:"error",title:"Failed!",text:"Failed to update coupon."});
+                    }
+                } catch (error) {
+                    console.log("something wrong while processing");
+                    Swal.fire({icon:"error",title:"Oops!",text:"something wrong while processing"});
+                }
+            });
+        });
+    </script>
