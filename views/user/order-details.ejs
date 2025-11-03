@@ -106,6 +106,9 @@
                                                     <i class="fas fa-exclamation-circle"></i>
                                                     <%= item.returnRequest.rejectionReason %>
                                                 </small>
+                                                <small style="display: block; color: #856404; margin-top: 4px; font-size: 10px; font-style: italic;">
+                                                    <i class="fas fa-redo"></i> You can submit a new return request
+                                                </small>
                                             <% } %>
                                         </div>
                                     <% } %>
@@ -113,32 +116,32 @@
                                 <td><%= item.quantity %></td>
                                 <td class="product-price">₹<%= (item.price * item.quantity).toLocaleString('en-IN') %></td>
                                 <td>
-                                    <td>
-    <% if (item.status === 'Delivered') { %>
-        <!-- Show Return button for delivered items -->
-        <% if (!item.returnRequest || item.returnRequest.status === 'None' || item.returnRequest.status === 'Return Rejected') { %>
-            <button class="btn btn-return" onclick="showReturnModal('<%= order._id %>', '<%= item._id %>')">
-                <i class="fas fa-undo"></i> <%= item.returnRequest?.status === 'Return Rejected' ? 'Return Again' : 'Return' %>
-            </button>
-        <% } else if (item.returnRequest.status === 'Return Requested') { %>
-            <button class="btn" style="background: #ffc107; color: #000;" disabled>
-                <i class="fas fa-clock"></i> Pending Approval
-            </button>
-        <% } else if (item.returnRequest.status === 'Return Approved') { %>
-            <span class="badge" style="background: #28a745; color: white; padding: 8px 12px;">
-                <i class="fas fa-check-circle"></i> Return Approved
-            </span>
-        <% } %>
-    <% } else if (item.status !== 'Cancelled' && item.status !== 'Return Requested' && item.status !== 'Return Approved' && item.status !== 'Return Rejected') { %>
-        <!-- Show Cancel button for non-delivered, non-cancelled items -->
-        <button class="btn btn-cancel" onclick="cancelItem('<%= order._id %>', '<%= item._id %>')">
-            <i class="fas fa-times"></i> Cancel
-        </button>
-    <% } else { %>
-        <!-- Item is cancelled or returned -->
-        <button class="btn btn-cancel" disabled style="opacity: 0.5;">N/A</button>
-    <% } %>
-</td>
+                                    <% if (item.status==='Delivered' || item.status === 'Return Rejected') { %>
+                                        <!-- Show Return button for delivered items -->
+                                        <% if (!item.returnRequest || item.returnRequest.status==='None' || item.returnRequest.status==='Return Rejected' ){ %>
+                                            <button class="btn btn-return" onclick="showReturnModal('<%= order._id %>', '<%= item._id %>')">
+                                                <i class="fas fa-undo"></i>
+                                                <%= item.returnRequest?.status==='Return Rejected' ? 'Return Again' : 'Return' %>
+                                            </button>
+                                        <% } else if (item.returnRequest.status==='Return Requested' ) { %>
+                                            <button class="btn" style="background: #ffc107; color: #000;" disabled>
+                                                <i class="fas fa-clock"></i> Pending Approval
+                                            </button>
+                                        <% } else if (item.returnRequest.status==='Return Approved' ) { %>
+                                            <span class="badge" style="background: #28a745; color: white; padding: 8px 12px;">
+                                                <i class="fas fa-check-circle"></i> Return Approved
+                                            </span>
+                                        <% } %>
+                                    <% } else if (item.status !=='Cancelled' && item.status !=='Return Requested' && item.status
+                                            !=='Return Approved' && item.status !== 'Returned' ) { %>
+                                        <!-- Show Cancel button for non-delivered, non-cancelled items -->
+                                        <button class="btn btn-cancel" onclick="cancelItem('<%= order._id %>', '<%= item._id %>')">
+                                            <i class="fas fa-times"></i> Cancel
+                                        </button>
+                                    <% } else { %>
+                                        <!-- Item is cancelled or returned -->
+                                        <button class="btn btn-cancel" disabled style="opacity: 0.5;">N/A</button>
+                                    <% } %>
                                 </td>
                             </tr>
                         <% }); %>
@@ -317,15 +320,13 @@
                         showConfirmButton: false,
                         timer: 1000
                     }).then(() => {
-                        window.location.href = data.redirectUrl || "/orders";
+                        window.location.href = data.redirectUrl;
                     });
                 } else {
                     Swal.fire({
                         icon: "error",
                         title: "Error!",
                         text: data.message || "Failed to cancel the order",
-                        timer: 1000,
-                        showConfirmButton: false
                     });
                 }
             } catch (error) {
@@ -334,8 +335,6 @@
                     icon: "error",
                     title: "Oops.",
                     text: "Something went wrong while canceling the order",
-                    timer: 1000,
-                    showConfirmButton: false
                 });
             }
         }
@@ -383,8 +382,6 @@
                         icon: "error",
                         title: "Error!",
                         text: data.message || "Failed to cancel the item",
-                        timer: 1000,
-                        showConfirmButton: false
                     });
                 }
             } catch (error) {
@@ -393,8 +390,6 @@
                     icon: "error",
                     title: "Oops.",
                     text: "Something went wrong while canceling the item",
-                    timer: 1000,
-                    showConfirmButton: false
                 });
             }
         }
@@ -455,8 +450,6 @@
                     icon: 'warning',
                     title: 'Invalid Reason',
                     text: 'Please provide at least 10 characters for the return reason',
-                    timer: 2000,
-                    showConfirmButton: false
                 });
                 return;
             }
@@ -466,8 +459,6 @@
                     icon: 'warning',
                     title: 'Too Long',
                     text: 'Return reason cannot exceed 500 characters',
-                    timer: 2000,
-                    showConfirmButton: false
                 });
                 return;
             }
@@ -505,8 +496,6 @@
                         icon: 'error',
                         title: 'Error!',
                         text: data.message || 'Failed to submit return request',
-                        timer: 2000,
-                        showConfirmButton: false
                     });
                 }
             } catch (error) {
@@ -515,8 +504,6 @@
                     icon: 'error',
                     title: 'Oops!',
                     text: 'Something went wrong. Please try again.',
-                    timer: 2000,
-                    showConfirmButton: false
                 });
             }
         });

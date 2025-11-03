@@ -5,7 +5,7 @@
     <div class="profile-layout">
         <!-- Sidebar (optional) -->
         <aside class="sidebar">
-            <a href="/profile/<%= user._id %>" class="sidebar-item">
+            <a href="/profile" class="sidebar-item">
                 <span>⬅ Back to Profile</span>
             </a>
         </aside>
@@ -88,7 +88,7 @@
             const otp = document.getElementById("otpInput").value.trim();
             if(!validation())return
 
-            const response = await fetch("/verifyUpdate/<%= user._id %>",{
+            const response = await fetch("/verifyUpdate",{
                 method:"PUT",
                 headers:{
                     'Content-Type':'application/json'
@@ -104,14 +104,12 @@
                     showConfirmButton:false,
                     timer:500
                 })
-                .then(() => window.location.href = data.redirectUrl||"/profile/<%= user._id %>")
+                .then(() => window.location.href = data.redirectUrl||"/profile")
             }else{
                 Swal.fire({
                     icon:"error",
                     title:"Error occured",
                     text:data.message||"An error occure while updating profile",
-                    showConfirmButton:false,
-                    timer:500
                 })
             }
 
@@ -121,8 +119,6 @@
                 icon:"error",
                 title:"Error!",
                 text:"Something went wrong",
-                timer:500,
-                showConfirmButton:false
             })
         }
     })
@@ -130,7 +126,7 @@
     // Resend OTP
     resendBtn.addEventListener("click", async () => {
         try {
-            const res = await fetch("/resend-otp/<%= user._id %>", {
+            const res = await fetch("/resend-otp", {
                 method: "POST"
             });
             const data = await res.json();

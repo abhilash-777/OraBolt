@@ -1,7 +1,6 @@
 const User = require("../../models/userSchema");
 
 const customerInfo = async function (req,res) {
-
     try {
 
         let search = "";
@@ -46,7 +45,6 @@ const customerInfo = async function (req,res) {
         console.error("Error loading customer info",error);
         res.redirect('/admin/pageError');
     }
-    
 };
 
 const blockCustomer = async function (req,res) {

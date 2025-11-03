@@ -12,24 +12,30 @@
                     </svg>
                     <span>Profile Info</span>
                 </a>
-                <a href="/profile/address" class="sidebar-item active">
+                <a href="/addresses" class="sidebar-item active">
                     <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                         <path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
                     <span>Manage Addresses</span>
                 </a>
-                <a href="/profile/orders" class="sidebar-item">
+                <a href="/orders" class="sidebar-item">
                     <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
                     </svg>
                     <span>Orders</span>
                 </a>
-                <a href="/profile/wallet" class="sidebar-item">
+                <a href="/wallet" class="sidebar-item">
                     <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                     </svg>
                     <span>Wallet</span>
+                </a>
+                <a href="/manage-password" class="sidebar-item">
+                    <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                    </svg>
+                    <span>Manage Password</span>
                 </a>
                 <a href="/logout" class="sidebar-item logout">
                     <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -43,7 +49,7 @@
             <main class="content">
                 <div class="content-header">
                     <h2>Add New Address</h2>
-                    <a href="/addresses/<%= user._id %>" class="btn-link">← Back to Addresses</a>
+                    <a href="/addresses" class="btn-link">← Back to Addresses</a>
                 </div>
 
                 <form class="profile-form" id="addressForm">
@@ -173,7 +179,7 @@
                     <!-- Form Actions -->
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">Save Address</button>
-                        <a href="/profile/address" class="btn btn-secondary" style="text-align: center; text-decoration: none; display: block;">Cancel</a>
+                        <a href="/addresses" class="btn btn-secondary" style="text-align: center; text-decoration: none; display: block;">Cancel</a>
                     </div>
                 </form>
             </main>
@@ -218,21 +224,21 @@
 
             if(!addressType)errors.addressTypeError = "Please select an address type";
 
-            if(!name){
-                errors.nameError = "Name should required"
+            if(!name||!/^(?=.*[A-Za-z])[A-Za-z\s._]+$/.test(name)){
+                errors.nameError = "Name should have Charactors"
             }else if(name.length < 5 || name.length > 20)errors.nameError = "Name should contain 5 to 20 characters";
 
             if(!address)errors.addressError = "Address should required";
 
-            if(!phone||!/^\d{10}$/.test(phone))errors.phoneError = "Phone number should be 10 digit number";
+            if(!phone||!/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(phone))errors.phoneError = "Phone number should be 10 digit valid number(not like this 0000000000)";
 
             if(!city||!/^[A-Za-z\s]+$/.test(city))errors.cityError = "City name should required";
 
             if(!state||!/^[A-Za-z\s]+$/.test(state))errors.stateError = "State name should required";
 
-            if(!street)errors.stateError = "Street name should required";
+            if(!street)errors.streetError = "Street name should required";
 
-            if(!pincode || !/^\d{6}$/.test(pincode))errors.pincodeError = "Pincode should required(6-digits number)";
+            if(!pincode || !/^[1-9][0-9]{5}$/.test(pincode))errors.pincodeError = "Pincode should required 6-digits number(not allow 000000)";
 
             if(!landMark ||!/^[A-Za-z\s]+$/.test(landMark))errors.landmarkError = "Landmark should required";
 
@@ -287,8 +293,6 @@
                         icon:"error",
                         title:"Error!",
                         text:data.message||"Error occure while adding address",
-                        showConfirmButton:false,
-                        timer:1000
                     })
                 }
 
@@ -297,8 +301,6 @@
                     icon:"error",
                     title:"Something Wrong!",
                     text:"Something went wrong while adding address",
-                    showConfirmButton:false,
-                    timer:1000
                 })
             }
         });

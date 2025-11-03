@@ -40,7 +40,7 @@
                         <tr>
                             <th>Offer Name</th>
                             <th>Type</th>
-                            <th>Discount %</th>
+                            <th>Discount(%)</th>
                             <th>Applied To</th>
                             <th>Start Date</th>
                             <th>End Date</th>
@@ -58,28 +58,40 @@
                                     <td><%= offer.percentage %></td>
                                     <td>
                                         <% if (offer.offerAppliedTo === 'category' && offer.category) { %>
-                                            <%= offer.category.map(cat => cat.name).join(", ") %>
+                                            <%= offer.offerAppliedTo %>
                                         <% } else if (offer.offerAppliedTo === 'product' && offer.product) { %>
-                                            <%= offer.product.map(pro => pro.productName).join(", ") %>
+                                            <%= offer.offerAppliedTo %>
                                         <% } else { %>
                                             -
                                         <% } %>
                                     </td>
                                     <td><%= new Date(offer.startDate).toLocaleDateString() %></td>
                                     <td><%= new Date(offer.endDate).toLocaleDateString() %></td>
-                                    <% if(offer.isActive) { %>
+                                    <!-- STATUS COLUMN -->
+                                    <% if(offer.displayStatus === 'Active') { %>
                                         <td><span class="status status-active">Active</span></td>
-                                    <% } else { %>
-                                        <td><span class="status status-inactive">In Active</span></td>
+                                    <% } else if(offer.displayStatus==='Inactive' ) { %>
+                                        <td><span class="status status-inactive">Inactive</span></td>
+                                    <% } else { %> <!-- Expired -->
+                                        <td><span class="status status-expired">Expired</span></td>
                                     <% } %>
+                                    <!-- ACTIONS COLUMN – disable Stop button for Expired offers -->
                                     <td>
                                         <div class="action-buttons">
                                             <button type="button" class="action-btn edit-btn" title="Edit Offer">
                                                 <a href="/admin/offers/edit?offerId=<%= offer._id %>"><i class="fas fa-pen" style="color: white;"></i></a>
                                             </button>
-                                            <button type="button" class="action-btn stop-btn" data-id="<%= offer._id %>" title="Stop Offer">
-                                                <i class="fas fa-stop-circle"></i>
-                                            </button>
+                                    
+                                            <% if(offer.displayStatus !=='Expired' ) { %>
+                                                <button type="button" class="action-btn stop-btn" data-id="<%= offer._id %>" title="Stop Offer">
+                                                    <i class="fas fa-stop-circle"></i>
+                                                </button>
+                                            <% } else { %>
+                                                <button type="button" class="action-btn stop-btn" disabled title="Offer already expired">
+                                                    <i class="fas fa-stop-circle"></i>
+                                                </button>
+                                            <% } %>
+                                    
                                             <button type="button" class="action-btn delete-btn" data-id="<%= offer._id %>" title="Delete Offer">
                                                 <i class="fas fa-trash"></i>
                                             </button>
@@ -97,6 +109,68 @@
             </div>
         </div>
     </div>
+
+    <!-- Pagination -->
+    <% if(totalPages > 1) { %>
+        <div class="pagination-container" style="display: flex; justify-content: center; align-items: center; padding: 20px; gap: 10px;">
+            <!-- Previous Button -->
+            <% if(currentPage > 1) { %>
+                <a href="?page=<%= currentPage - 1 %>" class="pagination-btn">
+                    <i class="fas fa-chevron-left"></i> Previous
+                </a>
+            <% } else { %>
+                <button class="pagination-btn" disabled style="opacity: 0.5; cursor: not-allowed;">
+                    <i class="fas fa-chevron-left"></i> Previous
+                </button>
+            <% } %>
+
+            <!-- Page Numbers -->
+            <div class="page-numbers" style="display: flex; gap: 5px;">
+                <% 
+                    let startPage = Math.max(1, currentPage - 2);
+                    let endPage = Math.min(totalPages, currentPage + 2);
+                        
+                    if (startPage > 1) { %>
+                        <a href="?page=1" class="page-num">1</a>
+                        <% if (startPage > 2) { %>
+                            <span class="page-num" style="border: none;">...</span>
+                        <% } %>
+                    <% }
+                        
+                    for(let i = startPage; i <= endPage; i++) { %>
+                        <a href="?page=<%= i %>" 
+                            class="page-num <%= currentPage === i ? 'active' : '' %>"
+                           style="<%= currentPage === i ? 'background-color: #ca9c06; color: white;' : '' %>">
+                            <%= i %>
+                        </a>
+                    <% }
+                        
+                    if (endPage < totalPages) { %>
+                        <% if (endPage < totalPages - 1) { %>
+                            <span class="page-num" style="border: none;">...</span>
+                        <% } %>
+                        <a href="?page=<%= totalPages %>" class="page-num"><%= totalPages %></a>
+                    <% } %>
+                %>
+            </div>
+
+            <!-- Next Button -->
+            <% if(currentPage < totalPages) { %>
+                <a href="?page=<%= currentPage + 1 %>" class="pagination-btn">
+                    Next <i class="fas fa-chevron-right"></i>
+                </a>
+            <% } else { %>
+                <button class="pagination-btn" disabled style="opacity: 0.5; cursor: not-allowed;">
+                    Next <i class="fas fa-chevron-right"></i>
+                </button>
+            <% } %>
+        </div>
+
+         <!-- Page Info -->
+        <div style="text-align: center; padding: 10px; color: #666; font-size: 14px;">
+            Showing <%= ((currentPage - 1) * limit) + 1 %> to <%= Math.min(currentPage * limit, totalOffers) %> of <%= totalOffers %> offers
+        </div>
+    <% } %>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>

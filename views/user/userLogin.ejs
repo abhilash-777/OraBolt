@@ -1,160 +1,497 @@
 <%-include("../partials/user/header.ejs") %>
 
-    <!-- Boxicons CSS -->
-    <link href='https://unpkg.com/boxicons@2.1.2/css/boxicons.min.css' rel='stylesheet'>
-
+    <link href='https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css' rel='stylesheet'>
     <style>
-        body,
-        html {
-            height: 90%;
-            margin: 0;
-            font-family: 'Segoe UI', sans-serif;
-        }
+    :root {
+        --primary-color: #c9a12f;
+        --primary-hover: #eec50f;
+        --secondary-color: #2999b6;
+        --secondary-hover: #3dcbf6;
+        --error-color: #e74c3c;
+        --success-color: #2ecc71;
+        --light-bg: #f8f9fa;
+        --border-color: #e0e0e0;
+    }
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
+    body, html {
+        height: 100%;
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .login-container {
+        background: white;
+        border-radius: 16px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        padding: 40px;
+        margin-top: 10px;
+        width: 100%;
+        max-width: 450px;
+        position: relative;
+        overflow: hidden;
+        margin: 0 auto;
+    }
+    .login-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 5px;
+        background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+    }
+    h2 {
+        font-weight: 700;
+        color: #333;
+        text-align: center;
+        margin-bottom: 30px;
+        position: relative;
+        font-size: clamp(1.5rem, 4vw, 1.8rem);
+    }
+    h2::after {
+        content: '';
+        position: absolute;
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 3px;
+        background: var(--primary-color);
+        border-radius: 2px;
+    }
+    .form-group {
+        margin-bottom: 20px;
+        position: relative;
+    }
+    .form-label {
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #555;
+        display: flex;
+        align-items: center;
+        font-size: clamp(0.9rem, 2.5vw, 1rem);
+    }
+    .form-label i {
+        margin-right: 8px;
+        color: var(--primary-color);
+        font-size: clamp(1rem, 3vw, 1.2rem);
+    }
+    .form-control {
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        padding: clamp(10px, 3vw, 12px) clamp(12px, 3vw, 15px);
+        font-size: clamp(14px, 3vw, 15px);
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+    .form-control:focus {
+        box-shadow: 0 0 0 3px rgba(201, 161, 47, 0.2);
+        border-color: var(--primary-color);
+    }
+    .form-control.success {
+        border-color: var(--success-color);
+    }
+    .form-control.error {
+        border-color: var(--error-color);
+    }
+    .error-message {
+        color: var(--error-color);
+        font-size: clamp(11px, 2.5vw, 13px);
+        margin-top: 5px;
+        display: flex;
+        align-items: center;
+        opacity: 0;
+        transform: translateY(-5px);
+        transition: all 0.3s ease;
+    }
+    .error-message.show {
+        opacity: 1;
+        transform: translateY(0);
+    }
+    .error-message i {
+        margin-right: 5px;
+        font-size: clamp(12px, 2.5vw, 14px);
+    }
+    .btn-login {
+        background-color: var(--primary-color);
+        color: white;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        padding: clamp(10px, 3vw, 12px);
+        width: 100%;
+        margin-top: 10px;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 6px rgba(201, 161, 47, 0.2);
+        font-size: clamp(14px, 3vw, 16px);
+    }
+    .btn-login:hover {
+        background-color: var(--primary-hover);
+        transform: translateY(-2px);
+        box-shadow: 0 6px 8px rgba(201, 161, 47, 0.3);
+    }
+    .btn-google {
+        background-color: white;
+        color: #555;
+        font-weight: 600;
+        border: 2px solid var(--border-color);
+        border-radius: 8px;
+        padding: clamp(10px, 3vw, 12px);
+        width: 100%;
+        margin-top: 15px;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: clamp(14px, 3vw, 16px);
+    }
+    .btn-google:hover {
+        background-color: #f8f9fa;
+        border-color: var(--secondary-color);
+    }
+    .btn-google i {
+        color: var(--secondary-color);
+        margin-right: 10px;
+        font-size: clamp(16px, 3.5vw, 18px);
+    }
+    .divider {
+        display: flex;
+        align-items: center;
+        margin: 20px 0;
+    }
+    .divider::before,
+    .divider::after {
+        content: '';
+        flex: 1;
+        border-bottom: 1px solid var(--border-color);
+    }
+    .divider span {
+        padding: 0 15px;
+        color: #777;
+        font-size: clamp(12px, 2.5vw, 14px);
+    }
+    .forgot-password {
+        color: var(--secondary-color);
+        text-decoration: none;
+        display: block;
+        text-align: right;
+        margin-top: 10px;
+        font-weight: 500;
+        transition: color 0.3s ease;
+        font-size: clamp(13px, 2.5vw, 14px);
+    }
+    .forgot-password:hover {
+        color: var(--secondary-hover);
+        text-decoration: underline;
+    }
+    .backToSignup {
+        color: var(--secondary-color);
+        text-decoration: none;
+        display: block;
+        text-align: center;
+        margin-top: 20px;
+        font-weight: 500;
+        transition: color 0.3s ease;
+        font-size: clamp(13px, 2.5vw, 14px);
+    }
+    
+    .backToSignup:hover {
+        color: var(--secondary-hover);
+        text-decoration: underline;
+    }
+    .alert {
+        border-radius: 8px;
+        padding: clamp(10px, 2.5vw, 12px) clamp(12px, 2.5vw, 15px);
+        margin-bottom: 20px;
+        font-size: clamp(13px, 2.5vw, 14px);
+    }
+    /* Responsive Breakpoints */
+    
+    /* Large desktops and laptops */
+    @media (min-width: 1200px) {
         .login-container {
-            background: rgba(250, 249, 249, 0.95);
-            align-items: center;
-            padding: 30px 50px;
+            padding: 40px;
+            margin-top: 80px;
+        }
+    }
+    
+    /* Tablets and small laptops */
+    @media (max-width: 1199px) and (min-width: 992px) {
+        .login-container {
+            margin-top: 80px;
+            padding: 35px 30px;
+            max-width: 420px;
+        }
+    }
+    
+    /* Tablets */
+    @media (max-width: 991px) and (min-width: 768px) {
+        .login-container {
+            margin-top: 20px;
+            padding: 30px 25px;
+            max-width: 400px;
+        }
+    }
+    
+    /* Large mobile devices */
+    @media (max-width: 767px) and (min-width: 576px) {
+        .login-container {
+            height: 600px;
+            padding: 25px 20px;
+            max-width: 380px;
+        }
+        .form-group{
+            margin-bottom: 5px;
+        }
+    }
+    
+    /* Small mobile devices */
+    @media (max-width: 575px) {
+        .login-container {
+            padding: 20px 15px;
+            max-width: 70%;
+            margin: 20px 80px;
             border-radius: 12px;
-            max-width: 450px;
-            height: 540px;
-            margin: auto;
-            margin-top: 130px;
-            border: 1px solid #f1ebeb;
-            box-shadow: 5px 5px 5px #c9a12f;
         }
-        .form-control:focus {
-            box-shadow: none;
-            border-color: #c9a12f;
+        body, html {
+            align-items: flex-start;
         }
-        .btn-login {
-            background-color: #c9a12f;
-            color: rgb(255, 255, 255);
-            font-weight: bold;
-            max-width: 200px;
-            width: 100%;
-            margin-top: 40px;
-            margin-left: 80px;
+        
+        h2 {
+            margin-bottom: 20px;
         }
-        .google-login{
-            background-color: #2999b6;
-            max-width: 200px;
-            color: rgb(255, 255, 255);
-            margin-left: 80px;
+        .form-group {
+            margin-bottom: 10px;
         }
-        .google-login:hover{
-            color: rgb(255, 255, 255);
-            background-color: #3dcbf6;
+        .divider {
+            margin: 15px 0;
         }
-        .btn-login:hover {
-            background-color: #eec50f;
-            color: #ffffff;
+    }
+    
+    /* Very small mobile devices */
+    @media (max-width: 375px) {
+        .login-container {
+            padding: 15px 12px;
+            margin: 50px;
         }
-        .goToForgot{
-            color: black;
-            text-decoration: none;
+        .form-control {
+            padding: 10px 12px;
         }
-        .goToForgot:hover{
-            color: blue;
-            text-decoration: underline;
+        .btn-login, .btn-google {
+            padding: 10px;
+        }
+    }
+    
+    /* Landscape orientation for mobile */
+    @media (max-height: 600px) and (orientation: landscape) {
+        body, html {
+            align-items: flex-start;
+            padding-top: 10px;
+            padding-bottom: 10px;
+        }
+        
+        .login-container {
+            margin-top: 10px;
+            margin-bottom: 10px;
+        }
+    }
+    
+    /* High-resolution displays */
+    @media (min-resolution: 192dpi) {
+        .login-container {
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+    }
+    
+    /* Reduced motion for accessibility */
+    @media (prefers-reduced-motion: reduce) {
+        * {
+            transition: none !important;
+            animation: none !important;
+        }
+        
+        .form-control, .btn-login, .btn-google, .error-message {
+            transition: none;
+        }
+    }
+    
+    /* High contrast mode */
+    @media (prefers-contrast: high) {
+        :root {
+            --primary-color: #000000;
+            --secondary-color: #000000;
+            --border-color: #000000;
+        }
+        
+        .form-control {
+            border-width: 3px;
+        }
+    }
+    
+    /* Dark mode support */
+    @media (prefers-color-scheme: dark) {
+        .login-container {
+            background: #ffffff;
+            color: #060606;
         }
         h2 {
-            font-weight: 700;
-            color: #333;
+            color: #232323;
         }
-        .option{
-            margin-left: 210px;
+        
+        .form-label {
+            color: #232323;
         }
-        .err_msg{
-            color: red;
-            font-size: 10px;
-            display: none;
+        
+        .form-control {
+            background: #4a5568;
+            border-color: #718096;
+            color: #e2e8f0;
         }
-    </style>
-
+        
+        .form-control:focus {
+            background: #4a5568;
+            color: #e2e8f0;
+        }
+        
+        .btn-google {
+            background: #4a5568;
+            color: #e2e8f0;
+            border-color: #718096;
+        }
+        
+        .divider span {
+            color: #a0aec0;
+        }
+    }
+</style>
+</head>
+<body>
     <div class="login-container">
-        <h2 class="text-center mb-4">Login your Account</h2>
+        <h2>Login to Your Account</h2>
         <form id="loginForm" method="POST" action="/login">
-            
-            <div class="mb-3">
-                <label for="email" class="form-label">Email address</label>
-                <input type="email" class="form-control" id="email" name="email" placeholder="Enter email address" >
-                <small id="emailError" style="color: #db4437;"></small>
+            <div class="form-group">
+                <label for="email" class="form-label">
+                    <i class='bx bx-envelope'></i>Email Address
+                </label>
+                <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email address">
+                <div class="error-message" id="emailError">
+                    <i class='bx bx-error-circle'></i>Email is required
+                </div>
             </div>
 
-            <div class="mb-3">
-                <label for="password" class="form-label">Password</label>
-                <input type="password" class="form-control" id="password" name="password" placeholder="Enter password" >
-                <small id="passwordError" style="color: #db4437;"></small>
+            <div class="form-group">
+                <label for="password" class="form-label">
+                    <i class='bx bx-lock-alt'></i>Password
+                </label>
+                <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password">
+                <div class="error-message" id="passwordError">
+                    <i class='bx bx-error-circle'></i>Password is required
+                </div>
             </div>
-            <div class="mb-3" style="margin-top: 10px;">
-                <a href="/forgotPassword" class="goToForgot">Forgot your password?</a>
-            </div>
+
+            <a href="/forgotPassword" class="forgot-password">Forgot your password?</a>
 
             <%if(locals.message && message.length > 0){%>
                 <div class="alert alert-danger text-center"><%=message%></div>
             <%}%>
+            <div id="formAlert" class="alert alert-danger text-center d-none"></div>
 
-            <button type="submit" class="btn btn-login w-100 mb-2">Login</button>
-            <p style="margin-left: 130px;">or login with</p>
-            <a href="/auth/google" class="btn google-login w-100 mb-2"><i class='bx bxl-google google-icon'></i>google</a>
+            <button type="submit" class="btn btn-login">Login</button>
+
+            <div class="divider">
+                <span>or</span>
+            </div>
+
+            <a href="/auth/google" class="btn btn-google">
+                <i class='bx bxl-google'></i> Continue with Google
+            </a>
+
+            <a href="/signup" class="backToSignup">Don't have an account? Sign up</a>
         </form>
     </div>
 
     <script>
-        const form = document.getElementById("loginForm");
-        const emailInput = document.getElementById("email");
-        const passwordInput = document.getElementById("password");
-        let emailError = document.getElementById("emailError");
-        let passwordError = document.getElementById("passwordError");
-
-        function validateForm(event){
-            let isValid = true;
-            const email = emailInput.value.trim();
-            const password = passwordInput.value.trim();
-            emailError.textContent = "";
-            passwordError.textContent = "";
-
-            if(!email){
-                emailError.textContent = "email should required";
-                isValid = false;
-            }else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-                emailError.textContent = "Invalid email format";
-                isValid = false;
-            }
-
-            if(!password){
-                passwordError.textContent = "password Should required";
-                isValid = false;
-            }
-            if(!isValid){
-                event.preventDefault();
-            }
-        }
-
-        form.addEventListener("submit", (event) => {
-           validateForm(event);
-        });
-
-        form.addEventListener("click",(event) => {
-            emailInput.addEventListener("blur",() => {
-                if(emailInput){
-                    const email = emailInput.value.trim();
-                    emailError.textContent = "";
-                    if(!email){
-                        emailError.textContent = "email should required";
-                    }else if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)){
-                        emailError.textContent = "Invalid email format";
-                    }
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('loginForm');
+            const emailInput = document.getElementById('email');
+            const passwordInput = document.getElementById('password');
+            const formAlert = document.getElementById('formAlert');
+            
+            const emailError = document.getElementById('emailError');
+            const passwordError = document.getElementById('passwordError');
+            
+            function validateEmail() {
+                const email = emailInput.value.trim();
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                
+                if (email === '') {
+                    showError(emailInput, emailError, 'Email is required');
+                    return false;
+                } else if (!emailRegex.test(email)) {
+                    showError(emailInput, emailError, 'Please enter a valid email address');
+                    return false;
+                } else {
+                    showSuccess(emailInput, emailError);
+                    return true;
                 }
-            });
-
-            passwordInput.addEventListener("blur",() => {
-                if(passwordInput){
-                    const password = passwordInput.value.trim();
-                    passwordError.textContent = "";
-                    if(!password){
-                        passwordError.textContent = "password should required";
-                    }
+            }
+            
+            function validatePassword() {
+                const password = passwordInput.value;
+                
+                if (password === '') {
+                    showError(passwordInput, passwordError, 'Password is required');
+                    return false;
+                } else {
+                    showSuccess(passwordInput, passwordError);
+                    return true;
+                }
+            }
+            
+            function showError(input, errorElement, message) {
+                input.classList.remove('success');
+                input.classList.add('error');
+                errorElement.textContent = message;
+                errorElement.classList.add('show');
+            }
+            
+            function showSuccess(input, errorElement) {
+                input.classList.remove('error');
+                input.classList.add('success');
+                errorElement.classList.remove('show');
+            }
+            
+            function hideAlert() {
+                formAlert.classList.add('d-none');
+            }
+            
+            function showAlert(message, type = 'danger') {
+                formAlert.textContent = message;
+                formAlert.className = `alert alert-${type} text-center`;
+                formAlert.classList.remove('d-none');
+                
+                setTimeout(hideAlert, 5000);
+            }
+            
+            emailInput.addEventListener('blur', validateEmail);
+            passwordInput.addEventListener('blur', validatePassword);
+            
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const isEmailValid = validateEmail();
+                const isPasswordValid = validatePassword();
+                
+                if (isEmailValid && isPasswordValid) {
+                    form.submit();
+                } else {
+                    showAlert('Please fix the errors in the form before submitting.');
                 }
             });
         });

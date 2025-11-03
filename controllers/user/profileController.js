@@ -8,6 +8,8 @@ const session = require("express-session");
 const {generateInvoice} = require("../../utils/invoiceGenereator");
 const fs = require("fs");
 const path = require("path");
+const Product = require("../../models/productSchema");
+const Wallet = require("../../models/walletSchema");
 require("dotenv").config();
 
 function generateOtp(){
@@ -66,12 +68,12 @@ const forgotPasword = async function (req,res) {
         const {email} = req.body;
         const findUser = await User.findOne({email:email});
         if(!findUser){
-            return res.status(404).json({success:false,error:"User not found"});
+            return res.redirect("/pageNotFound");
         }
         const otp = generateOtp();
         const emailSend = await sendVerificationMail(email,otp,"forgot password");
         if(!emailSend){
-            return res.status(400).json({success:false,error:"send verification mail error"});
+            return res.redirect("/pageNotFound");
         }
         req.session.userOtp = otp;
         req.session.email = email;
@@ -182,13 +184,16 @@ const resetPassword = async function (req,res) {
 
 const renderProfileTab = async function (req,res,tabName,errorMsg) {
     try {
-        const userId = req.params.userId;
+        const userId = req.session?.user?._id;
         const findUser = await User.findById(userId);
         if(!findUser){
             console.log("user not found");
+            return res.redirect("/pageNotFound")
         }
         let addresses = [];
         let orders = [];
+        let wallet = null;
+
         if(tabName === "addresses"){
             addresses = await Address.find({userId}).sort({createdOn:-1});
         }
@@ -197,7 +202,23 @@ const renderProfileTab = async function (req,res,tabName,errorMsg) {
             .populate("orderedItems.product")
             .sort({createdOn:-1});
         }
-        return res.render("profile",{user:findUser,activeTab:tabName,addresses,orders});
+
+        if(tabName == "wallet"){
+            wallet = await Wallet.findOne({userId});
+            if(!wallet){
+                wallet = new Wallet({
+                    userId:userId,
+                    balance:0,
+                    transactions:[]
+                });
+                await wallet.save();
+            }
+            if(wallet.transactions && wallet.transactions.length > 0){
+                wallet.transactions.sort((a,b) => new Date(b.date) - new Date(a.date));
+            }
+        }
+
+        return res.render("profile",{user:findUser,activeTab:tabName,addresses,orders,wallet});
     } catch (error) {
         console.error(`${errorMsg}:${error}`);
         return res.redirect("/pageNotFound");
@@ -208,7 +229,7 @@ const loadProfile = (req,res) => renderProfileTab(req,res,"profile","Error occur
 
 const loadEditProfile = async(req,res) => {
     try {
-        const userId = req.params.userId;
+        const userId = req.session?.user?._id;
         const findUser = await User.findById(userId);
         if(!findUser){
             console.log("user not found");
@@ -218,36 +239,62 @@ const loadEditProfile = async(req,res) => {
         console.error("error to load edit profile:",error);
         return res.redirect("/pageNotFound");
     }
-}
+};
 
 const updateProfile = async (req,res) => {
     try {
         const {name,phone,email} = req.body;
-        const userId = req.params.userId;
+        const userId = req.session?.user?._id;
         const findUser = await User.findById(userId);
         if(!findUser){
             return res.status(404).json({success:false,message:"User not found"});
         }
-        const otp = generateOtp();
-        const emailSend = sendVerificationMail(email,otp,"update email");
-        if(!emailSend){
-            return res.status(400).json({success:false,message:"Failed to send email for otp verification"});
+
+        // Check if email is being changed
+        const isEmailChanged = email !== findUser.email;
+
+        if(isEmailChanged) {
+            // Only send OTP if email is being changed
+            const otp = generateOtp();
+            const emailSend = sendVerificationMail(email,otp,"update email");
+            if(!emailSend){
+                return res.status(400).json({success:false,message:"Failed to send email for otp verification"});
+            }
+            req.session.userOtp = otp;
+            req.session.userData = {name,phone,email};
+            req.session.otpExpiry = Date.now() + 10 * 60 * 1000;
+            console.log("otp sent:",otp);
+            return res.status(200).json({
+                success:true,
+                message:"OTP sent for email verification",
+                redirectUrl:`/verifyUpdate`
+            });
+        } else {
+            // Directly update name and phone without OTP
+            const updatedUser = await User.findByIdAndUpdate(
+                userId,
+                {$set: {name, phone}},
+                {new: true}
+            );
+            
+            req.session.user = updatedUser;
+            
+            return res.status(200).json({
+                success:true,
+                message:"Profile updated successfully",
+                redirectUrl:`/profile`
+            });
         }
-        req.session.userOtp = otp;
-        req.session.userData = {name,phone,email};
-        req.session.otpExpiry = Date.now() + 10 * 60 * 1000;
-        console.log("otp sended:",otp);
-        return res.status(200).json({success:true,message:"OTP sent successfully",redirectUrl:`/verifyUpdate/${userId}`});
         
     } catch (error) {
-        console.error("error occure while updating:",error);
-        return res.status(400).json({success:false,message:"error occured while updating the profile"});
+        console.error("error occurred while updating:",error);
+        return res.status(400).json({success:false,message:"error occurred while updating the profile"});
     }
 };
 
 const loadEmailVerify = async(req,res) => {
     try {
-        const userId = req.params.userId;
+        const userId = req.session?.user?._id;
         const findUser = await User.findById(userId);
         res.render("verifyEmail",{user:findUser,newEmail:req.session?.userData?.email});
     } catch (error) {
@@ -272,7 +319,8 @@ const verifyUpdateEmail = async (req,res) => {
         if(sessionOtp !== userInputOtp){
             return res.status(400).json({success:false,message:"OTP does not match, Please enter correct OTP."});
         }
-        const userId = req.params.userId;
+        const userId = req.session?.user?.id;
+        console.log("logined user id:",userId);
         const updateData = req.session.userData;
         const currentUser = await User.findById(userId);
         if(!currentUser){
@@ -296,7 +344,7 @@ const verifyUpdateEmail = async (req,res) => {
 
         req.session.user = updatedUser;
 
-        return res.status(200).json({success:true,message:"Profile updated successfully",redirectUrl:`/profile/${userId}`});
+        return res.status(200).json({success:true,message:"Profile updated successfully",redirectUrl:`/profile`});
 
     } catch (error) {
         console.log("something wrong while updating profile:",error);
@@ -306,7 +354,7 @@ const verifyUpdateEmail = async (req,res) => {
 
 const resendOtp = async (req, res) => {
     try {
-        const userId = req.params.userId;
+        const userId = req.session?.user?._id;
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
@@ -317,7 +365,7 @@ const resendOtp = async (req, res) => {
             return res.status(400).json({
                 success: false,
                 message: "No email found in session. Please restart the update process.",
-                redirectUrl: `/editProfile/${userId}`
+                redirectUrl: `/editProfile`
             });
         }
 
@@ -342,7 +390,8 @@ const resendOtp = async (req, res) => {
 
 const uploadProfileImage = async (req, res) => {
     try {
-        const userId = req.params.userId;
+        const userId = req.session?.user?._id;
+        console.log("logined user id:",userId);
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
@@ -360,7 +409,7 @@ const uploadProfileImage = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "Profile image uploaded successfully",
-            redirectUrl: `/profile/${userId}`
+            redirectUrl: `/profile`
         });
     } catch (error) {
         console.error("Error uploading profile image:", error);
@@ -370,7 +419,7 @@ const uploadProfileImage = async (req, res) => {
 
 const removeProfileImage = async (req, res) => {
     try {
-        const userId = req.params.userId;
+        const userId = req.session?.user?._id;
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
@@ -388,7 +437,7 @@ const removeProfileImage = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "Profile image removed successfully",
-            redirectUrl: `/profile/${userId}`
+            redirectUrl: `/profile`
         });
     } catch (error) {
         console.error("Error removing profile image:", error);
@@ -400,11 +449,16 @@ const loadAddress = async (req,res) => renderProfileTab(req,res,"addresses","Err
 
 const loadAddAddress = async (req,res) => {
     try {
-        const user = await User.findById(req.session?.user?._id);
-        if(!user){
+        const userId = req.session?.user?._id;
+        if(!userId){
             console.log("user not found");
         }
-        res.render("addAddress",{user:user});
+        const userData = await User.findById(userId);
+        if(!userData){
+            console.log("user data not found.");
+        }
+        console.log("user data:",userData);
+        res.render("addAddress",{user:userData});
     } catch (error) {
         console.log("error occure while loading add address:",error);
         return res.redirect("/pageNotFound")
@@ -422,13 +476,13 @@ const addAddress = async (req,res) => {
         if(!addressType||!name||!address||!phone||!street||!city||!state||!pincode||!landMark){
             return res.status(404).json({success:false,message:"All field required. Please fill all fields"});
         }
-        if(!/^\d{10}$/.test(phone)){
+        if(!/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(phone)){
             return res.status(400).json({success:false,message:"Invalid phone number"});
         }
-        if(!/^\d{10}$/.test(altPhone)){
+        if(!/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(altPhone)){
             return res.status(400).json({success:false,message:"Invalid alternative phone number"});
         }
-        if(!/^\d{6}$/.test(pincode)){
+        if(!/^[1-9][0-9]{5}$/.test(pincode)){
             return res.status(400).json({success:false,message:"Invalid pincode"});
         }
 
@@ -449,7 +503,7 @@ const addAddress = async (req,res) => {
 
         await newAddress.save();
         
-        return res.status(200).json({success:true,message:"Added Successfully.",address:newAddress,redirectUrl:`/addresses/${newAddress.userId}`})
+        return res.status(200).json({success:true,message:"Added Successfully.",address:newAddress,redirectUrl:`/addresses`})
 
     } catch (error) {
         console.error("Something wrong while create a address:",error);
@@ -489,13 +543,13 @@ const editAddress = async (req,res) => {
             return res.status(404).json({success:false,message:"All fields required"});
         }
 
-        if(!/^\d{10}$/.test(phone)){
+        if(!/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(phone)){
             return res.status(400).json({success:false,message:"Invalid phone number"});
         }
-        if(!/^\d{10}$/.test(altPhone)){
+        if(!/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(altPhone)){
             return res.status(400).json({success:false,message:"Invalid alternative phone number"});
         }
-        if(!/^\d{6}$/.test(pincode)){
+        if(!/^[1-9][0-9]{5}$/.test(pincode)){
             return res.status(400).json({success:false,message:"Invalid pincode"});
         }
 
@@ -516,8 +570,7 @@ const editAddress = async (req,res) => {
         findAddress.landMark = landMark;
         await findAddress.save();
 
-        const findUser = await User.findById(findAddress.userId);
-        return res.status(200).json({success:true,message:"Address edited successfully.",redirectUrl:`/addresses/${findUser._id}`});
+        return res.status(200).json({success:true,message:"Address edited successfully.",redirectUrl:`/addresses`});
         
     } catch (error) {
         console.log("something wrong while editing:",error);
@@ -528,24 +581,33 @@ const editAddress = async (req,res) => {
 const setDefaultAddress = async (req,res) => {
     try {
         const {userId,addressId} = req.params;
+        if(!userId )return res.json({success:false,message:"User not found"});
+        if(!addressId)return res.json({success:false,message:"Address ID is missing"});
+
+        const findAddress = await Address.findById({_id:addressId,userId});
+        if(!findAddress){
+            return res.json({success:false,message:"Address not found"});
+        }
+
         await Address.updateMany({userId},{$set:{isDefault:false}});
         await Address.findByIdAndUpdate(addressId,{$set:{isDefault:true}});
-        return res.redirect(`/addresses/${userId}`);
+
+        return res.status(200).json({success:true,message:"Address set to default"});
     } catch (error) {
         console.log("error occure setting address default:",error);
-        return res.redirect("/pageNotFound");
+        return res.json({success:false,message:"Something wrong while set address default"});
     }
 };
 
 const deleteAddress = async(req,res) => {
     try {
-        const{userId,addressId} = req.params;
+        const{addressId} = req.params;
         const address = await Address.findById(addressId);
         if(address.isDefault){
             return res.status(400).json({success:false,message:"Default address can't delete!"});
         }
         await Address.findByIdAndDelete(addressId);
-        return res.status(200).json({success:true,message:"Address deleted successfully.",redirectUrl:`/addresses/${userId}`})
+        return res.status(200).json({success:true,message:"Address deleted successfully.",redirectUrl:`/addresses`})
     } catch (error) {
         console.log("error occure while deleting address:",error);
         return res.redirect("/pageNotFound");
@@ -592,23 +654,68 @@ const cancelAllOrder = async (req,res) => {
                 message: `Cannot cancel order with status: ${order.status}` 
             });
         }
+
+        for(let item of order.orderedItems){
+            if(item.status !== "Cancelled"){
+                const product = await Product.findById(item.product);
+                if(product){
+                    product.quantity += item.quantity;
+                    await product.save();
+                }else{
+                    console.log("product restoration failed!");
+                }
+            }
+        }
+
+        //calculate refund amount
+        const refundAmount = order.finalPrice;
+
         // Update order status and all items
         order.status = 'Cancelled';
         order.orderedItems.forEach(item => {
             item.status = 'Cancelled';
         });
 
+        //Update order final price to 0
+        order.finalPrice = 0;
+
         // Update payment status if needed (assuming refund is initiated)
         if (order.paymentStatus === 'Paid') {
-            order.paymentStatus = 'Refund Initiated';
-        }
+            order.paymentStatus = "Refunded";
+            order.refundAmount = refundAmount;
+            order.refundDate = new Date();
 
+            let wallet = await Wallet.findOne({userId:order.userId});
+            if(!wallet){
+                wallet = new Wallet({
+                    userId:order.userId,
+                    balance:refundAmount,
+                    transactions:[{
+                        type:"credit",
+                        amount:refundAmount,
+                        description:`Refund for cancelled order ${order.orderId||order._id}`,
+                        date:new Date()
+                    }]
+                });
+            }else{
+                wallet.balance += refundAmount;
+                wallet.transactions.push({
+                    type:"credit",
+                    amount:refundAmount,
+                    description:`Refund for cancelled order ${order.orderId||order._id}`,
+                    data:new Date()
+                })
+            }
+            await wallet.save();
+        }else if(order.paymentStatus === 'Pending'){
+            order.paymentStatus = "Cancelled";
+        }
         await order.save();
 
         return res.json({ 
             success: true, 
             message: 'Order cancelled successfully',
-            redirectUrl: `/orders/${order.userId}`
+            redirectUrl: `/orders?userId=${order.userId}`
         });
     } catch (error) {
         console.error("Error while canceling whole order:", error);
@@ -657,23 +764,84 @@ const cancelSingleItem = async (req,res) => {
             });
         }
 
+        const product = await Product.findById(item.product);
+        if(product){
+            product.quantity += item.quantity;
+            await product.save();
+        }else{
+            console.log("product quantity restoration failed!");
+        }
+
+        const originalSubTotal = order.orderedItems.reduce((sum,i) => sum + (i.price * i.quantity),0);
+        console.log("Original sub total price before any discounts:",originalSubTotal);
+        const itemOriginalPrice = item.price * item.quantity;
+        console.log("Item original price:",itemOriginalPrice);
+        const itemProportion = itemOriginalPrice/originalSubTotal;
+        console.log("item proportion:",itemProportion);
+        const finalPriceWithoutShipping = order.finalPrice - (order.shippingCost || 0);
+        console.log("total discount amount (difference between original and final, excluding shipping):",finalPriceWithoutShipping);
+        const totalDiscount = originalSubTotal - finalPriceWithoutShipping;
+        console.log("total discount:",totalDiscount);
+        const itemDiscountShare = totalDiscount * itemProportion;
+        console.log("single item discount share:",itemDiscountShare);
+
+        const itemRefundAmount = Math.round((itemOriginalPrice - itemDiscountShare) *100) / 100;
+        console.log("item refund amount:",itemRefundAmount);
+
         // Update item status
         item.status = 'Cancelled';
 
         // Recalculate order totals
         const activeItems = order.orderedItems.filter(item => item.status !== 'Cancelled');
-        order.finalPrice = activeItems.reduce((total, item) => total + (item.price * item.quantity), 0);
+        order.finalPrice = Math.max(0,order.finalPrice - itemRefundAmount);
         
         // Add shipping cost if applicable
         if (order.shippingCost) {
             order.finalPrice += order.shippingCost;
         }
 
-        // If all items are cancelled, cancel the entire order
-        if (activeItems.length === 0) {
-            order.status = 'Cancelled';
-            if (order.paymentStatus === 'Paid') {
-                order.paymentStatus = 'Refund Initiated';
+        if (order.paymentStatus === 'Paid') {
+            // If already some refund initiated, add to it
+            order.refundAmount = (order.refundAmount || 0) + itemRefundAmount;
+            
+            // If all items cancelled, full refund
+            if (activeItems.length === 0) {
+                order.paymentStatus = 'Refunded';
+                order.status = "Cancelled";
+                // const totalRefund = order.totalPrice; // Full original amount
+                // order.refundAmount = totalRefund;
+                order.finalPrice = 0;
+            } else {
+                order.paymentStatus = 'Partial Refund';
+            }
+            
+            order.refundDate = new Date();
+            let wallet = await Wallet.findOne({userId:order.userId});
+            if(!wallet){
+                wallet = new Wallet({
+                    userId:order.userId,
+                    balance:itemRefundAmount,
+                    transactions:[{
+                        type:"credit",
+                        amount:itemRefundAmount,
+                        description:`Refund for cancelled item in order ${order.orderId||order._id}`,
+                        date:new Date()
+                    }]
+                });
+            }else{
+                wallet.balance += itemRefundAmount;
+                wallet.transactions.push({
+                    type:"credit",
+                    amount:itemRefundAmount,
+                    description:`Refund for cancelled item ${order.orderId||order._id}`,
+                    date:new Date()
+                });
+            }
+            await wallet.save();
+        }else if(order.paymentStatus === "Pending"){
+            if(activeItems.length === 0){
+                order.status = "Cancelled";
+                order.paymentStatus = "Cancelled";
             }
         }
 
@@ -681,7 +849,8 @@ const cancelSingleItem = async (req,res) => {
 
         return res.json({ 
             success: true, 
-            message: 'Item cancelled successfully',
+            message: order.paymentStatus === "Refunded" ||order.paymentStatus === "Partial Refund Initiated" ? 
+                "Item cancelled successfull.Refund amount added to your wallet.":'Item cancelled successfully',
             redirectUrl: `/orders/details/${orderId}`
         });
     } catch (error) {
@@ -693,7 +862,7 @@ const cancelSingleItem = async (req,res) => {
     }
 };
 
-const downloadInvoice = async (req, res) => {
+const downloadInvoice = async (req, res) => {   
     try {
         const orderId = req.params.orderId;
         const userId = req.session.user?._id;
@@ -816,10 +985,10 @@ const returnItem = async (req,res) => {
         }
 
         // Check if item is delivered
-        if (item.status !== 'Delivered') {
+        if (item.status !== 'Delivered' && item.status !== "Return Rejected") {
             return res.status(400).json({ 
                 success: false, 
-                message: 'Only delivered items can be returned' 
+                message: 'Only delivered items or items with rejected returns can request a return' 
             });
         }
 
@@ -838,21 +1007,38 @@ const returnItem = async (req,res) => {
             });
         }
 
+        if (item.returnRequest.status === 'Returned') {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'Item already returned' 
+            });
+        }
+
+        const previousRejection = item.returnRequest?.status === 'Return Rejected' ? {
+            previousRejectionReason: item.returnRequest.rejectionReason,
+            previousRejectionDate: item.returnRequest.resolvedOn
+        } : {};
+
         // Create/Update return request
         item.returnRequest = {
             status: 'Return Requested',
             reason: reason.trim(),
             requestedOn: new Date(),
             resolvedOn: null,
-            rejectionReason: null
+            rejectionReason: null,
+            ...previousRejection
         };
         item.status = 'Return Requested';
 
         // Update order status if needed
-        const hasReturnRequested = order.orderedItems.some(
-            i => i.returnRequest.status === 'Return Requested'
-        );
-        if (hasReturnRequested && order.status !== 'Return Request') {
+        const allItemsReturnedOrCancelled = order.orderedItems.every(i => 
+            i.returnRequest.status === "Return Requested" ||
+            i.returnRequest.status === "Return Approved" ||
+            i.status === "Cancelled" ||
+            i.status === "Return Requested" ||
+            i.status === 'Returned'
+        )
+        if (allItemsReturnedOrCancelled) {
             order.status = 'Return Request';
         }
 
@@ -879,28 +1065,34 @@ const loadPassword = async (req,res) => renderProfileTab(req,res,"password","Err
 
 const changePassword = async (req,res) => {
     try {
-        const userId = req.params.userId;
+        const userId = req.session?.user?.id;
         const {currPassword,newPassword,confirmPassword} = req.body;
-        if(!currPassword||!newPassword||!confirmPassword){
-            return res.status(404).json({success:false,message:"All fields are required"});
-        }
+
         const existUser = await User.findById(userId);
         if(!existUser){
-            return res.status(404).json({success:false,message:"User not found"});
+            return res.json({success:false,message:"User not found"});
         }
+
+        if(!currPassword||!newPassword||!confirmPassword){
+            return res.json({success:false,message:"All fields are required"});
+        }
+
         const isMatch = await bcrypt.compare(currPassword,existUser.password);
         if(!isMatch){
-            return res.status(400).json({success:false,message:"Wrong current password"});
+            return res.json({success:false,message:"Wrong current password"});
         }
+
         if(currPassword === newPassword){
-            return res.status(400).json({success:false,message:"Please try with new password"});
+            return res.json({success:false,message:"Please try with new password"});
         }
+
         if(newPassword !== confirmPassword){
-            return res.status(400).json({success:false,message:"Password doesn't match , Please enter correct password"});
+            return res.json({success:false,message:"Password doesn't match , Please enter correct password"});
         }
+
         const hashPass = await securePassword(newPassword);
         await User.findByIdAndUpdate(userId,{$set:{password:hashPass}});
-        return res.status(200).json({success:true,message:"Password changed successfully.",redirectUrl:`/manage-password/${userId}`});
+        return res.status(200).json({success:true,message:"Password changed successfully.",redirectUrl:`/manage-password`});
     } catch (error) {
         console.log("error occure while changing password");
         return res.redirect("/pageNotFound");

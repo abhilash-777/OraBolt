@@ -5,8 +5,9 @@ const {Schema} = mongoose;
 const wishlistSchema = new Schema({
     userId : {
         type : Schema.Types.ObjectId,
-        ref : "UserId",
-        required : true
+        ref : "User",
+        required : true,
+        unique:true
     },
     products : [{
         productId : {
@@ -19,8 +20,7 @@ const wishlistSchema = new Schema({
             default : Date.now
         }
     }]
-})
-
+},{timestamps:true});
 
 const Wishlist = mongoose.model("Wishlist",wishlistSchema);
 

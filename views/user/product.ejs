@@ -28,7 +28,6 @@
     transform: scale(1.03);
 }
 
-
 .image-counter {
     position: absolute;
     top: 15px;
@@ -42,7 +41,6 @@
     z-index: 10;
     backdrop-filter: blur(10px);
 }
-
 
 .thumbnail-container {
     display: flex;
@@ -74,7 +72,6 @@
     background: #adb5bd;
 }
 
-
 .thumbnail {
     flex-shrink: 0;
     width: 85px;
@@ -101,7 +98,6 @@
     opacity: 1;
     box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
 }
-
 
 .image-zoom-modal {
     position: fixed;
@@ -130,7 +126,6 @@
     from { opacity: 0; }
     to { opacity: 1; }
 }
-
 
 .gallery-nav {
     position: absolute;
@@ -164,7 +159,6 @@
     right: 15px;
 }
 
-
 .image-loading {
     display: flex;
     align-items: center;
@@ -187,7 +181,6 @@
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
-
 
 .product-details h3 {
     font-size: 2.2rem;
@@ -225,7 +218,6 @@
     background: #f8d7da;
     color: #721c24;
 }
-
 
 @media (max-width: 992px) {
     .product-details {
@@ -284,7 +276,6 @@
     }
 }
 
-
 * {
     -webkit-tap-highlight-color: transparent;
 }
@@ -298,7 +289,6 @@
     user-select: none;
 }
 
-
 .thumbnail:focus,
 .gallery-nav:focus {
     outline: 2px solid #007bff;
@@ -309,6 +299,52 @@
     outline: 2px solid #007bff;
     outline-offset: 4px;
 }
+/* Wishlist icon on product image */
+        .wishlist-icon {
+	        position: absolute;
+	        top: 10px;
+        	right: 10px;
+        	border-radius: 50%;
+            margin-right: 50px;
+            margin-top: 10px;
+        	z-index: 10;
+           	color: #fbcccc;
+        	font-size: 18px;
+          	transition: all 0.2s ease;
+        	text-decoration: none;
+        }
+
+        .wishlist-icon:hover {
+	        color: #ff4d4d;
+	        transform: scale(1.1);
+        }
+
+		.heart-icon {
+            font-size: 24px;
+            color: #ccc;
+            transition: all 0.3s ease;
+        }
+
+        /* Heart icon when in wishlist - filled/darker */
+        .heart-icon.in-wishlist {
+            color: #e74c3c;  /* Red color for filled heart */
+        }
+
+        /* Hover effect */
+        .wishlist-icon:hover .heart-icon {
+            transform: scale(1.2);
+        }
+
+        .wishlist-icon:hover .heart-icon:not(.in-wishlist) {
+            color: #e74c3c;
+            opacity: 0.7;
+        }
+
+        .img-prod {
+        	position: relative;
+        	display: block;
+           	overflow: hidden;
+        }
 	</style>
 
 	<div class="hero-wrap hero-bread" style="background-image: url('/images/bg_6.jpg');">
@@ -329,6 +365,11 @@
                 <div class="product-image-gallery">
                     <!-- Main Image Display -->
                     <div class="main-image-container">
+                        <button class="wishlist-icon" title="<%= isWishlist ? 'Remove from Wishlist' : 'Add to Wishlist' %>"
+							onclick="event.stopPropagation(); addToWishlist('<%= product._id %>')"
+			     			style="background: none; border: none; cursor: pointer; position: absolute; top: 10px; right: 10px; z-index: 10;">
+							<span class="icon-heart heart-icon <%= isWishlist ? 'in-wishlist' : '' %>"></span>
+						</button>
                         <% if (product.image && product.image.length > 0) { %>
                             <img id="mainImage" 
                                  src="/uploads/productsImages/<%= product.image[0] %>" 
@@ -380,7 +421,23 @@
 									style="color: #bbb;">Rating</span></a>
 						</p>
 					</div>
-					<p class="price"><span>&#8377; <%= product.regularPrice %></span></p>
+					<div class="pricing">
+                        <% if (product.hasOffer) { %>
+                            <p class="price">
+                                <span style="text-decoration: line-through; color: #999; font-size: 14px; margin-right: 8px;">
+                                    &#8377;<%= product.regularPrice %>
+                                </span>
+                                <span style="color: #000; font-weight: bold;">
+                                    &#8377;<%= product.offerPrice %>
+                                </span>
+                            </p>
+                            <p style="color: #28a745; font-size: 12px; margin-top: -8px;">
+                                You save &#8377;<%= product.savings %>
+                            </p>
+                            <% } else { %>
+                                <p class="price"><span>&#8377;<%= product.regularPrice %></span></p>
+                            <% } %>
+                        </div>
 					<p></p>
 					<p><%= product.description %></p>
 					<div class="row mt-4">
@@ -413,12 +470,21 @@
 							</span>
 						</div>
 						<div class="w-100"></div>
-						<div class="col-md-12">
-							<p style="color: #000;">Stock : <%= product.quantity %></p>
-						</div>
+						<% if(product.quantity <= 0){ %>
+                            <div class="col-md-12">
+							    <p style="color: #ff0202;">Stock : Out Of Stock %></p>
+						    </div>
+                        <% }else{ %>
+                            <div class="col-md-12">
+							    <p style="color: #000;">Stock : <%= product.quantity %></p>
+						    </div>
+
+                            <p>
+                                <a href="#" class=" add-to-cart btn btn-black py-3 px-5 mr-2" data-id="<%= product._id %>">Add to Cart</a>
+						        <a href="/checkout/<%= product._id %>" class="btn btn-primary py-3 px-5">Buy now</a>
+                            </p>
+                        <% } %>
 					</div>
-					<p><a href="#" class=" add-to-cart btn btn-black py-3 px-5 mr-2" data-id="<%= product._id %>">Add to Cart</a>
-						<a href="/checkout/<%= product._id %>" class="btn btn-primary py-3 px-5">Buy now</a></p>
 				</div>
 			</div>
 
@@ -655,6 +721,30 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 	<script>
 
+        async function addToWishlist(productId) {
+			try {
+				const response = await fetch(`/wishlist/add/${productId}`,{
+					method:"POST",
+				});
+				const data = await response.json();
+				if(data.success){
+					Swal.fire({
+						icon:"success",
+						title:"Added.",
+						text:data.message,
+						showConfirmButton:false,
+						timer:1500
+					})
+					window.location.href = `/product/${productId}`
+				}else{
+					Swal.fire({icon:"error",title:"Failed!",text:"Failed to add item into wishlist"});
+				}
+			} catch (error) {
+				console.log("something went wrong while adding into cart");
+				Swal.fire({icon:"error",title:"Oops!",text:"something went wrong while adding into cart"});
+			}
+		};
+
 		document.addEventListener('DOMContentLoaded', function() {
             const productImages = [
                 <% if (product.image && product.image.length > 0) { %>
@@ -823,20 +913,16 @@
                             })
                         } else {
                             Swal.fire({
-                                icon:"success",
+                                icon:"error",
                                 text:"Error!",
                                 title:data.message||"Failed to add product into cart",
-                                showConfirmButton:false,
-                                timer:1000
                             })
                         }
                     } catch (error) {
                         Swal.fire({
                             icon:"error",
                             text:"Oops.",
-                            title:"Something went wrong",
-                            showConfirmButton:false,
-                            timer:1000
+                            title:error.status||"Something went wrong",
                         })
                     }
                 });

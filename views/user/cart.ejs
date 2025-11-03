@@ -72,6 +72,7 @@
 									<tr>
 										<td colspan="6" class="text-center py-5">
                                             <div>
+												<i class="icon-shopping_cart display-1 text-muted mb-3 d-block"></i>
                                                 <h5 class="mb-3">Your cart is empty</h5>
                                                 <a href="/shop" class="btn btn-primary px-4 py-2">Start Shopping</a>
                                             </div>
@@ -121,6 +122,16 @@
 	</section>
 
 	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+	<% if (typeof errorMsg !== 'undefined' && errorMsg) { %>
+        <script>
+            Swal.fire({
+                icon: "warning",
+                title: "Stock Alert",
+                text: "<%= errorMsg %>",
+                confirmButtonText: "OK"
+            });
+        </script>
+    <% } %>
 	<script>
         document.addEventListener("DOMContentLoaded", () => {
             const increaseBtns = document.querySelectorAll(".increase");
@@ -141,7 +152,7 @@
 					}else{
 						Swal.fire({
 							icon:"error",
-							title:"Max quantity reached!",
+							title:"Item quantity reached!",
 							text:data.message||"You can only add upto 5 unit of this product",
 							showConfirmButton:true
 						})
@@ -152,8 +163,6 @@
 						icon:"error",
 						title:"Oops!",
 						text:data.message||"Something went wrong while upading quantity",
-						showConfirmButton:false,
-						timer:1000
 					})
 				}
 			};

@@ -36,7 +36,7 @@
             },
             status: {
                 type: String,
-                enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled","Return Requested","Return Approved","Return Rejected"],
+                enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled","Return Requested","Return Approved","Return Rejected","Returned"],
                 default: "Pending"
             },
             returnRequest: {
@@ -62,10 +62,47 @@
             type : Number,
             required : true
         },
-        address : {
-            type : Schema.Types.ObjectId,
-            ref : "Address",
-            required : true
+        address: {
+            addressType: {
+                type: String,
+                required: true,
+                enum: ["Home", "Work", "Other"]
+            },
+            name: {
+                type: String,
+                required: true
+            },
+            address: {
+                type: String,
+                required: true
+            },
+            street: {
+                type: String,
+                required: true
+            },
+            city: {
+                type: String,
+                required: true
+            },
+            landMark: {
+                type: String,
+                required: true
+            },
+            state: {
+                type: String,
+                required: true
+            },
+            pincode: {
+                type: Number,
+                required: true
+            },
+            phone: {
+                type: String,
+                required: true
+            },
+            altPhone: {
+                type: String
+            }
         },
         invoice : {
             type : Date
@@ -73,7 +110,7 @@
         status : {
             type : String,
             required : true,
-            enum : ["Pending","Processing","Shipped","Delivered","Cancelled","Return Request","Returned"]
+            enum : ["Pending","Processing","Shipped","Delivered","Cancelled","Return Request","Partial Return","Returned"]
         },
         createdOn : {
             type : Date,
@@ -91,7 +128,7 @@
         },
         paymentStatus: {
             type: String,
-            enum: ['Paid', 'Pending', 'Failed','Refunded','Refund Initiated','Partial Refund Initiated'],
+            enum: ['Paid', 'Pending', 'Cancelled','Failed','Refunded','Refund Initiated','Partial Refund Initiated'],
             default: 'Pending'
         },
         transactionId: {

@@ -111,41 +111,60 @@
             <td><%= item.quantity %></td>
             <td>₹<%= (item.price * item.quantity).toFixed(2) %></td>
 
-            <!-- ✅ Individual Item Status Update -->
+            <!-- Individual Item Status Update -->
             <td>
-              <form id="singleItemStatusForm" class="d-flex" data-item-id="<%= item._id %>">
-                <select name="status" class="form-select form-select-sm me-2" <%= item.status === 'Cancelled' ? 'disabled' : '' %>>
-                  <option value="Pending" <%= item.status === 'Pending' ? 'selected' : '' %>>Pending</option>
-                  <option value="Processing" <%= item.status === 'Processing' ? 'selected' : '' %>>Processing</option>
-                  <option value="Shipped" <%= item.status === 'Shipped' ? 'selected' : '' %>>Shipped</option>
-                  <option value="Delivered" <%= item.status === 'Delivered' ? 'selected' : '' %>>Delivered</option>
-                  <option value="Cancelled" <%= item.status === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
-                  <option value="Retur" <%= item.status === 'Return Approved' ? 'selected' : '' %>>Returned</option>
-                </select>
-                <button type="submit" class="btn btn-outline-primary btn-sm" 
-                  <%= item.status === 'Cancelled' ? 'disabled' : '' %>>Update
-                </button>
-              </form>
+              <% 
+                const lockedStatuses = ['Delivered', 'Cancelled', 'Returned'];
+                const isLocked = lockedStatuses.includes(item.status);
+              %>
+              
+              <% if (isLocked) { %>
+                <!-- Show locked status badge -->
+                <div class="d-flex align-items-center">
+                  <span class="badge <%= 
+                    item.status === 'Delivered' ? 'bg-success' : 
+                    item.status === 'Cancelled' ? 'bg-danger' : 
+                    item.status === 'Returned' ? 'bg-warning text-dark' : 'bg-secondary' 
+                  %> me-2">
+                    <%= item.status %>
+                  </span>
+                  <small class="text-muted"><i class="fas fa-lock"></i></small>
+                </div>
+              <% } else { %>
+                <form class="singleItemStatusForm d-flex" data-item-id="<%= item._id %>">
+                  <select name="status" class="form-select form-select-sm me-2" <%= item.status === 'Cancelled' ? 'disabled' : '' %>>
+                    <option value="Pending" <%= item.status === 'Pending' ? 'selected' : '' %>>Pending</option>
+                    <option value="Processing" <%= item.status === 'Processing' ? 'selected' : '' %>>Processing</option>
+                    <option value="Shipped" <%= item.status === 'Shipped' ? 'selected' : '' %>>Shipped</option>
+                    <option value="Delivered" <%= item.status === 'Delivered' ? 'selected' : '' %>>Delivered</option>
+                    <option value="Cancelled" <%= item.status === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
+                    <option value="Returned" <%= item.status === 'Return Approved' ? 'selected' : '' %>>Returned</option>
+                  </select>
+                  <button type="submit" class="btn btn-outline-primary btn-sm" 
+                    <%= item.status === 'Cancelled' ? 'disabled' : '' %>>Update
+                  </button>
+                </form>
+              <% } %>
             </td>
 
-            <!-- ✅ Return Request Handling -->
+            <!-- Return Request Handling -->
             <td>
-  <% if (item.returnRequest && item.returnRequest.status !== 'Pending') { %>
-    <strong>Status:</strong> <%= item.returnRequest.status %><br>
-    <strong>Reason:</strong> <%= item.returnRequest.reason %><br>
-    <strong>Requested On:</strong> 
-    <% if (item.returnRequest.requestedOn && !isNaN(new Date(item.returnRequest.requestedOn).getTime())) { %>
-      <%= new Date(item.returnRequest.requestedOn).toLocaleDateString() %>
-    <% } else { %>
-      Not available
-    <% } %>
-    <% if (item.returnRequest.status === 'Rejected' && item.returnRequest.rejectionReason) { %>
-      <br><strong>Rejection Reason:</strong> <%= item.returnRequest.rejectionReason %>
-    <% } %>
-  <% } else { %>
-    No return request
-  <% } %>
-</td>
+              <% if (item.returnRequest && item.returnRequest.status !== 'None') { %>
+                <strong>Status:</strong> <%= item.returnRequest.status %><br>
+                <strong>Reason:</strong> <%= item.returnRequest.reason %><br>
+                <strong>Requested On:</strong> 
+                <% if (item.returnRequest.requestedOn && !isNaN(new Date(item.returnRequest.requestedOn).getTime())) { %>
+                  <%= new Date(item.returnRequest.requestedOn).toLocaleDateString() %>
+                <% } else { %>
+                  Not available
+                <% } %>
+                <% if (item.returnRequest.status === 'Rejected' && item.returnRequest.rejectionReason) { %>
+                  <br><strong>Rejection Reason:</strong> <%= item.returnRequest.rejectionReason %>
+                <% } %>
+              <% } else { %>
+                No return request
+              <% } %>
+            </td>
             <td>
               <% if (item.returnRequest?.status === 'Return Requested') { %>
                 <button class="btn btn-success btn-sm" onclick="handleReturnDecision('<%= order._id %>', '<%= item._id %>', 'approve')">Approve</button>
@@ -200,7 +219,7 @@
 <script>
   const orderStatusForm = document.getElementById("orderStatusForm");
   const paymentStatusForm = document.getElementById("paymentStatusForm");
-  const singleItemStatusForm = document.getElementById("singleItemStatusForm");
+  const singleItemStatusForm = document.querySelectorAll(".singleItemStatusForm");
   const returnRequestForm = document.getElementById("returnRequestForm");
 
   const orderId = "<%= order._id %>";
@@ -246,9 +265,7 @@
           Swal.fire({
             icon:"error",
             title:"Failed!",
-            text:data.message||"Failed to update order status",
-            showConfirmButton:false,
-            timer:1000
+            text:data.message||"Failed to update order status"
           })
         }
         
@@ -258,8 +275,6 @@
           icon:"error",
           title:"Oops!",
           text:"Something went Wrong",
-          timer:1000,
-          showConfirmButton:false
         })
       }
       
@@ -305,8 +320,6 @@
             icon:"error",
             title:"Failed!",
             text:data.message||"Failed to update order payment status",
-            showConfirmButton:false,
-            timer:1000
           })
         }
         
@@ -316,72 +329,66 @@
           icon:"error",
           title:"Oops!",
           text:"Something went Wrong",
-          timer:1000,
-          showConfirmButton:false
         })
       }
   
     });
 
-    singleItemStatusForm.addEventListener("submit", async (e) => {
-
-      e.preventDefault();
-      const itemId = e.target.dataset.itemId;
-      console.log("item id :",itemId);
-      const status = e.target.elements?.status?.value;
-      console.log("single item status:",status)
+    singleItemStatusForm.forEach(form => {
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const itemId = e.target.dataset.itemId;
+        console.log("item id :",itemId);
+        const status = e.target.elements?.status?.value;
+        console.log("single item status:",status)
       
-      const confirmResult = await Swal.fire({
-        icon:"warning",
-        title:"Are you sure?",
-        text:"Do you want update status of this item!",
-        showCancelButton:true,
-        confirmButtonColor:"#3085d6",
-        cancelButtonColor:"#d33",
-        confirmButtonText:"Yes, Do it!"
-      });
-      if(!confirmResult.isConfirmed)return
-
-      try {
-
-        const response = await fetch(`/admin/order/item-status/${orderId}/${itemId}`,{
-          method:"POST",
-          headers:{
-            'Content-Type':'application/json'
-          },
-          body:JSON.stringify({status})
+        const confirmResult = await Swal.fire({
+          icon:"warning",
+          title:"Are you sure?",
+          text:"Do you want update status of this item!",
+          showCancelButton:true,
+          confirmButtonColor:"#3085d6",
+          cancelButtonColor:"#d33",
+          confirmButtonText:"Yes, Do it!"
         });
-        const data = await response.json();
-        if(data.success){
-          Swal.fire({
-            icon:"success",
-            title:"Done.",
-            text:data.message||"Order payment status updated.",
-            showConfirmButton:false,
-            timer:1000
-          })
-          .then(() => window.location.href = data.redirectUrl||`/admin/order-details/${orderId}`)
-        }else{
+        if(!confirmResult.isConfirmed)return
+
+        try {
+          const response = await fetch(`/admin/order/item-status/${orderId}/${itemId}`,{
+            method:"POST",
+            headers:{
+              'Content-Type':'application/json'
+            },
+            body:JSON.stringify({status})
+          });
+          const data = await response.json();
+          if(data.success){
+            Swal.fire({
+              icon:"success",
+              title:"Done.",
+              text:data.message||"Order payment status updated.",
+              showConfirmButton:false,
+              timer:1000
+            })
+            .then(() => window.location.href = data.redirectUrl||`/admin/order-details/${orderId}`)
+          }else{
+            Swal.fire({
+              icon:"error",
+              title:"Failed!",
+              text:data.message||"Failed to update order payment status",
+            })
+          }
+        
+        } catch (error) {
+          console.log("Something went wrong:",error);
           Swal.fire({
             icon:"error",
-            title:"Failed!",
-            text:data.message||"Failed to update order payment status",
-            showConfirmButton:false,
-            timer:1000
+            title:"Oops!",
+            text:"Something went Wrong",
           })
         }
-        
-      } catch (error) {
-        console.log("Something went wrong:",error);
-        Swal.fire({
-          icon:"error",
-          title:"Oops!",
-          text:"Something went Wrong",
-          timer:1000,
-          showConfirmButton:false
-        })
-      }
 
+      });
     });
 
   });
@@ -417,77 +424,21 @@
     });
 
     document.getElementById('rejectForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        const rejectionReason = document.getElementById('rejectionReason').value.trim();
-        if (rejectionReason.length < 10) {
-            Swal.fire({
-                icon: 'warning',
-                title: 'Invalid Reason',
-                text: 'Please provide at least 10 characters for the rejection reason',
-                timer: 2000,
-                showConfirmButton: false
-            });
-            return;
-        }
-        try {
-            const response = await fetch(`/admin/order/item-return/${currentOrderId}/${currentItemId}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                credentials: 'include',
-                body: JSON.stringify({ action: 'reject', rejectionReason })
-            });
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new Error(`Received non-JSON response: ${response.status} ${response.statusText}`);
-            }
-            const data = await response.json();
-            if (data.success) {
-                closeRejectModal();
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Done!',
-                    text: data.message,
-                    showConfirmButton: false,
-                    timer: 2000
-                }).then(() => {
-                    window.location.href = data.redirectUrl || `/admin/order-details/${currentOrderId}`;
-                });
-            } else {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error!',
-                    text: data.message || 'Failed to process return decision',
-                    timer: 2000,
-                    showConfirmButton: false
-                });
-            }
-        } catch (error) {
-            console.error('Error processing return decision:', error);
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops!',
-                text: 'Something went wrong. Please try again.',
-                timer: 2000,
-                showConfirmButton: false
-            });
-        }
+      e.preventDefault();
+      const rejectionReason = document.getElementById('rejectionReason').value.trim();
+      if (rejectionReason.length < 10) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Invalid Reason',
+          text: 'Please provide at least 10 characters for the rejection reason',
+        });
+        return;
+      }
+      await processReturnAction(currentOrderId,currentItemId,"reject",{rejectionReason});
+      closeRejectModal();
     });
 
-    async function handleReturnDecision(orderId, itemId, action) {
-        if (action === 'approve') {
-            const confirmResult = await Swal.fire({
-                icon: 'warning',
-                title: 'Are you sure?',
-                text: 'Do you want to approve this return request?',
-                showCancelButton: true,
-                confirmButtonColor: '#28a745',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, Approve it!'
-            });
-            if (!confirmResult.isConfirmed) return;
-        }
+    async function processReturnAction(orderId, itemId, action , extraData = {}) {
         try {
             const response = await fetch(`/admin/order/item-return/${orderId}/${itemId}`, {
                 method: 'POST',
@@ -495,8 +446,9 @@
                     'Content-Type': 'application/json'
                 },
                 credentials: 'include',
-                body: JSON.stringify({ action })
+                body: JSON.stringify({ action , ...extraData })
             });
+
             const contentType = response.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
                 throw new Error(`Received non-JSON response: ${response.status} ${response.statusText}`);
@@ -517,8 +469,6 @@
                     icon: 'error',
                     title: 'Error!',
                     text: data.message || 'Failed to process return decision',
-                    timer: 2000,
-                    showConfirmButton: false
                 });
             }
         } catch (error) {
@@ -527,10 +477,25 @@
                 icon: 'error',
                 title: 'Oops!',
                 text: 'Something went wrong. Please try again.',
-                timer: 2000,
-                showConfirmButton: false
             });
         }
+    };
+
+    async function handleReturnDecision(orderId,itemId,action) {
+      if(action === 'approve'){
+        const confirmResult = await Swal.fire({
+          icon:'warning',
+          title:'Are you sure',
+          text:"Do you want to approve this return request?",
+          showCancelButton:true,
+          cancelButtonColor:"#d33",
+          confirmButtonColor:"#3085d6",
+          confirmButtonText:"Yes , Approve it!"
+        });
+
+        if(!confirmResult)return
+      }
+      await processReturnAction(orderId,itemId,action);
     }
 
     const rejectionReasonTextarea = document.getElementById('rejectionReason');

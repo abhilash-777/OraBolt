@@ -6,6 +6,7 @@ const User = require("../../models/userSchema");
 const fs = require("fs");
 const path = require("path");
 const sharp = require("sharp");
+const { default: mongoose } = require("mongoose");
 
 const loadProduct = async function (req,res) {
 
@@ -14,7 +15,6 @@ const loadProduct = async function (req,res) {
         const category = await Category.find({isListed:true});
         const subcategory = await subCategory.find({isListed:true})
         const brand = await Brand.find({isBlocked:false});
-
         const successMessage = req.query.success;
         const errorMessage = req.query.error;
         
@@ -140,6 +140,13 @@ const loadProductsList = async function (req,res) {
         if(req.query.status && req.query.status !== "all"){
             filter.status = req.query.status;
         }
+        if(req.query.search && req.query.search.trim() !== ""){
+            const searchRegex = new RegExp(req.query.search.trim(),'i');
+            filter.$or = [
+                {productName:searchRegex},
+                {description:searchRegex}
+            ]
+        }
 
         const productData = await Product.find(filter)
         .populate("category","name")
@@ -194,10 +201,11 @@ const toggleList = async function (req,res) {
 };
 
 const loadEditProduct = async (req,res) => {
-
     try {
-
         const productId = req.params.id;
+        if(!mongoose.isValidObjectId(productId)){
+            return res.redirect("/admin/pageError");
+        }
         const product = await Product.findById(productId)
         .populate("category")
         .populate("subcategory")
@@ -207,14 +215,13 @@ const loadEditProduct = async (req,res) => {
         const subcategory = await subCategory.find({});
 
         if(!product){
-            return res.status(400).json({success:false,error:"product not found"});
+            return res.redirect("/admin/pageError");
         }
         res.render("editProduct",{product,category,brand,subcategory});
     } catch (error) {
         console.error("error to load edit product:",error);
-        return res.status(500).json({success:false,error:"Internal server error"});
+        return res.redirect("/admin/pageError");
     }
-    
 };
 
 const editProduct = async function (req,res) {
@@ -267,11 +274,28 @@ const editProduct = async function (req,res) {
     
 };
 
+const deleteProduct = async (req,res) => {
+    try {
+        const admin = req.session?.admin;
+        if(!admin)return res.json({success:false,message:"Admin not found"});
+
+        const productId = req.params?.id;
+        if(!productId)return res.json({success:false,message:"Product id is missing"});
+
+        await Product.findByIdAndDelete(productId);
+        return res.json({success:true,message:"Product deleted successfull.",redirectUrl:"/admin/productLists"});
+    } catch (error) {
+        console.log("something went wrong while removing product.");
+        return res.json({success:false,message:"something went wrong"});
+    }
+};
+
 module.exports = {
     loadProduct,
     addProduct,
     loadProductsList,
     toggleList,
     loadEditProduct,
-    editProduct
+    editProduct,
+    deleteProduct
 }

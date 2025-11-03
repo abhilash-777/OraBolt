@@ -1,6 +1,8 @@
 const {Schema, default: mongoose} = require("mongoose");
 const User = require("../../models/userSchema");
 const Order = require("../../models/orderSchema");
+const Product = require("../../models/productSchema");
+const Wallet = require("../../models/walletSchema");
 
 const loadOrderList = async (req, res) => {
     try {
@@ -9,7 +11,7 @@ const loadOrderList = async (req, res) => {
 
         // Get pagination parameters
         const page = parseInt(req.query.page) || 1;
-        const limit = parseInt(req.query.limit) || 20;
+        const limit = parseInt(req.query.limit) || 10;
         const skip = (page - 1) * limit;
 
         // Get search and filter parameters
@@ -90,22 +92,7 @@ const loadOrderDetails = async (req, res) => {
     }
 };
 
-// ========== UPDATE ORDER ==========
-const updateOrder = async (req, res) => {
-    try {
-        const admin = req.session?.admin;
-        if (!admin) return res.redirect("/admin/pageError");
-
-        const { status } = req.body;
-        await Order.findByIdAndUpdate(req.params.id, { status });
-        res.redirect("/admin/order-list");
-    } catch (error) {
-        console.log("Error updating order:", error);
-        res.redirect("/admin/pageError");
-    }
-};
-
-// ========== DELETE ORDER ==========
+// DELETE ORDER
 const deleteOrder = async (req, res) => {
     try {
       const admin = req.session?.admin;
@@ -119,6 +106,7 @@ const deleteOrder = async (req, res) => {
     }
 };
 
+// UPDATE ORDER
 const updateOrderStatus = async (req, res) => {
     try{
       const admin = req.session?.admin;
@@ -158,7 +146,52 @@ const updateItemStatus = async (req, res) => {
       const item = order.orderedItems.id(itemId);
       if (!item) return res.json({success:false,message:"Item not found"});;
 
+      const oldStatus = item.status;
+      if(status === 'Returned' && oldStatus !== 'Returned'){
+        const product = await Product.findById(item.product);
+        if(product){
+          product.quantity += item.quantity;
+          await product.save();
+          console.log(`Restored ${item.quantity} units to product ${product.productName}`);
+        }
+
+        if(item.returnRequest){
+          item.returnRequest.status = "Returned";
+          item.returnRequest.resolvedOn = new Date();
+        }
+      }
+
       item.status = status;
+
+      const activeItems = order.orderedItems.filter(i => 
+        i.status !== 'Cancelled' && i.status !== 'Returned'
+      );
+      if(activeItems.length === 0){
+        const allCancelled = order.orderedItems.every(i => i.status === 'Cancelled');
+        const allReturned = order.orderedItems.every(i => i.status === 'Returned');
+        if(allReturned){
+          order.status = "Returned";
+        }else if(allCancelled){
+          order.status = "Cancelled";
+        }else{
+          order.status = "Returned";
+        }
+      }else{
+        const statusPriority = {
+          'Pending':1,
+          'Processing':2,
+          'Shipped':3,
+          "Delivered":4
+        };
+
+        const maxStatus = activeItems.reduce((max,item) => {
+          const itemPriority = statusPriority[item.status]||0;
+          const maxPriority = statusPriority[max] || 0;
+          return itemPriority > maxPriority ? item.status : max;
+        },"Pending");
+
+        order.status = maxStatus;
+      }
       await order.save();
 
       return res.json({success:true,message:"Item status updated.",redirectUrl:`/admin/order-details/${orderId}`});
@@ -188,7 +221,6 @@ const updatePaymentStatus = async (req, res) => {
     return res.json({success:false,message:"Someting went wrong while updating order payment status."})
   }
 };
-
 
 const handleReturnDecision = async (req, res) => {
   try {
@@ -227,44 +259,180 @@ const handleReturnDecision = async (req, res) => {
     }
 
     if (action === 'approve') {
-      item.returnRequest.status = 'Return Approved';
-      item.status = 'Return Approved';
+      const product = await Product.findById(item.product);
+      if(product){
+        product.quantity += item.quantity;
+        await product.save();
+      }
 
+      const originalSubTotal = order.orderedItems.reduce((sum,i) => sum + (i.price * i.quantity),0);
+      
+      const itemOriginalPrice = item.price * item.quantity;
+      
+       // Add safety check for division by zero
+      if (!originalSubTotal || originalSubTotal === 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Cannot calculate refund: Invalid order total"
+        });
+      }
+      const itemProportion = itemOriginalPrice/originalSubTotal;
+      
+      const currentActiveItems = order.orderedItems.filter(i => i.status !== "Cancelled" && i.status !== "Returned" && i._id.toString() !== itemId.toString());
+
+      if (currentActiveItems.length === 0) {
+        const itemRefundAmount = order.finalPrice - (order.shippingCost || 0);
+        
+        // Update item status
+        item.returnRequest.status = 'Returned';
+        item.returnRequest.resolvedOn = new Date();
+        item.status = 'Returned';
+        
+        order.finalPrice = 0;
+        order.refundAmount = (order.refundAmount || 0) + itemRefundAmount;
+        order.refundDate = new Date();
+        order.status = 'Returned';
+        order.paymentStatus = 'Refunded';
+        
+        // Add to wallet
+        let wallet = await Wallet.findOne({ userId: order.userId });
+        if (!wallet) {
+          wallet = new Wallet({
+            userId: order.userId,
+            balance: itemRefundAmount,
+            transactions: [{
+              type: "credit",
+              amount: itemRefundAmount,
+              description: `Refund for returned item in order ${order.orderId || order._id}`,
+              date: new Date()
+            }]
+          });
+        } else {
+          wallet.balance += itemRefundAmount;
+          wallet.transactions.push({
+            type: "credit",
+            amount: itemRefundAmount,
+            description: `Refund for returned item in order ${order.orderId || order._id}`,
+            date: new Date()
+          });
+        }
+        await wallet.save();
+        await order.save();
+        
+        return res.json({
+          success: true,
+          message: `Return approved successfully. ₹${itemRefundAmount.toFixed(2)} refunded to user's wallet.`,
+          redirectUrl: `/admin/order-details/${orderId}`,
+        });
+      }
+
+      const currentSubTotal = currentActiveItems.reduce((sum,i) => sum + (i.price * i.quantity),0);
+
+      const originalDiscountRate = (originalSubTotal - (order.finalPrice -(order.shippingCost||0)))/originalSubTotal;
+      
+      const remainingDiscount = currentSubTotal * originalDiscountRate;
+      
+      const newFinalPrice = currentSubTotal - remainingDiscount + (order.shippingCost||0);
+      
       // Calculate refund amount
-      const itemRefund = item.price * item.quantity;
-      order.refundAmount = (order.refundAmount || 0) + itemRefund;
+      const itemRefundAmount = Math.round((order.finalPrice - newFinalPrice) * 100) / 100;
+
+      // Validate refund amount
+      if (isNaN(itemRefundAmount) || itemRefundAmount < 0) {
+        console.error("Invalid refund calculation:", {
+          originalSubTotal,
+          itemOriginalPrice,
+          itemProportion,
+          currentSubTotal,
+          totalDiscount,
+          itemDiscountShare,
+          itemRefundAmount
+        });
+        return res.status(400).json({
+          success: false,
+          message: "Cannot calculate refund amount. Please contact support."
+        });
+      }
+
+      // Update item status
+      item.returnRequest.status = 'Returned';
+      item.returnRequest.resolvedOn = new Date();
+      item.status = 'Returned';
+
+      // Update order financials
+      order.finalPrice = Math.max(0, order.finalPrice - itemRefundAmount);
+      
+      order.refundAmount = (order.refundAmount || 0) + itemRefundAmount;
+      
+      order.refundDate = new Date();
+
+      // Add refund to user's wallet
+      let wallet = await Wallet.findOne({ userId: order.userId });
+      if (!wallet) {
+        wallet = new Wallet({
+          userId: order.userId,
+          balance: itemRefundAmount,
+          transactions: [{
+            type: "credit",
+            amount: itemRefundAmount,
+            description: `Refund for returned item in order ${order.orderId || order._id}`,
+            date: new Date()
+          }]
+        });
+      } else {
+        wallet.balance += itemRefundAmount;
+        wallet.transactions.push({
+          type: "credit",
+          amount: itemRefundAmount,
+          description: `Refund for returned item in order ${order.orderId || order._id}`,
+          date: new Date()
+        });
+      }
+      await wallet.save();
 
       // Update payment status
-      if (order.paymentStatus === 'Paid') {
-        const allItemsReturnedOrCancelled = order.orderedItems.every(
-          i => i.returnRequest?.status === 'Return Approved' || i.status === 'Cancelled'
-        );
-        order.paymentStatus = allItemsReturnedOrCancelled ? 'Refund Initiated' : 'Partial Refund Initiated';
+      const remainingActiveItems = order.orderedItems.filter(i => 
+        i.status !== 'Cancelled' && i.status !== 'Returned'
+      );
+
+      if (remainingActiveItems.length === 0) {
+        // All items returned or cancelled
+        order.status = 'Returned';
+        order.paymentStatus = 'Refunded';
+        order.finalPrice = 0;
+      } else {
+        // Partial return
+        order.status = 'Partial Return';
+        order.paymentStatus = "Partial Refund Initiated";
       }
 
     } else {
       // Reject return
-      item.returnRequest.status = 'Rejected';
+      item.returnRequest.status = 'Return Rejected';
       item.returnRequest.rejectionReason = rejectionReason.trim();
-      item.status = 'Delivered'; // Revert to delivered for rejected return
+      item.status = 'Return Rejected'; // Revert to delivered for rejected return
     }
 
     // Set resolution details
     item.returnRequest.resolvedOn = new Date();
 
+    const allReturnedOrCancelled = order.orderedItems.every(
+      i => i.returnRequest?.status === 'Return Approved' || i.status === 'Cancelled' || i.status === "Returned"
+    );
+    if(allReturnedOrCancelled){
+      order.finalPrice = 0;
+      order.refundAmount = order.totalPrice;
+    }
+
     // Update overall order status
     const hasRequestedReturns = order.orderedItems.some(
       i => i.returnRequest?.status === 'Return Requested'
     );
+    const someReturned = order.orderedItems.some(
+      i => i.returnRequest?.status === 'Return Approved'
+    );
 
     if (!hasRequestedReturns) {
-      const allReturnedOrCancelled = order.orderedItems.every(
-        i => i.returnRequest?.status === 'Return Approved' || i.status === 'Cancelled'
-      );
-      const someReturned = order.orderedItems.some(
-        i => i.returnRequest?.status === 'Return Approved'
-      );
-
       if (allReturnedOrCancelled) {
         order.status = 'Returned'; // All items are returned or cancelled
       } else if (someReturned) {
@@ -289,12 +457,11 @@ const handleReturnDecision = async (req, res) => {
 
 
 module.exports = {
-    loadOrderList,
-    loadOrderDetails,
-    updateOrder,
-    deleteOrder,
-    updateOrderStatus,
-    updatePaymentStatus,
-    updateItemStatus,
-    handleReturnDecision
+  loadOrderList,
+  loadOrderDetails,
+  deleteOrder,
+  updateOrderStatus,
+  updatePaymentStatus,
+  updateItemStatus,
+  handleReturnDecision
 };
