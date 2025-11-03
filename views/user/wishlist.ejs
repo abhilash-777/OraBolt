@@ -1,0 +1,207 @@
+<%- include("../partials/user/header.ejs") %>
+
+<style>
+    .icon-heart {
+        color: #000000;
+    }
+    .table .actions .btn {
+        font-size: 12px;
+        padding: 5px 10px;
+    }
+    .text-muted {
+        opacity: 0.6;
+    }
+</style>
+
+<div class="hero-wrap hero-bread" style="background-image: url('/images/bg_6.jpg');">
+    <div class="container">
+        <div class="row no-gutters slider-text align-items-center justify-content-center">
+            <div class="col-md-9 ftco-animate text-center">
+                <p class="breadcrumbs">
+                    <span class="mr-2"><a href="/">Home</a></span>
+                    <span>Wishlist</span>
+                </p>
+                <h1 class="mb-0 bread">My Wishlist</h1>
+            </div>
+        </div>
+    </div>
+</div>
+
+<section class="ftco-section ftco-cart">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-12 ftco-animate">
+                <div class="cart-list">
+                    <table class="table">
+                        <thead class="thead-primary">
+                            <tr class="text-center">
+                                <th>&nbsp;</th>
+                                <th>Image</th>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (wishlistItems.length > 0) { %>
+                                <% wishlistItems.forEach(item => { %>
+                                    <tr class="text-center <%= item.productId.isOutOfStock ? 'text-muted' : '' %>">
+                                        <td class="product-remove">
+                                            <a href="#" class="btn-delete" data-id="<%= item.productId._id %>">
+                                                <span class="ion-ios-close"></span>
+                                            </a>
+                                        </td>
+                                        <td class="image-prod">
+                                            <img src="/uploads/productsImages/<%= item.productId.image[0] %>" 
+                                                 width="80" height="80" alt="<%= item.productId.productName %>">
+                                        </td>
+                                        <td class="product-name">
+                                            <a href="/product/<%= item.productId._id %>" style="color: black;">
+                                                <%= item.productId.productName %>
+                                            </a><br>
+                                            <% if (item.productId.status === "Available") { %>
+                                                <small class="text-success">In Stock</small>
+                                            <% } else { %>
+                                                <small class="text-warning">Out of Stock</small>
+                                            <% } %>
+                                        </td>
+                                        <td class="price">&#8377;<%= item.productId.regularPrice %></td>
+                                        <td class="stock-status">
+                                            <% if (item.productId.status === "Available" && item.productId?.quantity > 0) { %>
+                                                <span class="badge badge-success">Available</span>
+                                            <% } else { %>
+                                                <span class="badge badge-warning">Out of Stock</span>
+                                            <% } %>
+                                        </td>
+                                        <td class="actions">
+                                            <% if (item.productId.status === "Available" && item.productId?.quantity > 0) { %>
+                                                <a href="/wishlist/add-to-cart/<%= item.productId._id %>" 
+                                                   class="btn btn-success btn-sm mb-1 d-block">
+                                                    <i class="ion-ios-cart"></i> Add to Cart
+                                                </a>
+                                            <% } else { %>
+                                                <button class="btn btn-secondary btn-sm mb-1 d-block" disabled>
+                                                    <i class="ion-ios-close"></i> Out of Stock
+                                                </button>
+                                            <% } %>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            <% } else { %>
+                                <tr>
+                                    <td colspan="6" class="text-center py-5">
+                                        <div>
+                                            <i class="icon-heart display-1 text-muted mb-3 d-block"></i>
+                                            <h5 class="mb-3">Your wishlist is empty</h5>
+                                            <p class="text-muted">Start adding your favorite products!</p>
+                                            <a href="/shop" class="btn btn-primary px-4 py-2">Start Shopping</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+
+    document.querySelectorAll(".btn-delete").forEach(btn => {
+        btn.addEventListener("click", async function(e) {
+            e.preventDefault();
+            const productId = btn.getAttribute("data-id");
+
+            const confirmResult = await Swal.fire({
+                icon:"warning",
+                title:"Are you sure ?",
+                text:"Item removing from wishlist",
+                showCancelButton:true,
+                cancelButtonColor:"#d33",
+                confirmButtonColor:"#3085d6",
+                confirmButtonText:"Yes, Do it."
+            });
+            if(!confirmResult.isConfirmed)return
+            try {
+                const response = await fetch(`/wishlist/remove/${productId}`,{
+                    method:"DELETE"
+                });
+
+                const data = await response.json();
+                if(data.success){
+                    Swal.fire({
+                        icon:"success",
+                        title:"Removed.",
+                        text:data.message||"Item removed from wishlist",
+                        showConfirmButton:false,
+                        timer:1000
+                    })
+                    .then(() => window.location.href = data.redirectUrl||"/wishlist")
+                }else{
+                    Swal.fire({
+                        icon:"error",
+                        title:"Failed!",
+                        text:data.message||"Error occure while removing"
+                    })
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon:"error",
+                    title:"Oops!",
+                    text:error.message||"Something went wrong"
+                })
+            }
+        })
+    });
+
+document.addEventListener("DOMContentLoaded", () => {
+    const addToCartLinks = document.querySelectorAll('.actions a[href^="/wishlist/add-to-cart/"]');
+    
+    addToCartLinks.forEach(link => {
+        link.addEventListener("click", async (e) => {
+            e.preventDefault();
+            const url = link.getAttribute('href');
+            const productId = url.split('/').pop();
+            
+            try {
+                const response = await fetch(url, { method: 'POST' });
+                const data = await response.json();
+                
+                if (data.success) {
+                    Swal.fire({
+                        icon: "success",
+                        title: "Added to Cart!",
+                        text: "Product has been added to your cart",
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        // Optionally remove from wishlist or update UI
+                        link.closest('tr').remove();
+                        if (document.querySelectorAll('tbody tr').length === 1) {
+                            window.location.reload();
+                        }
+                    });
+                } else {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Oops!",
+                        text: data.message || "Failed to add to cart"
+                    });
+                }
+            } catch (error) {
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops!",
+                    text: "Something went wrong!"
+                });
+            }
+        });
+    });
+});
+</script>
+
+<%- include("../partials/user/footer.ejs") %>

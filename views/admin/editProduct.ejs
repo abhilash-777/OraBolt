@@ -119,7 +119,7 @@
                                         <option value="">Select subcategory</option>
                                         <% subcategory.forEach(sub => { %>
                                             <option value="<%= sub._id %>"
-                                                 <%= product.subcategory._id.toString() === sub._id.toString() ? 'selected':"" %>><%= sub.name %>
+                                                 <%= product.subcategory?._id.toString() === sub._id.toString() ? 'selected':"" %>><%= sub.name %>
                                             </option>
                                         <% }) %>
                                     </select>
@@ -130,10 +130,10 @@
                         <hr class="mb-4 mt-0">
                         <div class="row">
                             <div class="col-md-9">
-                                <input type="file" id="images" name="croppedImages" class="form-control"
+                                <input type="file" id="images" name="croppedImages" class="form-control image-input"
                                  accept="image/jpeg , image/png , image/jpg" multiple>
                             </div>
-                            <div id="regularPrice-error" class="error-message text-danger" style="display: none;"></div>
+                            <div id="image-error" class="error-message text-danger" style="display: none;"></div>
                             <div id="cropperContainer" class="d-none mt-3">
                                 <img id="imageToCrop" style="max-width: 100%; height: 400px;" >
                                 <div class="mt-2">
@@ -178,11 +178,10 @@
 </section>
 
 <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 
     document.addEventListener("DOMContentLoaded",() => {
-        console.log("js loaded - attached event listners");
 
         const form = document.getElementById("editProduct");
         const submitBtn = document.getElementById("updateButton");
@@ -193,7 +192,6 @@
         const saveCropBtn = document.getElementById("saveCrop");
         const skipCropBtn = document.getElementById("skipCrop");
 
-        console.log("submit button:",submitBtn);
         let cropper , croppedImages = [] , fileQueue =[] , currentFileIndex = 0;
 
         let deleted = [];
@@ -264,17 +262,23 @@
             }
         }
 
-        submitBtn.addEventListener("click", (event) => {
+        submitBtn.addEventListener("click", async(event) => {
             event.preventDefault();
-            console.log("update button clicked")
 
-            if(!validateForm()){
-                console.error("Form validation failed");
-                return
-            }
+            if(!validateForm())return
 
             const formData = new FormData(form);
             croppedImages.forEach(file => formData.append("croppedImages",file));
+            const confirmResult = await Swal.fire({
+                icon:"warning",
+                title:"Are you sure",
+                text:"Product will update with the given data",
+                showCancelButton:true,
+                cancelButtonColor:"#d33",
+                confirmButtonColor:"#3085d6",
+                confirmButtonText:"Yes, Update it."
+            });
+            if(!confirmResult.isConfirmed)return
 
             fetch(form.action,{
                 method:"POST",
@@ -290,17 +294,30 @@
                 }
             })
             .then(data => {
-                console.log("product saved:",data);
                 if(data.success){
-                    alert("Product updated successfully");
+                    Swal.fire({
+                        icon:"success",
+                        title:"Done.",
+                        text:data.message||"Product updated successfully.",
+                        showConfirmButton:false,
+                        timer:1000
+                    })
                     window.location.href = `/admin/productLists/edit/${data.productId}`;
                 }else{
-                    alert(data.error||"update failed");
+                    Swal.fire({
+                        icon:"error",
+                        text:"Error!",
+                        text:data.error||"Failed to update product",
+                    })
                 }
             })
             .catch(err => {
                 console.error("upload error:",err);
-                alert("something went wrong!");
+                Swal.fire({
+                    icon:"error",
+                    title:"Oops!",
+                    text:"Something went wrong!"
+                })
             })
         });
     });
@@ -319,6 +336,7 @@
         const category = document.getElementsByName('category')[0].value;
         const subcategory = document.getElementsByName("subcategory")[0].value;
         const quantity=document.getElementsByName('quantity')[0].value;
+        const imageInputs = document.querySelectorAll(".image-input");
 
         if (!name||name.trim() === "") {
             displayErrorMessage('productName-error', 'Please enter a product name.');
@@ -368,6 +386,24 @@
             displayErrorMessage("salePrice-error","sale price cannot be grater than regular price");
             isValid = false;
         }
+
+        const allowedTypes = ['image/jpeg','image/jpg','image/png'];
+        imageInputs.forEach(input => {
+            const files = input.files;
+            for(let i = 0; i < files.length; i++){
+                const fileName = files[i].name.toLowerCase();
+                if(!!fileName.match(/\.(jpg|jpeg|png)$/)){
+                    displayErrorMessage("image-error","File name extension not matching these(.jpg/.jpeg/.png)");
+                    isValid = false;
+                    break;
+                }
+                if(!allowedTypes.includes(files[i].type)){
+                    displayErrorMessage("image-error","Only JPG, JPEG, and PNG files are allowed.");
+                    isValid = false;
+                    break;
+                }
+            }
+        })
           
        return isValid;
     }

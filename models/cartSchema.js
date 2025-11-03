@@ -26,13 +26,25 @@ const cartSchema = new Schema ({
             type : Number,
             required : true
         },
-        offer:{
+        regularPrice:{
             type:Number,
-            default:0
+            required:true
+        },
+        appliedOfferPercentage:{
+            type:Number,
+            default:0,
+            min:0,
+            max:100
+        },
+        appliedOfferId:{
+            type:Schema.Types.ObjectId,
+            ref:"Offer",
+            default:null
         },
         status : {
             type : String ,
-            default : "Placed"
+            default : "Placed",
+            enum:["Placed","Cancelled"]
         },
         cancellationReason : {
             type : String,
@@ -41,6 +53,9 @@ const cartSchema = new Schema ({
     }]
 },{timestamps:true})
 
+cartSchema.virtual("cartTotal").get(function(){
+    return this.items.reduce(sum,i => sum + i.totalPrice,0);
+});
 
 const Cart = mongoose.model("Cart",cartSchema);
 

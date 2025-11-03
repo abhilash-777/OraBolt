@@ -3,17 +3,43 @@ const Category = require("../../models/categorySchema");
 const Product = require("../../models/productSchema");
 const Offer = require("../../models/offerSchems");
 
+function getOfferStatus(offer) {
+  const now = new Date();
+  if (!offer.isActive) return "Inactive";
+  if (new Date(offer.endDate) < now) return "Expired";
+  return "Active";
+}
+
 const loadOffers = async (req,res) => {
     try {
         const admin = req.session?.admin;
         if(!admin)return res.redirect("/admin/login");
+        const page = parseInt(req.query.page)||1;
+        const limit = 6;
+        const skip = (page - 1) * limit;
+        
+        const now = new Date();
+        const activeCount = await Offer.countDocuments({isActive:true,endDate:{$gte:now}});
+        const inactiveCount = await Offer.countDocuments({
+            $or:[
+                {isActive:false},
+                {isActive:true,endDate:{$lt:now}}
+            ]
+        });
+        
         const offers = await Offer.find()
         .populate("category","name")
-        .populate("product","productName");
+        .populate("product","productName")
+        .sort({createdAt:-1})
+        .skip(skip)
+        .limit(limit)
+        .lean();
 
-        const activeCount = await Offer.countDocuments({isActive:true});
-        const inactiveCount = await Offer.countDocuments({isActive:false});
-        res.render("offers",{offers,activeCount,inactiveCount});
+        offers.forEach(offer => (offer.displayStatus = getOfferStatus(offer)))
+        
+        const totalOffers = await Offer.countDocuments();
+        const totalPages = Math.ceil(totalOffers/limit);
+        res.render("offers",{offers,activeCount,inactiveCount,currentPage:page,totalPages,totalOffers,limit});
     } catch (error) {
         console.log("something wrong while loading:",error);
         return res.redirect("/admin/pageError");
@@ -266,12 +292,18 @@ const statusChange = async (req, res) => {
         const offer = await Offer.findById(id);
         if (!offer) return res.json({ success: false, message: "Offer not found." });
 
+        const now = new Date();
+        if(new Date(offer.endDate) < now && !offer.isActive){
+            return res.json({success:false,message:"Cannot activate expired offer"});
+        }
+
         offer.isActive = !offer.isActive;
         await offer.save();
 
         res.json({
             success: true,
             message: `Offer ${offer.isActive ? "activated" : "deactivated"} successfully.`,
+            newStatus:getOfferStatus(offer)
         });
     } catch (error) {
         console.log("Error toggling offer status:", error);

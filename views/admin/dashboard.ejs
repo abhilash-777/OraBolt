@@ -7,22 +7,20 @@
                     <p>Whole data about your business here</p>
                 </div>
                 <div>
-                    <a href="#" class="btn btn-primary"><i class="text-muted material-icons md-post_add"></i>Create
-                        report</a>
+                    <button onclick="generateReport()" class="btn btn-primary">
+                        <i class="text-muted material-icons md-post_add"></i>Create report
+                    </button>
                 </div>
             </div>
             <div class="row">
-                <div class="col-lg-3">
+                <div class="col-lg-4">
                     <div class="card card-body mb-4">
                         <article class="icontext">
-                            <span class="icon icon-sm rounded-circle bg-primary-light"><i
-                                    class="text-primary material-icons md-monetization_on"></i></span>
+                            <span class="icon icon-sm rounded-circle bg-primary-light">&#8377;</span>
                             <div class="text">
                                 <h6 class="mb-1 card-title">Revenue</h6>
-                                <span>$13,456.5</span>
-                                <span class="text-sm">
-                                    Shipping fees are not included
-                                </span>
+                                <span>&#8377; <%= totalRevenue.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}) %></span>
+                                <span class="text-sm">Excluded cancelled,returned and refunded orders amount.</span>
                             </div>
                         </article>
                     </div>
@@ -30,14 +28,18 @@
                 <div class="col-lg-3">
                     <div class="card card-body mb-4">
                         <article class="icontext">
-                            <span class="icon icon-sm rounded-circle bg-success-light"><i
-                                    class="text-success material-icons md-local_shipping"></i></span>
+                            <span class="icon icon-sm rounded-circle bg-success-light">
+                                <i class="text-success material-icons md-local_shipping"></i></span>
+                            <% if(ordersCount && ordersCount > 0){ %>
                             <div class="text">
-                                <h6 class="mb-1 card-title">Orders</h6> <span>53.668</span>
-                                <span class="text-sm">
-                                    Excluding orders in transit
-                                </span>
+                                <h6 class="mb-1 card-title">Orders</h6> <span><%= ordersCount %></span>
+                                <span class="text-sm">Total orders</span>
                             </div>
+                            <% } else { %>
+                                <div class="text">
+                                    <h6 class="mb-1 card-title">Orders</h6><span>0</span>
+                                </div>
+                            <% } %>
                         </article>
                     </div>
                 </div>
@@ -46,65 +48,543 @@
                         <article class="icontext">
                             <span class="icon icon-sm rounded-circle bg-warning-light"><i
                                     class="text-warning material-icons md-qr_code"></i></span>
-                            <div class="text">
-                                <h6 class="mb-1 card-title">Products</h6> <span>9.856</span>
-                                <span class="text-sm">
-                                    In 19 Categories
-                                </span>
-                            </div>
-                        </article>
-                    </div>
-                </div>
-                <div class="col-lg-3">
-                    <div class="card card-body mb-4">
-                        <article class="icontext">
-                            <span class="icon icon-sm rounded-circle bg-info-light"><i
-                                    class="text-info material-icons md-shopping_basket"></i></span>
-                            <div class="text">
-                                <h6 class="mb-1 card-title">Monthly Earning</h6> <span>$6,982</span>
-                                <span class="text-sm">
-                                    Based in your local time.
-                                </span>
-                            </div>
+                            <% if(productsCount && productsCount > 0){ %>
+                                <div class="text">
+                                    <h6 class="mb-1 card-title">Products</h6> <span><%= productsCount %></span>
+                                    <span class="text-sm">
+                                    In <%= categoryCount && categoryCount > 0 ? categoryCount : 0 %> Categories
+                                    </span>
+                                </div>
+                            <% } else { %>
+                                <div class="text">
+                                    <h6 class="mb-1 card-title">Products</h6> <span>0</span>
+                                </div>
+                            <% } %>
                         </article>
                     </div>
                 </div>
             </div>
+
+            <!-- Sales Analytics Section -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card mb-4">
+                        <header class="card-header">
+                            <h4 class="card-title">Sales Analytics</h4>
+                            <div class="row align-items-center">
+                                <div class="col-md-3 col-12 me-auto mb-md-0 mb-3">
+                                    <div class="custom_select">
+                                        <select class="form-select select-nice" id="analyticsPeriod"
+                                            onchange="updateAnalyticsChart()">
+                                            <option value="daily">Daily</option>
+                                            <option value="weekly">Weekly</option>
+                                            <option value="monthly" selected>Monthly</option>
+                                            <option value="yearly">Yearly</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-3 col-12">
+                                    <div class="btn-group" role="group">
+                                        <input type="radio" class="btn-check" name="analyticsType" id="revenueBtn"
+                                            autocomplete="off" checked onchange="updateAnalyticsChart()">
+                                        <label class="btn btn-outline-primary" for="revenueBtn">Revenue</label>
             
+                                        <input type="radio" class="btn-check" name="analyticsType" id="ordersBtn" autocomplete="off"
+                                            onchange="updateAnalyticsChart()">
+                                        <label class="btn btn-outline-primary" for="ordersBtn">Orders</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </header>
+                        <div class="card-body">
+                            <!-- Summary Cards -->
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">Total Revenue</h6>
+                                                <h3 class="text-success" id="totalRevenueDisplay">₹0</h3>
+                                                <span class="text-muted" id="revenuePeriod">This month</span>
+                                            </div>
+                                            <div class="bg-success-light rounded-circle p-3">
+                                                <i class="text-success material-icons fs-4">&#8377;</i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="card card-body">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <h6 class="mb-1">Total Orders</h6>
+                                                <h3 class="text-primary" id="totalOrdersDisplay">0</h3>
+                                                <span class="text-muted" id="ordersPeriod">This month</span>
+                                            </div>
+                                            <div class="bg-primary-light rounded-circle p-3">
+                                                <i class="text-primary material-icons md-shopping_cart fs-4"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+            
+                            <div class="chart-container" style="position: relative; height: 300px;">
+                                <canvas id="salesAnalyticsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sales Report Section -->
             <div class="card mb-4">
                 <header class="card-header">
-                    <h4 class="card-title">Latest orders</h4>
-                    <div class="row align-items-center">
-                        <div class="col-md-3 col-12 me-auto mb-md-0 mb-3">
-                            <div class="custom_select">
-                                <select class="form-select select-nice">
-                                    <option selected>All Categories</option>
-                                    <option>Women's Watches</option>
-                                    <option>Men's Watches</option>
-                                    <option>Kid's Watches</option>
-                                    <option>Unisex Watches</option>
-                                </select>
+                    <h4 class="card-title">Sales Report</h4>
+                </header>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-3">
+                            <label class="form-label">Report Period</label>
+                            <select class="form-select" id="reportPeriod">
+                                <option value="daily">Today</option>
+                                <option value="weekly">Last 7 Days</option>
+                                <option value="monthly">Last 30 Days</option>
+                                <option value="yearly">Last Year</option>
+                                <option value="custom">Custom Range</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3" id="customDateRange" style="display: none;">
+                            <label class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="startDate">
+                        </div>
+                        <div class="col-md-3" id="customDateRangeEnd" style="display: none;">
+                            <label class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="endDate">
+                        </div>
+                        <div class="col-md-3 d-flex align-items-end">
+                            <button onclick="loadSalesReport()" class="btn btn-primary">Generate Report</button>
+                        </div>
+                    </div>
+            
+                    <!-- Report Summary Cards -->
+                    <div class="row" id="reportSummary" style="display: none;">
+                        <div class="col-lg-3">
+                            <div class="card card-body mb-4">
+                                <article class="icontext">
+                                    <span class="icon icon-sm rounded-circle bg-primary-light">
+                                        <i class="text-primary material-icons md-shopping_cart"></i>
+                                    </span>
+                                    <div class="text">
+                                        <h6 class="mb-1 card-title">Total Orders</h6>
+                                        <span id="totalOrders">0</span>
+                                    </div>
+                                </article>
                             </div>
                         </div>
-                        <div class="col-md-2 col-6">
-                            <input type="date" value="02.05.2021" class="form-control">
+                        <div class="col-lg-3">
+                            <div class="card card-body mb-4">
+                                <article class="icontext">
+                                    <span class="icon icon-sm rounded-circle bg-success-light">
+                                        <i class="text-success material-icons md-monetization_on"></i>
+                                    </span>
+                                    <div class="text">
+                                        <h6 class="mb-1 card-title">Total Sales</h6>
+                                        <span id="totalSales">₹0</span>
+                                    </div>
+                                </article>
+                            </div>
                         </div>
-                        <div class="col-md-2 col-6">
-                            <div class="custom_select">
-                                <select class="form-select select-nice">
-                                    <option selected>Status</option>
-                                    <option>All</option>
-                                    <option>Paid</option>
-                                    <option>Chargeback</option>
-                                    <option>Refund</option>
-                                </select>
+                        <div class="col-lg-3">
+                            <div class="card card-body mb-4">
+                                <article class="icontext">
+                                    <span class="icon icon-sm rounded-circle bg-warning-light">
+                                        <i class="text-warning material-icons md-local_offer"></i>
+                                    </span>
+                                    <div class="text">
+                                        <h6 class="mb-1 card-title">Total Discount</h6>
+                                        <span id="totalDiscount">₹0</span>
+                                    </div>
+                                </article>
+                            </div>
+                        </div>
+                        <div class="col-lg-3">
+                            <div class="card card-body mb-4">
+                                <article class="icontext">
+                                    <span class="icon icon-sm rounded-circle bg-info-light">
+                                        <i class="text-info material-icons md-trending_up"></i>
+                                    </span>
+                                    <div class="text">
+                                        <h6 class="mb-1 card-title">Avg. Order Value</h6>
+                                        <span id="avgOrderValue">₹0</span>
+                                    </div>
+                                </article>
                             </div>
                         </div>
                     </div>
-                </header>
+            
+                    <div class="row mb-4" id="downloadButtons" style="display: none;">
+                        <div class="col-12">
+                            <button onclick="downloadReport('pdf')" class="btn btn-danger">
+                                <i class="material-icons md-picture_as_pdf"></i> Download PDF
+                            </button>
+                            <button onclick="downloadReport('excel')" class="btn btn-success">
+                                <i class="material-icons md-table_chart"></i> Download Excel
+                            </button>
+                        </div>
+                    </div>
+            
+                    <!-- Report Table -->
+                    <div class="table-responsive" id="reportTable" style="display: none;">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Date</th>
+                                    <th>Customer</th>
+                                    <th>Total Amount</th>
+                                    <th>Discount</th>
+                                    <th>Final Amount</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reportTableBody">
+                                <!-- Dynamic content will be loaded here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
             
-        </section> <!-- content-main end// -->
+        </section>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+
+        let analyticsChart = null;
+
+        // Initialize analytics chart
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeAnalyticsChart();
+        });
+
+        async function initializeAnalyticsChart() {
+            await updateAnalyticsChart();
+        }
+
+        // Update analytics chart based on selections
+        async function updateAnalyticsChart() {
+            const period = document.getElementById('analyticsPeriod').value;
+            const chartType = document.querySelector('input[name="analyticsType"]:checked').value;
+    
+            try {
+                const response = await fetch(`/admin/api/chart-data?period=${period}`);
+                const result = await response.json();
         
+                if (result.success) {
+                    renderAnalyticsChart(result.data, period, chartType);
+                    updateSummaryCards(result.data, period);
+                } else {
+                    console.error('Error fetching analytics data:', result.error);
+                    Swal.fire({icon:"error",title:"Failed!",text:"Error fetching analytics data"});
+                }
+            } catch (error) {
+                console.error('Error updating analytics chart:', error);
+                Swal.fire({icon:"error",title:"Oops!",text:"Error updating analytics chart"});
+            }
+        }
+
+        // Render the analytics chart
+        function renderAnalyticsChart(chartData, period, chartType) {
+            const ctx = document.getElementById('salesAnalyticsChart').getContext('2d');
+    
+            // Destroy existing chart
+            if (analyticsChart) {
+                analyticsChart.destroy();
+            }
+    
+            // Prepare data
+            const labels = chartData.map(item => formatAnalyticsLabel(item._id, period));
+            const values = chartData.map(item => chartType === 'revenue' ? item.revenue : item.orders);
+            const chartLabel = chartType === 'revenue' ? 'Revenue (₹)' : 'Orders';
+    
+            // Chart colors
+            const backgroundColor = chartType === 'revenue' 
+                ? 'rgba(40, 167, 69, 0.1)' 
+                : 'rgba(0, 123, 255, 0.1)';
+            const borderColor = chartType === 'revenue' 
+                ? 'rgba(40, 167, 69, 1)' 
+                : 'rgba(0, 123, 255, 1)';
+            const pointBackgroundColor = chartType === 'revenue' 
+                ? 'rgba(40, 167, 69, 1)' 
+                : 'rgba(0, 123, 255, 1)';
+
+            analyticsChart = new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: chartLabel,
+                        data: values,
+                        backgroundColor: backgroundColor,
+                        borderColor: borderColor,
+                        borderWidth: 2,
+                        borderRadius: 4,
+                        borderSkipped: false,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            mode: 'index',
+                            intersect: false,
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            titleColor: '#fff',
+                            bodyColor: '#fff',
+                            borderColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1,
+                            callbacks: {
+                                label: function(context) {
+                                    if (chartType === 'revenue') {
+                                        return `Revenue: ₹${context.parsed.y.toLocaleString()}`;
+                                    } else {
+                                        return `Orders: ${context.parsed.y}`;
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                drawBorder: false,
+                                color: 'rgba(0, 0, 0, 0.05)'
+                            },
+                            ticks: {
+                                color: '#6c757d',
+                                callback: function(value) {
+                                    if (chartType === 'revenue') {
+                                        if (value >= 1000) {
+                                            return '₹' + (value / 1000).toFixed(1) + 'K';
+                                        }
+                                        return '₹' + value;
+                                    }
+                                    return value;
+                                }
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false,
+                                drawBorder: false
+                            },
+                            ticks: {
+                                color: '#6c757d'
+                            }
+                        }
+                    },
+                    interaction: {
+                        intersect: false,
+                        mode: 'index',
+                    }
+                }
+            });
+        }
+
+        // Update summary cards
+        function updateSummaryCards(chartData, period) {
+            const totalRevenue = chartData.reduce((sum, item) => sum + item.revenue, 0);
+            const totalOrders = chartData.reduce((sum, item) => sum + item.orders, 0);
+    
+            // Update revenue card
+            document.getElementById('totalRevenueDisplay').textContent = `₹${totalRevenue.toLocaleString()}`;
+            document.getElementById('revenuePeriod').textContent = getPeriodText(period);
+    
+            // Update orders card
+            document.getElementById('totalOrdersDisplay').textContent = totalOrders.toLocaleString();
+            document.getElementById('ordersPeriod').textContent = getPeriodText(period);
+        }
+
+        // Format period text for display
+        function getPeriodText(period) {
+            const texts = {
+                daily: 'Last 7 days',
+                weekly: 'Last 8 weeks',
+                monthly: 'Last 12 months',
+                yearly: 'Last 5 years'
+            };
+            return texts[period] || 'This period';
+        }
+
+        // Format labels for different periods
+        function formatAnalyticsLabel(label, period) {
+            switch (period) {
+                case 'daily':
+                    // Format as "Mon", "Tue", etc.
+                    const date = new Date(label);
+                    return date.toLocaleDateString('en-IN', { weekday: 'short' });
+            
+                case 'weekly':
+                    // Format as "Week 1", "Week 2", etc.
+                    const [year, week] = label.split('-');
+                    return `W${week}`;
+            
+                case 'monthly':
+                    // Format as "Jan", "Feb", etc.
+                    const [y, m] = label.split('-');
+                    return new Date(y, m - 1).toLocaleDateString('en-IN', { month: 'short' });
+            
+                case 'yearly':
+                    // Format as "2023", "2024", etc.
+                    return label;
+            
+                default:
+                    return label;
+            }
+        }
+
+        // Toggle custom date range visibility
+        document.getElementById('reportPeriod').addEventListener('change', function() {
+            const customRange = this.value === 'custom';
+            document.getElementById('customDateRange').style.display = customRange ? 'block' : 'none';
+            document.getElementById('customDateRangeEnd').style.display = customRange ? 'block' : 'none';
+        });
+
+        // Set default dates for custom range
+        document.addEventListener('DOMContentLoaded', function() {
+            const today = new Date().toISOString().split('T')[0];
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+            const oneWeekAgoStr = oneWeekAgo.toISOString().split('T')[0];
+    
+            document.getElementById('startDate').value = oneWeekAgoStr;
+            document.getElementById('endDate').value = today;
+        });
+
+        // Load sales report
+        async function loadSalesReport() {
+            const period = document.getElementById('reportPeriod').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+    
+            // Show loading state
+            const generateBtn = document.querySelector('button[onclick="loadSalesReport()"]');
+            const originalText = generateBtn.innerHTML;
+            generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Generating...';
+            generateBtn.disabled = true;
+    
+            try {
+                const params = new URLSearchParams({ period });
+                if (period === 'custom' && startDate && endDate) {
+                    params.append('startDate', startDate);
+                    params.append('endDate', endDate);
+                }
+
+                const response = await fetch(`/admin/sales-report?${params}`);
+                const result = await response.json();
+
+                if (result.success) {
+                    displayReport(result.data);
+                } else {
+                    Swal.fire({icon:"error",title:"Failed!",text:`Error generating report: ${result.message}`})
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Swal.fire({icon:"error",title:"Oops!",text:`Error generating report. Please check console for details.`});
+            } finally {
+                generateBtn.innerHTML = originalText;
+                generateBtn.disabled = false;
+            }
+        }
+
+        // Display report data - Updated for your schema
+        function displayReport(data) {
+            // Update summary cards
+            document.getElementById('totalOrders').textContent = data.totalOrders || 0;
+            document.getElementById('totalSales').textContent = `₹${data.totalSales || 0}`;
+            document.getElementById('totalDiscount').textContent = `₹${data.totalDiscount || 0}`;
+            document.getElementById('avgOrderValue').textContent = `₹${data.averageOrderValue || 0}`;
+
+            // Update table
+            const tableBody = document.getElementById('reportTableBody');
+            tableBody.innerHTML = '';
+
+            if (data.orders && data.orders.length > 0) {
+                data.orders.forEach(order => {
+                    const orderId = order.orderId;
+                    const customerName = order.userId?.name || 'N/A';
+                    const totalPrice = order.totalPrice || 0;
+                    const discount = order.discount || 0;
+                    const finalPrice = order.finalPrice || 0;
+                    const status = order.status;
+                    const paymentStatus = order.paymentStatus;
+            
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${orderId}</td>
+                        <td>${new Date(order.createdOn).toLocaleDateString()}</td>
+                        <td>${customerName}</td>
+                        <td>₹${totalPrice}</td>
+                        <td>₹${discount}</td>
+                        <td>₹${finalPrice}</td>
+                        <td><span class="badge ${getStatusBadgeClass(status)}">${status}</span></td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+            } else {
+                const row = document.createElement('tr');
+                row.innerHTML = `<td colspan="7" class="text-center">No orders found for the selected period</td>`;
+                tableBody.appendChild(row);
+            }
+
+            // Show report sections
+            document.getElementById('reportSummary').style.display = 'flex';
+            document.getElementById('downloadButtons').style.display = 'block';
+            document.getElementById('reportTable').style.display = 'block';
+        }
+
+        // Helper function for status badge colors
+        function getStatusBadgeClass(status) {
+            switch(status) {
+                case 'Delivered': return 'bg-success';
+                case 'Processing': return 'bg-primary';
+                case 'Shipped': return 'bg-info';
+                case 'Pending': return 'bg-warning';
+                case 'Cancelled': return 'bg-danger';
+                case 'Returned': return 'bg-secondary';
+                default: return 'bg-light text-dark';
+            }
+        }
+
+        // Download report
+        function downloadReport(format) {
+            const period = document.getElementById('reportPeriod').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+    
+            let url = `/admin/sales-report?period=${period}&reportType=${format}`;
+    
+            if (period === 'custom' && startDate && endDate) {
+                url += `&startDate=${startDate}&endDate=${endDate}`;
+            }
+
+            console.log('Download URL:', url);
+            window.location.href = url;
+        }
+
+        // Generate comprehensive report
+        function generateReport() {
+            // Scroll to report section and trigger generation
+            document.querySelector('.card-header').scrollIntoView({ behavior: 'smooth' });
+            loadSalesReport();
+        }
+    </script>
 
 <%-include("../partials/admin/footer.ejs")%>

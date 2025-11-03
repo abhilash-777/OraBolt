@@ -34,10 +34,6 @@ const productSchema = new Schema ({
         type : Number,
         required : true
     },
-    productOffer : {
-        type : Number,
-        default : 0
-    },
     quantity : {
         type : Number,
         default : 0
@@ -60,11 +56,28 @@ const productSchema = new Schema ({
         required : true,
         default : "Available"
     },
+    productOffer:{
+        type:Number,
+        default:0,
+        min:0,
+        max:100
+    },
     createdAt : {
         type : Date,
         default : Date.now
     }
 },{timestamps:true});
+
+productSchema.pre("save",function(next){
+    if(this.isModified("regularPrice") || this.isModified("productOffer")){
+        if(this.productOffer > 0){
+            this.salePrice = Math.round(this.regularPrice * (1 - this.productOffer / 100));
+        }else{
+            this.salePrice = this.regularPrice;
+        }
+    }
+    next();
+});
 
 const Product = mongoose.model("Product",productSchema);
 

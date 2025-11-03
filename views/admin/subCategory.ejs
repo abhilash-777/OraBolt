@@ -109,7 +109,6 @@
                                         <th>Name</th>
                                         <th>Description</th>
                                         <th>Offer%</th>
-                                        <th>Add/Edit Offer</th>
                                         <th>isListed</th>
                                         <th>List/Unlist</th>
                                         <th>Timestamp</th>
@@ -129,13 +128,6 @@
                                             </td>
                                             <td class="offer-cell">
                                                 <%= subCategory.offer %>
-                                            </td>
-                                            <td>
-                                                <% if(subCategory.offer && subCategory.offer> 0) { %>
-                                                    <button class="btn-editOffer" style="background-color: rgb(129, 202, 255);">Edit Offer</button>
-                                                <% } else { %>
-                                                    <button class="btn-success btn-addOffer">Add Offer</button>
-                                                <% } %>
                                             </td>
                                             <td class="list-cell">
                                                 <% if(subCategory.isListed) { %>
@@ -225,15 +217,12 @@
     </section>
     
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <script>
 
         function handleFormSubmit(event) {
             event.preventDefault();
 
-            if (!validateForm()) {
-                return;
-            }
+            if (!validateForm())return;
 
             const name = document.getElementsByName("name")[0].value.trim();
             const description = document.getElementById("description").value.trim();
@@ -371,72 +360,6 @@
         });
 
         document.addEventListener("DOMContentLoaded", () => {
-
-            const setupOfferHandler = (buttonSelector) => {
-                document.querySelectorAll(buttonSelector).forEach((button) => {
-                    button.addEventListener("click", () => {
-                        const row = button.closest("tr");
-                        const subCategoryId = row.dataset.id;
-                        const offerCell = row.querySelector(".offer-cell");
-
-                        if (offerCell.querySelector("input")) return;
-
-                        const input = document.createElement("input");
-                        input.type = "number";
-                        input.min = "0";
-                        input.max = "100";
-                        input.placeholder = "Enter Offer%";
-                        input.className = "offer-input";
-                        input.value = offerCell.innerText;
-
-                        const submitbtn = document.createElement("button");
-                        submitbtn.textContent = "Submit";
-                        submitbtn.className = "btn-submitOffer"
-
-                        offerCell.innerHTML = "";
-                        offerCell.appendChild(input);
-                        offerCell.appendChild(submitbtn);
-
-                        submitbtn.addEventListener("click", async () => {
-                            const offerValue = parseFloat(input.value.trim());
-
-                            if (isNaN(offerValue) || offerValue < 0 || offerValue > 100) {
-                                alert("please enter a Valid percentage between 0 and 100");
-                                return
-                            }
-
-                            try {
-                                const res = await fetch("/admin/subCategory/offer", {
-                                    method: "POST",
-                                    headers: {
-                                        'Content-Type': 'application/json'
-                                    },
-                                    body: JSON.stringify({ subCategoryId, offer: offerValue })
-                                });
-                                const result = await res.json();
-                                if (result.success) {
-                                    offerCell.innerText = `${offerValue}`;
-                                    button.textContent = `Edit Offer`;
-                                    button.className = "btn-editOffer";
-                                    location.reload();
-                                } else {
-                                    alert("Failed to save offer");
-                                }
-                            } catch (error) {
-                                console.error("Error:", error);
-                                alert("Server error");
-                            }
-                        });
-                    })
-                })
-            };
-
-            setupOfferHandler(".btn-addOffer");
-            setupOfferHandler(".btn-editOffer");
-
-        });
-
-        document.addEventListener("DOMContentLoaded", () => {
             function setupToggleHandlers() {
                 document.querySelectorAll(".btn-list , .btn-unlist").forEach((button) => {
                     button.addEventListener("click", async function () {
@@ -445,7 +368,6 @@
                         const isListed = button.classList.contains("btn-list");
 
                         try {   
-
                             const response = await fetch("/admin/SubCategory/toggleList", {
                                 method: "POST",
                                 headers: {
@@ -458,7 +380,6 @@
                             });
 
                             const result = await response.json();
-
                             if (result.success) {
                                 const listCell = row.querySelector(".list-cell");
                                 listCell.innerHTML = isListed ? "<p>Listed</P>":"<p>Unlisted</p>";
@@ -467,20 +388,17 @@
                                 button.classList = isListed ? "btn-unlist" : "btn-list"
                                 location.reload();
                             } else {
-                                alert("Failed to update listing status");
+                                Swal.fire({icon:'error',title:"Failed!",text:"Failed to update listing status"});
                             }
-
                         } catch (error) {
                             console.error("error listing toggle error", error);
-                            alert("Server error while updating listing");
+                            Swal.fire({icon:'error',title:"Oops!",text:"Server error while updating listing"});
                         }
-
                     });
                 });
             }
             setupToggleHandlers();
         });
-
 
     </script>
 

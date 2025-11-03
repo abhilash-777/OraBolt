@@ -36,14 +36,21 @@ function generateInvoice(order, userData, filePath) {
             // Order Details Box
             doc.fontSize(10)
                .fillColor('#2c3e50')
-               .text(`Invoice #: ${order.orderId}`, 400, 85, { align: 'right' })
+               .text(`Invoice #: ${order.orderId}`, 350, 85, { align: 'right' })
                .text(`Order Date: ${new Date(order.createdOn).toLocaleDateString('en-IN', {
                    day: '2-digit',
                    month: 'short',
                    year: 'numeric'
-               })}`, 400, 100, { align: 'right' })
-               .text(`Payment Method: ${order.paymentMethod || 'COD'}`, 400, 115, { align: 'right' })
-               .text(`Payment Status: ${order.paymentStatus || 'Pending'}`, 400, 130, { align: 'right' });
+               })}`, 350, 100, { align: 'right' })
+               .text(`Payment Method: ${order.paymentMethod || 'COD'}`, 350, 115, { align: 'right' })
+               .text(`Payment Status: ${order.paymentStatus || 'Pending'}`, 350, 130, { align: 'right' });
+
+            // Order Status
+            doc.fontSize(10)
+               .font('Helvetica-Bold')
+               .text('Order Status: ', 350, 145, { continued: true, align: 'right' })
+               .fillColor(getStatusColor(order.status))
+               .text(order.status, { align: 'right' });
 
             // Horizontal line
             doc.strokeColor('#bdc3c7')
@@ -56,33 +63,33 @@ function generateInvoice(order, userData, filePath) {
             doc.fontSize(12)
                .fillColor('#2c3e50')
                .font('Helvetica-Bold')
-               .text('Bill To:', 50, 170);
+               .text('Bill To:', 50, 190);
 
             doc.fontSize(10)
                .font('Helvetica')
                .fillColor('#34495e')
-               .text(order.address?.name || userData.name || 'N/A', 50, 190)
-               .text(order.address?.address || 'N/A', 50, 205, { width: 250 })
-               .text(`${order.address?.city || ''}, ${order.address?.state || ''} - ${order.address?.pincode || ''}`, 50, 220)
-               .text(`Phone: ${order.address?.phone || userData.phone || 'N/A'}`, 50, 235)
-               .text(`Email: ${userData.email || 'N/A'}`, 50, 250);
+               .text(order.address?.name || userData.name || 'N/A', 50, 210)
+               .text(order.address?.address || 'N/A', 50, 225, { width: 250 })
+               .text(`${order.address?.city || ''}, ${order.address?.state || ''} - ${order.address?.pincode || ''}`, 50, 240)
+               .text(`Phone: ${order.address?.phone || userData.phone || 'N/A'}`, 50, 255)
+               .text(`Email: ${userData.email || 'N/A'}`, 50, 270);
 
             // Shipping Information (if different)
             doc.fontSize(12)
                .font('Helvetica-Bold')
                .fillColor('#2c3e50')
-               .text('Ship To:', 320, 170);
+               .text('Ship To:', 320, 190);
 
             doc.fontSize(10)
                .font('Helvetica')
                .fillColor('#34495e')
-               .text(order.address?.name || userData.name || 'N/A', 320, 190)
-               .text(order.address?.address || 'N/A', 320, 205, { width: 230 })
-               .text(`${order.address?.city || ''}, ${order.address?.state || ''} - ${order.address?.pincode || ''}`, 320, 220)
-               .text(`Phone: ${order.address?.phone || userData.phone || 'N/A'}`, 320, 235);
+               .text(order.address?.name || userData.name || 'N/A', 320, 210)
+               .text(order.address?.address || 'N/A', 320, 225, { width: 230 })
+               .text(`${order.address?.city || ''}, ${order.address?.state || ''} - ${order.address?.pincode || ''}`, 320, 240)
+               .text(`Phone: ${order.address?.phone || userData.phone || 'N/A'}`, 320, 255);
 
             // Table Header
-            const tableTop = 290;
+            const tableTop = 310;
             doc.fontSize(10)
                .font('Helvetica-Bold')
                .fillColor('#ffffff')
@@ -90,10 +97,11 @@ function generateInvoice(order, userData, filePath) {
                .fill('#3498db');
 
             doc.fillColor('#ffffff')
-               .text('Item', 60, tableTop + 8)
-               .text('Qty', 320, tableTop + 8, { width: 50, align: 'center' })
-               .text('Price', 380, tableTop + 8, { width: 80, align: 'right' })
-               .text('Amount', 470, tableTop + 8, { width: 70, align: 'right' });
+               .text('Item', 60, tableTop + 8,{width:180})
+               .text('Status', 245, tableTop + 8, { width: 75, align: 'center' })
+               .text('Qty', 325, tableTop + 8, { width: 35, align: 'center' })
+               .text('Price', 365, tableTop + 8, { width: 80, align: 'right' })
+               .text('Amount', 450, tableTop + 8, { width: 90, align: 'right' });
 
             // Table Items
             let yPosition = tableTop + 35;
@@ -104,23 +112,53 @@ function generateInvoice(order, userData, filePath) {
                 const quantity = item.quantity;
                 const price = item.price;
                 const total = price * quantity;
+                const itemStatus = item.status || 'Pending';
 
                 // Alternate row background
                 if (index % 2 === 0) {
                     doc.rect(50, yPosition - 5, 500, 25).fill('#ecf0f1');
                 }
 
+                // Product Name (wrapped if too long)
                 doc.fillColor('#2c3e50')
-                   .fontSize(10)
-                   .text(productName, 60, yPosition, { width: 250 })
+                   .fontSize(9)
+                   .text(productName, 60, yPosition, { width: 170, ellipsis: true });
+
+                // Item Status with color coding
+                doc.fontSize(8)
+                   .fillColor(getStatusColor(itemStatus))
+                   .font('Helvetica-Bold')
+                   .text(itemStatus, 240, yPosition + 2, { width: 70, align: 'center' });
+
+                doc.fontSize(9)
+                   .fillColor('#2c3e50')
+                   .font('Helvetica')
                    .text(quantity.toString(), 320, yPosition, { width: 50, align: 'center' })
                    .text(`₹${price.toLocaleString('en-IN')}`, 380, yPosition, { width: 80, align: 'right' })
                    .text(`₹${total.toLocaleString('en-IN')}`, 470, yPosition, { width: 70, align: 'right' });
 
-                yPosition += 25;
+               // Show return/cancellation info if applicable
+                if (item.status === 'Cancelled' || 
+                    item.status === 'Returned' || 
+                    item.returnRequest?.status === 'Return Requested' ||
+                    item.returnRequest?.status === 'Return Approved') {
+                    yPosition += 12;
+                    doc.fontSize(7)
+                       .fillColor('#7f8c8d')
+                       .font('Helvetica-Oblique')
+                       .text(
+                           item.status === 'Cancelled' ? '(Item Cancelled)' :
+                           item.status === 'Returned' ? '(Item Returned)' :
+                           item.returnRequest?.status === 'Return Requested' ? '(Return Pending)' :
+                           '(Return Approved)',
+                           60, yPosition, { width: 170 }
+                       );
+                }
+
+                yPosition += 30;
 
                 // Check if we need a new page
-                if (yPosition > 700) {
+                if (yPosition > 680) {
                     doc.addPage();
                     yPosition = 50;
                 }
@@ -132,6 +170,7 @@ function generateInvoice(order, userData, filePath) {
 
             // Subtotal
             doc.fontSize(10)
+               .font('Helvetica')
                .fillColor('#34495e')
                .text('Subtotal:', 370, summaryTop, { width: 90, align: 'right' })
                .text(`₹${(order.totalPrice || order.finalPrice).toLocaleString('en-IN')}`, 470, summaryTop, { width: 70, align: 'right' });
@@ -205,6 +244,22 @@ function generateInvoice(order, userData, filePath) {
             reject(error);
         }
     });
+}
+
+// Helper function to get color for status
+function getStatusColor(status) {
+    const statusColors = {
+        'Pending': '#f39c12',
+        'Processing': '#3498db',
+        'Shipped': '#9b59b6',
+        'Delivered': '#27ae60',
+        'Cancelled': '#e74c3c',
+        'Return Requested': '#e67e22',
+        'Return Approved': '#16a085',
+        'Return Rejected': '#c0392b',
+        'Returned': '#95a5a6'
+    };
+    return statusColors[status] || '#34495e';
 }
 
 module.exports = { generateInvoice };

@@ -173,35 +173,11 @@ const toggleList = async function (req,res) {
     
 };
 
-const addOffer = async function (req,res) {
-
-    try {
-
-        const {categoryId,offer} = req.body;
-        const parsedOffer = Number(offer);
-        //console.log("received:",categoryId,parsedOffer);
-
-        if(!categoryId || isNaN(parsedOffer)){
-            return res.json({success:false,message:"Invalid data"});
-        }
-
-        await Category.findByIdAndUpdate(categoryId,{offer:parsedOffer,offerAddedAt:parsedOffer > 0 ? new Date():null});
-        res.json({success:true});
-        
-    } catch (error) {
-        console.error("error updating category offer:",error);
-        res.status(500).json({success:false});
-    }
-    
-}
-
-
 module.exports = {
     categoryInfo,
     addCategory,
     loadEditCategory,
     editCategory,
     deleteCategory,
-    addOffer,
     toggleList
 }

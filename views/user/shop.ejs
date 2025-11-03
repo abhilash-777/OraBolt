@@ -70,6 +70,52 @@
             margin-left: 5px;
             cursor: pointer;
         }
+		/* Wishlist icon on product image */
+        .wishlist-icon {
+	        position: absolute;
+	        top: 10px;
+        	right: 10px;
+        	border-radius: 50%;
+    	    padding: 8px;
+        	z-index: 10;
+           	color: #fbcccc;
+        	font-size: 18px;
+          	transition: all 0.2s ease;
+        	text-decoration: none;
+        }
+
+        .wishlist-icon:hover {
+	        color: #ff4d4d;
+	        transform: scale(1.1);
+        }
+
+		.heart-icon {
+            font-size: 24px;
+            color: #ccc;
+            transition: all 0.3s ease;
+        }
+
+        /* Heart icon when in wishlist - filled/darker */
+        .heart-icon.in-wishlist {
+            color: #e74c3c;  /* Red color for filled heart */
+        }
+
+        /* Hover effect */
+        .wishlist-icon:hover .heart-icon {
+            transform: scale(1.2);
+        }
+
+        .wishlist-icon:hover .heart-icon:not(.in-wishlist) {
+            color: #e74c3c;
+            opacity: 0.7;
+        }
+
+        .img-prod {
+        	position: relative;
+        	display: block;
+           	overflow: hidden;
+        }
+
         .pagination-container {
             text-align: center;
             margin-top: 20px;
@@ -155,7 +201,8 @@
 		
 						
 						<% if ((currentFilters?.search) || (currentFilters?.category) || (currentFilters?.brand) ||
-							(currentFilters?.color) || (currentFilters?.minPrice) || (currentFilters?.maxPrice)) { %>
+							(currentFilters?.color) || (currentFilters?.minPrice) || (currentFilters?.maxPrice) ||
+							(currentFilters?.subcategories)) { %>
 							<div class="filter-group">
 								<h6>Active Filters</h6>
 								<div id="activeFilters">
@@ -172,6 +219,14 @@
 											<span class="remove" data-filter="category">&times;</span>
 										</span>
 									<% } %>
+									<% if (currentFilters?.subcategories) { %>
+                                        <% (Array.isArray(currentFilters.subcategories) ? currentFilters.subcategories : [currentFilters.subcategories]).forEach(subId => { %>
+                                            <span class="active-filter-tag">
+                                                Subcategory: <%= subcategories.find(sub => String(sub._id) === String(subId))?.name || 'Unknown' %>
+                                                <span class="remove" data-filter="subcategories" data-value="<%= subId %>">&times;</span>
+                                            </span>
+                                        <% }) %>
+                                    <% } %>
 									<% if (currentFilters?.brand) { %>
 										<span class="active-filter-tag">
 											Brand: <%= brands?.find(brand=> String(brand._id) ===
@@ -223,15 +278,16 @@
 														<% subcategories?.filter(sub=> String(sub.categoryId) ===
 														String(cat._id)).forEach(sub => { %>
 														    <li class="mb-1">
-															    <label class="custom-control custom-checkbox">
-															        <input type="checkbox" name="subcategories"
-															        value="<%= sub._id %>" class="filter-checkbox"
-															        <%=currentFilters?.subcategories===String(sub._id)
-															        ? 'checked' : '' %>>
-															        <span class="custom-control-indicator"></span>
-															        <span> <%= sub.name %> </span>
-															    </label>
-														    </li>
+                                                                <label class="custom-control custom-checkbox">
+                                                                    <input type="checkbox" name="subcategories"
+                                                                        value="<%= sub._id %>" class="filter-checkbox"
+                                                                        <%= Array.isArray(currentFilters?.subcategories) ? 
+                                                                        currentFilters.subcategories.includes(String(sub._id)) ? 'checked' : '' : 
+                                                                    currentFilters?.subcategories === String(sub._id) ? 'checked' : '' %>>
+                                                                    <span class="custom-control-indicator"></span>
+                                                                    <span> <%= sub.name %> </span>
+                                                                </label>
+                                                            </li>
 														<% }) %>
 													</ul>
 												</div>
@@ -355,63 +411,92 @@
 		
 					
 					<div class="row product-list">
-						<% if (products && products.length> 0) { %>
-							<% products.forEach(product=> { %>
+						<% if (products && products.length > 0) { %> 
+							<% products.forEach(product=> {
+								const isWishlist = wishlistProductIds.includes(product._id.toString());
+								%>
 								<div class="col-sm-12 col-md-6 col-lg-4 ftco-animate d-flex mb-4">
 									<div class="product d-flex flex-column">
-										<a href="/product/<%= product._id %>" class="img-prod">
+										<div class="img-prod position-relative" style="cursor: pointer;"
+											onclick="window.location.href='/product/<%= product._id %>'">
+											<button class="wishlist-icon" title="<%= isWishlist ? 'Remove from Wishlist' : 'Add to Wishlist' %>"
+												onclick="event.stopPropagation(); addToWishlist('<%= product._id %>')"
+												style="background: none; border: none; cursor: pointer; position: absolute; top: 10px; right: 10px; z-index: 10;">
+												<span class="icon-heart heart-icon <%= isWishlist ? 'in-wishlist' : '' %>"></span>
+											</button>
+							
+											<!-- Product image -->
 											<img class="img-fluid" src="/uploads/productsImages/<%= product.image[0] %>"
-												alt="<%= product.productName %>"
-												onerror="this.src='/uploads/productsImages/default.jpg'">
-											<% if (product.productOffer> 0) { %>
-												<span class="status">
-													<%= product.productOffer %>% OFF
-												</span>
-												<% } %>
-													<div class="overlay"></div>
-										</a>
+												alt="<%= product.productName %>" onerror="this.src='/uploads/productsImages/default.jpg'">
+							
+											<!-- Offer Badge -->
+				                            <% if (product.hasOffer && product.appliedOffer > 0) { %>
+					                            <span class="status" style="position: absolute; top: 10px; left: 10px; background: #ff6b6b; color: white; padding: 5px 10px; border-radius: 3px; font-weight: bold; font-size: 12px;">
+						                            <%= product.appliedOffer %>% OFF
+					                            </span>
+				                            <% } %>
+											<div class="overlay"></div>
+										</div>
+							
 										<div class="text py-3 pb-4 px-3">
 											<div class="d-flex justify-content-between">
-												<h3><a href="/product/<%= product._id %>">
+												<h3>
+													<a href="/product/<%= product._id %>">
 														<%= product.productName %>
-													</a></h3>
+													</a>
+												</h3>
 											</div>
+							
 											<div class="d-flex justify-content-between align-items-center">
 												<div class="pricing">
-													<% if (product.productOffer> 0) { %>
+													<% if (product.hasOffer) { %>
 														<p class="price">
-															<span class="mr-2 price-dc">&#8377;<%= product.regularPrice %></span>
-															<span class="price-sale">&#8377;<%= product.salePrice %></span>
+															<span style="text-decoration: line-through; color: #999; font-size: 14px; margin-right: 8px;">
+																&#8377;<%= product.regularPrice %>
+															</span>
+															<span style="color: #000; font-weight: bold;">
+																&#8377;<%= product.offerPrice %>
+															</span>
 														</p>
-														<% } else { %>
-															<p class="price"><span>&#8377;<%= product.salePrice %></span></p>
-															<% } %>
+														<p style="color: #28a745; font-size: 12px; margin-top: -8px;">
+															You save &#8377;<%= product.savings %>
+														</p>
+													<% } else { %>
+														<p class="price"><span>&#8377;<%= product.regularPrice %></span></p>
+													<% } %>
 												</div>
 												<div class="rating">
-													<span class="text-muted small">
-														<%= product.status %>
-													</span>
+													<% if(product.quantity <=0){ %>
+														<span class="small" style="color: red;">Out Of Stock</span>
+													<% } else { %>
+														<span class="small" style="color: green;">
+															<%= product.status %>
+														</span>
+													<% } %>
 												</div>
 											</div>
-											<p class="bottom-area d-flex px-3">
-												<a href="#" class="add-to-cart text-center py-2 mr-1" data-id="<%= product._id %> ">
-													<span>Add to cart <i class="ion-ios-add ml-1"></i></span>
-												</a>
-												<a href="/checkout/<%= product._id %>" class="buy-now text-center py-2">
-													Buy now<span><i class="ion-ios-cart ml-1"></i></span>
-												</a>
-											</p>
+							
+											<% if(product.quantity> 0){ %>
+												<p class="bottom-area d-flex px-3">
+													<a href="#" class="add-to-cart text-center py-2 mr-1" data-id="<%= product._id %>">
+														<span>Add to cart <i class="ion-ios-add ml-1"></i></span>
+													</a>
+													<a href="/checkout?productId=<%= product._id %>&qty=1" class="buy-now text-center py-2">
+														Buy now<span><i class="ion-ios-cart ml-1"></i></span>
+													</a>
+												</p>
+											<% } %>
 										</div>
 									</div>
 								</div>
 							<% }) %>
-					    <% } else { %>
-						    <div class="col-12 text-center py-5">
-							    <h4>No products found</h4>
-							    <p class="text-muted">Try adjusting your filters or search terms.</p>
-							    <a href="/shop" class="btn btn-primary">View All Products</a>
-						    </div>
-					    <% } %>
+						<% } else { %>
+							<div class="col-12 text-center py-5">
+								<h4>No products found</h4>
+								<p class="text-muted">Try adjusting your filters or search terms.</p>
+								<a href="/shop" class="btn btn-primary">View All Products</a>
+							</div>
+						<% } %>
 					</div>
 
 
@@ -486,27 +571,84 @@
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
-
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 	<script>
+		async function addToWishlist(productId) {
+			console.log("product id:",productId);
+			try {
+				const response = await fetch(`/wishlist/add/${productId}`,{
+					method:"POST",
+					headers:{
+						'Content-Type':'application/json'
+					},
+				});
+
+				console.log("response status:",response.status);
+				const data = await response.json();
+				console.log("response data:",data);
+				if(data.success){
+					Swal.fire({
+						icon:"success",
+						title:"Done",
+						text:data.message||"Added to wishlist",
+						timer:1500,
+						showConfirmButton:false
+					})
+					.then(() => window.location.reload())
+				}else{
+					console.log("failed to add in wishlist");
+					Swal.fire({
+						icon:"error",
+						text:"Failed",
+						text:data.message||"Failed to add into wishlist"
+					})
+				}
+			} catch (error) {
+				console.log("Something went wrong while adding to wishlist.");
+				Swal.fire({
+					icon:"error",
+					title:"Oops!",
+					text:error.message||"Something went wrong"
+				});
+			}
+		};
 
 		document.querySelectorAll('.add-to-cart').forEach(btn => {
             btn.addEventListener('click', async (e) => {
                 e.preventDefault();
                 const productId = btn.dataset.id;
 
-                const res = await fetch('/cart/add', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ productId })
-                });
+                try {
+					const res = await fetch('/cart/add', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ productId })
+                    });
 
-                const data = await res.json();
-                if (res.ok) {
-                    alert(data.message);
-                    // optionally update cart count dynamically
-                } else {
-                    alert(data.message || 'Something went wrong');
-                }
+                    const data = await res.json();
+                    if (data.success) {
+                        Swal.fire({
+						    icon:"success",
+						    title:"Added To Card.",
+						    text:data.message||"Product added into cart",
+						    showConfirmButton:false,
+						    timer:1500
+					    })
+                    } else {
+                        Swal.fire({
+						    icon:"error",
+						    title:"Failed",
+						    text:data.message||"Failed add product into cart",
+					    })
+                    }
+				} catch (error) {
+					console.log("something went wrong while adding product into cart.");
+					Swal.fire({
+						icon:"error",
+						title:"Oops!",
+						text:"Someting went wrong",
+					});
+				}
             });
         });
 
@@ -566,25 +708,27 @@
             removeButtons.forEach(button => {
                 button.addEventListener('click', function() {
                     const filterType = this.getAttribute('data-filter');
-                    const filterElement = document.querySelector(`[name="${filterType}"]`);
+					const filterValue = this.getAttribute('data-value');
+
                     if (filterType === 'price') {
                         
                         const minPriceInput = document.querySelector('input[name="minPrice"]');
                         const maxPriceInput = document.querySelector('input[name="maxPrice"]');
                         if (minPriceInput) minPriceInput.value = '';
                         if (maxPriceInput) maxPriceInput.value = '';
+                    }else if (filterType === 'subcategories' && filterValue) {
+                        const checkbox = document.querySelector(`input[name="subcategories"][value="${filterValue}"]`);
+                        if (checkbox) checkbox.checked = false;
                     } else {
                         const filterElement = document.querySelector(`[name="${filterType}"]`);
                         if (filterElement) {
                             filterElement.value = '';
                         }
-                
                         
                         const checkboxes = document.querySelectorAll(`input[name="${filterType}"]`);
                         checkboxes.forEach(checkbox => {
                             checkbox.checked = false;
                         });
-                
                         
                         if (filterType === 'color') {
                             colorOptions.forEach(option => {
@@ -607,8 +751,9 @@
                 }
         
                 function getCheckedValue(name) {
-                    const checkedElement = document.querySelector(`input[name="${name}"]:checked`);
-                    return checkedElement ? checkedElement.value : '';
+                    const checkedElements = document.querySelectorAll(`input[name="${name}"]:checked`);
+					const values = Array.from(checkedElements).map(element => element.value);
+                    return values.length > 0 ?values : "";
                 }
         
                 
@@ -634,8 +779,16 @@
 
                 
                 Object.keys(filters).forEach(key => {
-                    if (filters[key] && filters[key] !== 'all' && filters[key] !== '') {
-                        params.append(key, filters[key]);
+                    if (filters[key]) {
+                        if(Array.isArray(filters[key])){
+							filters[key].forEach(value => {
+								if(value && value !== 'all'){
+									params.append(key,value);
+								}
+							})
+						}else if(filters[key] !== 'all' && filters[key] !== ""){
+							params.append(key,filters[key])
+						}
                     }
                 });
 

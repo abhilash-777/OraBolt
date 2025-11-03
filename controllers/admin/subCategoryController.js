@@ -176,25 +176,6 @@ const toggleList = async function (req,res) {
     
 };
 
-const addOffer = async function (req,res){
-
-    try {
-
-        const {subCategoryId,offer} = req.body;
-        const parsedOffer = Number(offer);
-        if(!subCategoryId||isNaN(parsedOffer)){
-            return res.status(400).json({success:false,error:"Invalid data"});
-        }
-        await subCategory.findByIdAndUpdate(subCategoryId,{offer:parsedOffer,offerAddedAt:parsedOffer > 0 ? new Date():null});
-        res.json({success:true});
-        
-    } catch (error) {
-        console.error("error updating offer:",error);
-        res.status(500).json({success:false,error:"Internal server error"});
-    }
-    
-}
-
 module.exports = {
     subCategoryInfo,
     addSubCategory,
@@ -202,5 +183,4 @@ module.exports = {
     editSubCategory,
     deleteSubCategory,
     toggleList,
-    addOffer
 }

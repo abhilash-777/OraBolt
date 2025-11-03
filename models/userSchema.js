@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const Wallet = require("./walletSchema");
 
 const {Schema} = mongoose;
 
@@ -44,10 +45,6 @@ const userSchema = new Schema({
         type : Schema.Types.ObjectId,
         ref : "Cart"
     }],
-    wallet : {
-        type : Number,
-        default : 0
-    },
     wishlist : [{
         type : Schema.Types.ObjectId,
         ref : "wishlist"
@@ -60,8 +57,15 @@ const userSchema = new Schema({
         type : Date,
         default : Date.now
     },
-    referalCode : {
-        type : String
+    referralCode : {
+        type : String,
+        unique : true,
+        required : true
+    },
+    referredBy : {
+        type : Schema.Types.ObjectId,
+        ref : "User",
+        default : null
     },
     redeemed : {
         type : Boolean
@@ -83,7 +87,15 @@ const userSchema = new Schema({
             default : Date.now
         }
     }]
-})
+});
+
+userSchema.post("save",async function (doc) {
+    if(!doc.isNew)return
+    const existingWallet = await Wallet.findOne({userId:doc._id});
+    if(!existingWallet){
+        await Wallet.create({userId:doc._id});
+    }
+});
 
 const User = mongoose.model("User",userSchema);
 

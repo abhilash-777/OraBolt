@@ -7,7 +7,7 @@
         <div class="profile-layout">
             <!-- Sidebar -->
             <aside class="sidebar">
-                <a href="/profile/<%= user._id %>" class="sidebar-item <%= activeTab === 'profile' ? 'active' : '' %>">
+                <a href="/profile" class="sidebar-item <%= activeTab === 'profile' ? 'active' : '' %>">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                         <circle cx="12" cy="7" r="4"></circle>
@@ -15,7 +15,7 @@
                     <span>Profile</span>
                 </a>
                 
-                <a href="/addresses/<%= user._id %>" class="sidebar-item <%= activeTab === 'addresses' ? 'active' : '' %>">
+                <a href="/addresses" class="sidebar-item <%= activeTab === 'addresses' ? 'active' : '' %>">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
                         <circle cx="12" cy="10" r="3"></circle>
@@ -23,7 +23,7 @@
                     <span>Manage Address</span>
                 </a>
                 
-                <a href="/orders/<%= user._id %>" class="sidebar-item <%= activeTab === 'orders' ? 'active' : '' %>">
+                <a href="/orders" class="sidebar-item <%= activeTab === 'orders' ? 'active' : '' %>">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                         <path d="M9 11l3 3 5-5"></path>
@@ -31,7 +31,7 @@
                     <span>Orders</span>
                 </a>
                 
-                <a href="/wallet/<%= user._id %>" class="sidebar-item <%= activeTab === 'wallet' ? 'active' : '' %>">
+                <a href="/wallet" class="sidebar-item <%= activeTab === 'wallet' ? 'active' : '' %>">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
                         <path d="M16 12h.01"></path>
@@ -39,7 +39,7 @@
                     <span>Wallet</span>
                 </a>
                 
-                <a href="/manage-password/<%= user._id %>" class="sidebar-item <%= activeTab === 'password' ? 'active' : '' %>">
+                <a href="/manage-password" class="sidebar-item <%= activeTab === 'password' ? 'active' : '' %>">
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                         <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
@@ -62,9 +62,9 @@
                         <label for="addressType">Address Type *</label>
                         <select name="addressType" id="addressType" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
                             <option value="<%= address.addressType %>">Select Address Type</option>
-                            <option value="Home">Home</option>
-                            <option value="Work">Work</option>
-                            <option value="Other">Other</option>
+                            <option value="Home" <%=address.addressType === 'Home'?'selected':'' %>>Home</option>
+                            <option value="Work" <%=address.addressType === 'Work'?'selected':'' %>>Work</option>
+                            <option value="Other" <%=address.addressType === 'Other'?'selected':'' %>>Other</option>
                         </select>
                         <small id="addressTypeError" class="errorMsg" ></small>
                     </div>
@@ -183,7 +183,7 @@
                     <!-- Form Actions -->
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary">Save Changes</button>
-                        <a href="/addresses/<%= user._id %>" class="btn btn-secondary" style="text-align: center; text-decoration: none; display: block;">Cancel</a>
+                        <a href="/addresses" class="btn btn-secondary" style="text-align: center; text-decoration: none; display: block;">Cancel</a>
                     </div>
                 </form>
             </main>
@@ -218,27 +218,29 @@
                 streetError : "",
                 cityError : "",
                 stateError : "",
-                pinodeError : "",
+                pincodeError : "",
                 landMarkError : ""
             };
 
             if(!addressType)errors.addressTypeError = "Please select an address type";
 
             if(!name){
-                errors.nameError = "Name should required"
+                errors.nameError = "Name should required";
+            }else if(!/^(?=.*[A-Za-z])[A-Za-z\s._]+$/.test(name)){
+                errors.nameError = "Name should contain alphabetic characters";
             }else if(name.length < 5 || name.length > 20)errors.nameError = "Name should contain 5 to 20 characters";
 
             if(!address)errors.addressError = "Address should required";
 
-            if(!phone||!/^\d{10}$/.test(phone))errors.phoneError = "Phone number should be 10 digit number";
+            if(!phone||!/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(phone))errors.phoneError = "Phone number should be 10 digit valid number";
 
             if(!city||!/^[A-Za-z\s]+$/.test(city))errors.cityError = "City name should required";
 
             if(!state||!/^[A-Za-z\s]+$/.test(state))errors.stateError = "State name should required";
 
-            if(!street)errors.stateError = "Street name should required";
+            if(!street)errors.streetError = "Street name should required";
 
-            if(!pincode || !/^\d{6}$/.test(pincode))errors.pincodeError = "Pincode should required(6-digits number)";
+            if(!pincode || !/^[1-9][0-9]{5}$/.test(pincode))errors.pincodeError = "Pincode should required(6-digits valid pin number)";
 
             if(!landMark ||!/^[A-Za-z\s]+$/.test(landMark))errors.landmarkError = "Landmark should required";
 
@@ -271,6 +273,17 @@
                 landMark: document.getElementById("landMark").value.trim()
             };
 
+            const confirmResult = await Swal.fire({
+                icon:"warning",
+                title:"Are you sure ?",
+                text:"Your address will overwrite with this address",
+                showCancelButton:true,
+                cancelButtonColor:"#d33",
+                confirmButtonColor:"#3085d6",
+                cofirmButtonText:"Yes, Do it."
+            });
+            if(!confirmResult.isConfirmed)return
+
             try {
                 const response = await fetch(`/editAddress/${addressId}`,{
                     method:"PUT",
@@ -294,8 +307,6 @@
                         icon:"error",
                         title:"Error!",
                         text:data.message||"Error occured while updating",
-                        showConfirmButton:false,
-                        timer:1000
                     })
                 }
 
@@ -304,8 +315,6 @@
                     icon:"error",
                     title:"Oops!",
                     text:"Something went wrong while editing address",
-                    showConfirmButton:false,
-                    timer:1000
                 })
             }
 
