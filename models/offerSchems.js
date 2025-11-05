@@ -61,6 +61,13 @@ offerSchema.pre('save', function(next) {
     next();
 });
 
+offerSchema.pre("findOneAndUpdate",function(next){
+    const update = this.getUpdate();
+    if(update.startDate){
+        return next(new Error("Start date cannot be modified"));
+    }
+});
+
 // Virtual for checking if offer is currently active based on dates
 offerSchema.virtual('isCurrentlyActive').get(function() {
     const now = new Date();

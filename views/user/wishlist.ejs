@@ -66,7 +66,22 @@
                                                 <small class="text-warning">Out of Stock</small>
                                             <% } %>
                                         </td>
-                                        <td class="price">&#8377;<%= item.productId.regularPrice %></td>
+                                        <td class="price">
+                                            <% if (item.hasOffer) { %>
+                                                <span style="text-decoration: line-through; color: #999; font-size: 14px; margin-right: 8px;">
+                                                    &#8377;<%= item.regularPrice %>
+                                                </span>
+                                                <span style="color: #000; font-weight: bold; font-size: 16px;">
+                                                    &#8377;<%= item.effectivePrice.toFixed(0) %>
+                                                </span>
+                                                <br>
+                                                <small style="color: #28a745; font-size: 12px;">
+                                                    Save &#8377;<%= item.savings %> (<%= item.appliedOfferPercentage %>% off)
+                                                </small>
+                                            <% } else { %>
+                                                &#8377;<%= item.regularPrice %>
+                                            <% } %>
+                                        </td>
                                         <td class="stock-status">
                                             <% if (item.productId.status === "Available" && item.productId?.quantity > 0) { %>
                                                 <span class="badge badge-success">Available</span>
@@ -179,11 +194,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         timer: 1500,
                         showConfirmButton: false
                     }).then(() => {
-                        // Optionally remove from wishlist or update UI
-                        link.closest('tr').remove();
-                        if (document.querySelectorAll('tbody tr').length === 1) {
-                            window.location.reload();
-                        }
+                        window.location.reload();
                     });
                 } else {
                     Swal.fire({

@@ -1,0 +1,332 @@
+<%- include("../partials/admin/header.ejs") %>
+
+<section class="content-main">
+    <div class="content-header">
+        <div>
+            <h2 class="content-title card-title">Sales Report</h2>
+            <p>Generate and download comprehensive sales reports</p>
+        </div>
+        <div>
+            <a href="/admin/" class="btn btn-light">
+                <i class="material-icons md-arrow_back"></i> Back to Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Sales Report Section -->
+    <div class="card mb-4">
+        <header class="card-header">
+            <h4 class="card-title">Generate Sales Report</h4>
+        </header>
+        <div class="card-body">
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <label class="form-label">Report Period</label>
+                    <select class="form-select" id="reportPeriod">
+                        <option value="daily">Today</option>
+                        <option value="weekly">Last 7 Days</option>
+                        <option value="monthly" selected>Last 30 Days</option>
+                        <option value="yearly">Last Year</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
+                </div>
+                <div class="col-md-3" id="customDateRange" style="display: none;">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" class="form-control" id="startDate">
+                </div>
+                <div class="col-md-3" id="customDateRangeEnd" style="display: none;">
+                    <label class="form-label">End Date</label>
+                    <input type="date" class="form-control" id="endDate">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button onclick="loadSalesReport()" class="btn btn-primary w-100">
+                        <i class="material-icons md-assessment"></i> Generate Report
+                    </button>
+                </div>
+            </div>
+
+            <!-- Report Summary Cards -->
+            <div class="row" id="reportSummary" style="display: none;">
+                <div class="col-lg-3">
+                    <div class="card card-body mb-4">
+                        <article class="icontext">
+                            <span class="icon icon-sm rounded-circle bg-primary-light">
+                                <i class="text-primary material-icons md-shopping_cart"></i>
+                            </span>
+                            <div class="text">
+                                <h6 class="mb-1 card-title">Total Orders</h6>
+                                <h4 class="mb-0" id="totalOrders">0</h4>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+                <div class="col-lg-3">
+                    <div class="card card-body mb-4">
+                        <article class="icontext">
+                            <span class="icon icon-sm rounded-circle bg-success-light">
+                                <i class="text-success material-icons md-monetization_on"></i>
+                            </span>
+                            <div class="text">
+                                <h6 class="mb-1 card-title">Total Sales</h6>
+                                <h4 class="mb-0 text-success" id="totalSales">₹0</h4>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+                <div class="col-lg-3">
+                    <div class="card card-body mb-4">
+                        <article class="icontext">
+                            <span class="icon icon-sm rounded-circle bg-warning-light">
+                                <i class="text-warning material-icons md-local_offer"></i>
+                            </span>
+                            <div class="text">
+                                <h6 class="mb-1 card-title">Total Discount</h6>
+                                <h4 class="mb-0 text-warning" id="totalDiscount">₹0</h4>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+                <div class="col-lg-3">
+                    <div class="card card-body mb-4">
+                        <article class="icontext">
+                            <span class="icon icon-sm rounded-circle bg-info-light">
+                                <i class="text-info material-icons md-trending_up"></i>
+                            </span>
+                            <div class="text">
+                                <h6 class="mb-1 card-title">Avg. Order Value</h6>
+                                <h4 class="mb-0 text-info" id="avgOrderValue">₹0</h4>
+                            </div>
+                        </article>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Download Buttons -->
+            <div class="row mb-4" id="downloadButtons" style="display: none;">
+                <div class="col-12">
+                    <div class="btn-group" role="group">
+                        <button onclick="downloadReport('pdf')" class="btn btn-danger">
+                            <i class="material-icons md-picture_as_pdf"></i> Download PDF
+                        </button>
+                        <button onclick="downloadReport('excel')" class="btn btn-success">
+                            <i class="material-icons md-table_chart"></i> Download Excel
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Report Table -->
+            <div class="table-responsive" id="reportTable" style="display: none;">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Date</th>
+                            <th>Customer</th>
+                            <th>Total Amount</th>
+                            <th>Discount</th>
+                            <th>Final Amount</th>
+                            <th>Status</th>
+                            <th>Payment</th>
+                        </tr>
+                    </thead>
+                    <tbody id="reportTableBody">
+                        <!-- Dynamic content will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- No Data Message -->
+            <div id="noDataMessage" style="display: none;" class="text-center py-5">
+                <i class="material-icons md-inbox" style="font-size: 64px; color: #ccc;"></i>
+                <p class="text-muted mt-3">No data available. Please generate a report.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+    // Toggle custom date range visibility
+    document.getElementById('reportPeriod').addEventListener('change', function() {
+        const customRange = this.value === 'custom';
+        document.getElementById('customDateRange').style.display = customRange ? 'block' : 'none';
+        document.getElementById('customDateRangeEnd').style.display = customRange ? 'block' : 'none';
+    });
+
+    // Set default dates for custom range
+    document.addEventListener('DOMContentLoaded', function() {
+        const today = new Date().toISOString().split('T')[0];
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        const oneMonthAgoStr = oneMonthAgo.toISOString().split('T')[0];
+
+        document.getElementById('startDate').value = oneMonthAgoStr;
+        document.getElementById('endDate').value = today;
+        document.getElementById('startDate').max = today;
+        document.getElementById('endDate').max = today;
+    });
+
+    // Load sales report
+    async function loadSalesReport() {
+        const period = document.getElementById('reportPeriod').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        // Validate custom date range
+        if (period === 'custom') {
+            if (!startDate || !endDate) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Invalid Date Range',
+                    text: 'Please select both start and end dates'
+                });
+                return;
+            }
+            if (new Date(startDate) > new Date(endDate)) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Invalid Date Range',
+                    text: 'Start date cannot be after end date'
+                });
+                return;
+            }
+        }
+
+        // Show loading state
+        const generateBtn = document.querySelector('button[onclick="loadSalesReport()"]');
+        const originalText = generateBtn.innerHTML;
+        generateBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Generating...';
+        generateBtn.disabled = true;
+
+        try {
+            const params = new URLSearchParams({ period });
+            if (period === 'custom' && startDate && endDate) {
+                params.append('startDate', startDate);
+                params.append('endDate', endDate);
+            }
+
+            const response = await fetch(`/admin/sales-report?${params}`);
+            const result = await response.json();
+
+            if (result.success) {
+                displayReport(result.data);
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Report Generated!',
+                    text: 'Sales report has been generated successfully',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Failed!',
+                    text: `Error generating report: ${result.message}`
+                });
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops!',
+                text: 'Error generating report. Please try again.'
+            });
+        } finally {
+            generateBtn.innerHTML = originalText;
+            generateBtn.disabled = false;
+        }
+    }
+
+    // Display report data
+    function displayReport(data) {
+        // Update summary cards
+        document.getElementById('totalOrders').textContent = data.totalOrders || 0;
+        document.getElementById('totalSales').textContent = `₹${(data.totalSales || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        document.getElementById('totalDiscount').textContent = `₹${(data.totalDiscount || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+        document.getElementById('avgOrderValue').textContent = `₹${(data.averageOrderValue || 0).toLocaleString('en-IN', {minimumFractionDigits: 2})}`;
+
+        // Update table
+        const tableBody = document.getElementById('reportTableBody');
+        tableBody.innerHTML = '';
+
+        if (data.orders && data.orders.length > 0) {
+            data.orders.forEach(order => {
+                const orderId = order.orderId;
+                const customerName = order.userId?.name || 'N/A';
+                const totalPrice = order.totalPrice || 0;
+                const discount = order.discount || 0;
+                const finalPrice = order.finalPrice || 0;
+                const status = order.status;
+                const paymentStatus = order.paymentStatus;
+
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td><strong>#${orderId}</strong></td>
+                    <td>${new Date(order.createdOn).toLocaleDateString('en-IN')}</td>
+                    <td>${customerName}</td>
+                    <td>₹${totalPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                    <td>₹${discount.toLocaleString('en-IN', {minimumFractionDigits: 2})}</td>
+                    <td><strong>₹${finalPrice.toLocaleString('en-IN', {minimumFractionDigits: 2})}</strong></td>
+                    <td><span class="badge rounded-pill ${getStatusBadgeClass(status)}">${status}</span></td>
+                    <td><span class="badge rounded-pill ${getPaymentBadgeClass(paymentStatus)}">${paymentStatus}</span></td>
+                `;
+                tableBody.appendChild(row);
+            });
+
+            // Show report sections
+            document.getElementById('reportSummary').style.display = 'flex';
+            document.getElementById('downloadButtons').style.display = 'block';
+            document.getElementById('reportTable').style.display = 'block';
+            document.getElementById('noDataMessage').style.display = 'none';
+        } else {
+            // Hide report sections and show no data message
+            document.getElementById('reportSummary').style.display = 'none';
+            document.getElementById('downloadButtons').style.display = 'none';
+            document.getElementById('reportTable').style.display = 'none';
+            document.getElementById('noDataMessage').style.display = 'block';
+        }
+    }
+
+    // Helper function for status badge colors
+    function getStatusBadgeClass(status) {
+        switch(status) {
+            case 'Delivered': return 'bg-success';
+            case 'Processing': return 'bg-primary';
+            case 'Shipped': return 'bg-info';
+            case 'Pending': return 'bg-warning text-dark';
+            case 'Cancelled': return 'bg-danger';
+            case 'Returned': return 'bg-secondary';
+            default: return 'bg-light text-dark';
+        }
+    }
+
+    // Helper function for payment status badge colors
+    function getPaymentBadgeClass(status) {
+        switch(status) {
+            case 'Paid': return 'bg-success';
+            case 'Pending': return 'bg-warning text-dark';
+            case 'Failed': return 'bg-danger';
+            case 'Refunded': return 'bg-info';
+            default: return 'bg-light text-dark';
+        }
+    }
+
+    // Download report
+    function downloadReport(format) {
+        const period = document.getElementById('reportPeriod').value;
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+
+        let url = `/admin/sales-report?period=${period}&reportType=${format}`;
+
+        if (period === 'custom' && startDate && endDate) {
+            url += `&startDate=${startDate}&endDate=${endDate}`;
+        }
+
+        console.log('Download URL:', url);
+        window.location.href = url;
+    }
+</script>
+
+<%- include("../partials/admin/footer.ejs") %>

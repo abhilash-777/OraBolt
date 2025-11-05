@@ -415,19 +415,20 @@
 							<% products.forEach(product=> {
 								const isWishlist = wishlistProductIds.includes(product._id.toString());
 								%>
-								<div class="col-sm-12 col-md-6 col-lg-4 ftco-animate d-flex mb-4">
+								<div class="col-sm-6 col-md-6 col-lg-4 mb-4">
 									<div class="product d-flex flex-column">
-										<div class="img-prod position-relative" style="cursor: pointer;"
+										<div class="img-prod position-relative" style="cursor: pointer; overflow: hidden;"
 											onclick="window.location.href='/product/<%= product._id %>'">
 											<button class="wishlist-icon" title="<%= isWishlist ? 'Remove from Wishlist' : 'Add to Wishlist' %>"
 												onclick="event.stopPropagation(); addToWishlist('<%= product._id %>')"
-												style="background: none; border: none; cursor: pointer; position: absolute; top: 10px; right: 10px; z-index: 10;">
+												style="background: none; border: none; cursor: pointer; position: absolute; top: 10px; right: 10px; z-index: 10; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.1); transition: all 0.3s ease;">
 												<span class="icon-heart heart-icon <%= isWishlist ? 'in-wishlist' : '' %>"></span>
 											</button>
 							
 											<!-- Product image -->
 											<img class="img-fluid" src="/uploads/productsImages/<%= product.image[0] %>"
-												alt="<%= product.productName %>" onerror="this.src='/uploads/productsImages/default.jpg'">
+												alt="<%= product.productName %>" onerror="this.src='/uploads/productsImages/default.jpg'"
+												style="width: 100%; height: 250px; object-fit: cover; transition: transform 0.3s ease;">
 							
 											<!-- Offer Badge -->
 				                            <% if (product.hasOffer && product.appliedOffer > 0) { %>
@@ -438,7 +439,16 @@
 											<div class="overlay"></div>
 										</div>
 							
-										<div class="text py-3 pb-4 px-3">
+										<div class="text py-3 px-3 flex-grow-1 d-flex flex-column">
+											<div class="cat">
+												<% if(product.status==="Available" && product.quantity> 0){ %>
+													<span class="bg-primary" style="color: white; font-size: 10px;">
+														<%= product.status %>
+													</span>
+												<% } else { %>
+										    		<span style="color: rgb(255, 255, 255); font-size: 8px; background-color: red;">Out Of Stock</span>
+												<% } %>
+											</div>
 											<div class="d-flex justify-content-between">
 												<h3>
 													<a href="/product/<%= product._id %>">
@@ -447,7 +457,7 @@
 												</h3>
 											</div>
 							
-											<div class="d-flex justify-content-between align-items-center">
+											<div class="d-flex justify-content-between align-items-start mb-3">
 												<div class="pricing">
 													<% if (product.hasOffer) { %>
 														<p class="price">
@@ -458,20 +468,11 @@
 																&#8377;<%= product.offerPrice %>
 															</span>
 														</p>
-														<p style="color: #28a745; font-size: 12px; margin-top: -8px;">
+														<p style="color: #28a745; font-size: 12px; margin-top: -8px; margin-bottom: -1rem;">
 															You save &#8377;<%= product.savings %>
 														</p>
 													<% } else { %>
 														<p class="price"><span>&#8377;<%= product.regularPrice %></span></p>
-													<% } %>
-												</div>
-												<div class="rating">
-													<% if(product.quantity <=0){ %>
-														<span class="small" style="color: red;">Out Of Stock</span>
-													<% } else { %>
-														<span class="small" style="color: green;">
-															<%= product.status %>
-														</span>
 													<% } %>
 												</div>
 											</div>

@@ -246,7 +246,6 @@ const resend_otp = async function (req, res) {
 };
 
 const loadLogin = async function (req, res) {
-
     try {
         if(req.session.user || req.user){
             return res.redirect("/");
@@ -255,7 +254,6 @@ const loadLogin = async function (req, res) {
     } catch (error) {
         res.redirect('/pageNotFound');
     }
-
 };
 
 const login = async function (req, res) {
@@ -536,10 +534,11 @@ const loadWishlist = async (req,res) => {
         const wishlist = await Wishlist.findOne({userId:userId})
         .populate({
             path:"products.productId",
-            select:"productName image regularPrice quantity status"
+            select:"productName image regularPrice salePrice productOffer quantity status category"
         });
 
-        const products = wishlist ? wishlist.products : [];
+        let products = wishlist ? wishlist.products : [];
+
         res.render("wishlist",{user:userData,wishlistItems:products,title:"My Wishlist"});
     } catch (error) {
         console.log("error while load wishlist:",error);
@@ -555,8 +554,13 @@ const addToWishlist = async (req,res) => {
         const {productId} = req.params;
         if(!productId)return res.json({success:false,message:"Product is missing"});
 
-        const product = await Product.findById(productId);
+        const product = await Product.findById(productId)
+        .populate({path:"category",select:"categoryOffer _id categoryName"}).lean();
         if(!product)return res.json({success:false,message:"Product is not found"});
+
+        const {price:effectivePrice,percentage,offerId} = await getEffectivePrice(product);
+        const hasOffer = percentage > 0;
+        const savings = hasOffer ? Math.round(product.salePrice - effectivePrice) : 0;
 
         let wishlist = await Wishlist.findOne({userId});
         if(!wishlist){
@@ -564,7 +568,13 @@ const addToWishlist = async (req,res) => {
                 userId,
                 products:[{
                     productId,
-                    addedOn:new Date()
+                    addedOn:new Date(),
+                    effectivePrice,
+                    regularPrice:product.salePrice,
+                    appliedOfferPercentage:percentage,
+                    appliedOfferId:offerId,
+                    savings,
+                    hasOffer
                 }]
             });
             await wishlist.save();
@@ -576,7 +586,13 @@ const addToWishlist = async (req,res) => {
             }
             wishlist.products.push({
                 productId,
-                addedOn:new Date()
+                addedOn:new Date(),
+                effectivePrice,
+                regularPrice:product.salePrice,
+                appliedOfferPercentage:percentage,
+                appliedOfferId:offerId,
+                savings,
+                hasOffer
             });
             await wishlist.save();
         }
@@ -634,8 +650,19 @@ const addToCartFromWishlist = async (req,res) => {
         if(!product||product.status !== "Available"){
             return res.json({success:false,message:"Product is not available"});
         }
+        
+        const wishlist = await Wishlist.findOne({userId});
+        if(!wishlist){
+            return res.json({success:false,message:"Wishlist not found"});
+        }
+        const wishlistItem = wishlist.products.find(p => p.productId.toString() === productId);
+        if(!wishlistItem){
+            return res.json({success:false,message:"Item not found in wishlist"});
+        } 
 
-        const{price:effectivePrice,percentage,offerId} = await getEffectivePrice(product);
+        const effectivePrice = wishlistItem.effectivePrice;
+        const percentage = wishlistItem.appliedOfferPercentage;
+        const offerId = wishlistItem.appliedOfferId;
 
         let cart = await Cart.findOne({userId});
         if(!cart){
@@ -646,7 +673,7 @@ const addToCartFromWishlist = async (req,res) => {
                     quantity:1,
                     price:effectivePrice,
                     totalPrice:effectivePrice * 1,
-                    regularPrice:product.regularPrice,
+                    regularPrice:wishlistItem.regularPrice,
                     appliedOfferPercentage:percentage,
                     appliedOfferId:offerId || null,
                 }]
@@ -667,21 +694,19 @@ const addToCartFromWishlist = async (req,res) => {
                     quantity:1,
                     price:effectivePrice,
                     totalPrice:effectivePrice,
-                    regularPrice:product.regularPrice,
+                    regularPrice:wishlistItem.regularPrice,
                     appliedOfferPercentage:percentage,
                     appliedOfferId:offerId || null,
                 })
             }
             await cart.save();
         }
-        const wishlist = await Wishlist.findOne({userId});
-        if(wishlist){
-            wishlist.products = wishlist.products.filter(p => p.productId.toString() !== productId);
-            if(wishlist.products.length === 0){
-                await Wishlist.findByIdAndUpdate(wishlist._id)
-            }else{
-                await wishlist.save();
-            }
+
+        wishlist.products = wishlist.products.filter(p => p.productId.toString() !== productId);
+        if(wishlist.products.length === 0){
+            await Wishlist.findByIdAndDelete(wishlist._id);
+        }else{
+            await wishlist.save();
         }
 
         return res.status(200).json({success:true,message:"Added to cart successfull."});
@@ -1298,7 +1323,7 @@ const placeOrder = async (req,res) => {
         const selectedAddressId = req.session.selectedAddress;
         if (!selectedAddressId)return res.json({ message: "Please select a delivery address" });
 
-        const  {paymentMethod , razorpayPaymentId , razorpayOrderId,appliedCouponCode} = req.body;
+        const  {paymentMethod , razorpayPaymentId , razorpayOrderId,appliedCouponCode,isPaymentFailed} = req.body;
 
         if (!['Cash On Delivery', 'Razorpay', 'Wallet'].includes(paymentMethod)) {
             return res.json({ message: "Invalid payment method" });
@@ -1367,19 +1392,23 @@ const placeOrder = async (req,res) => {
         let paymentStatus = "Pending";
         let paymentDate = null;
         let transactionId = null;
+        let orderStatus = "Pending";
 
         if (paymentMethod === "Cash On Delivery") {
             paymentStatus = "Pending"; // Paid after delivery
         } else if (paymentMethod === "Razorpay") {
-            if (!razorpayPaymentId || !razorpayOrderId) {
-                return res.json({ 
-                    success: false, 
-                    message: "Payment details missing for Razorpay" 
-                });
+            if(isPaymentFailed){
+                paymentStatus = "Failed";
+                orderStatus = "Payment Pending";
+                transactionId = razorpayOrderId || "FAILED-" + Date.now();
+            }else{
+                if(!razorpayPaymentId || !razorpayOrderId){
+                    return res.json({success:false,message:"Payment datails missing for Razorpay"});
+                }
+                paymentStatus = "Paid";
+                paymentDate = new Date();
+                transactionId = razorpayPaymentId;
             }
-            paymentStatus = "Paid";
-            paymentDate = new Date();
-            transactionId = razorpayPaymentId;
         } else if (paymentMethod === "Wallet") {
             const wallet = await Wallet.findOne({userId:req.session.user._id});
             if(!wallet)return res.json({success:false,message:"Wallet not found"});
@@ -1420,7 +1449,7 @@ const placeOrder = async (req,res) => {
                 pincode:address.pincode,
                 landMark:address.landMark
             },
-            status: "Pending", // must match your enum
+            status: orderStatus, // must match your enum
             createdOn: new Date(),
             couponApplied: couponApplied,
             invoice: new Date(),
@@ -1433,7 +1462,7 @@ const placeOrder = async (req,res) => {
         await newOrder.save();
 
         // Mark coupon as used if applied
-        if (couponApplied && couponId) {
+        if (couponApplied && couponId && paymentStatus !== "Failed") {
             await Coupon.findByIdAndUpdate(
                 couponId,
                 {
@@ -1448,20 +1477,22 @@ const placeOrder = async (req,res) => {
             );
         }
 
-        // Decrease stock
-        for (const item of cart.items) {
-            await Product.findByIdAndUpdate(
-                item.productId._id,
-                { $inc: { quantity: -item.quantity } },
-                { new: true }
+        if(paymentStatus !== "Failed"){
+            // Decrease stock
+            for (const item of cart.items) {
+                await Product.findByIdAndUpdate(
+                    item.productId._id,
+                    { $inc: { quantity: -item.quantity } },
+                    { new: true }
+                );
+            }
+
+            // Clear cart
+            await Cart.findOneAndUpdate(
+                { userId: user._id },
+                { $set: { items: [] } }
             );
         }
-
-        // Clear cart
-        await Cart.findOneAndUpdate(
-            { userId: user._id },
-            { $set: { items: [] } }
-        );
 
         // Clear selected address from session
         delete req.session.selectedAddress;
@@ -1471,13 +1502,140 @@ const placeOrder = async (req,res) => {
             orderId:newOrder.orderId,
             amount:newOrder.finalPrice,
             email:req.session.user.email,
-            message:"Order placed successfully",
+            message:paymentStatus === "Failed" ? "Order created. Please complete payment." : "Order placed successfully",
+            paymentFailed:paymentStatus === "Failed"
         });
     } catch (error) {
         console.log("error while placing order:",error);
         return res.status(500).json({
             success: false,
             message: "Failed to place order. Please try again."
+        });
+    }
+};
+
+// Add this function to handle payment retry
+const retryPayment = async (req, res) => {
+    try {
+        const { orderId } = req.body;
+        const userId = req.session.user?._id;
+
+        if (!userId) {
+            return res.json({ success: false, message: 'Please login to continue' });
+        }
+
+        // Find the order
+        const order = await Order.findOne({ orderId: orderId, userId: userId });
+        
+        if (!order) {
+            return res.json({ success: false, message: 'Order not found' });
+        }
+
+        // Check if order is eligible for payment retry
+        if (order.paymentStatus !== 'Failed' || order.status !== 'Payment Pending') {
+            return res.json({ 
+                success: false, 
+                message: 'This order is not eligible for payment retry' 
+            });
+        }
+
+        // Create new Razorpay order for retry
+        const options = {
+            amount: Math.round(order.finalPrice * 100),
+            currency: 'INR',
+            receipt: `retry_${orderId}_${Date.now()}`,
+            payment_capture: 1
+        };
+
+        const razorpayOrder = await razorpayInstance.orders.create(options);
+
+        return res.json({
+            success: true,
+            orderId: razorpayOrder.id,
+            amount: razorpayOrder.amount,
+            currency: razorpayOrder.currency,
+            key: process.env.RAZORPAY_TEST_KEY_ID,
+            orderDetails: {
+                orderId: order.orderId,
+                finalPrice: order.finalPrice
+            }
+        });
+
+    } catch (error) {
+        console.error('Error retrying payment:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to initiate payment retry'
+        });
+    }
+};
+
+// Add this function to update order after successful retry
+const updateOrderPayment = async (req, res) => {
+    try {
+        const { orderId, razorpayPaymentId, razorpayOrderId } = req.body;
+        const userId = req.session.user?._id;
+
+        if (!userId) {
+            return res.json({ success: false, message: 'Please login to continue' });
+        }
+
+        const order = await Order.findOne({ orderId: orderId, userId: userId });
+        
+        if (!order) {
+            return res.json({ success: false, message: 'Order not found' });
+        }
+
+        // Update order payment details
+        order.paymentStatus = 'Paid';
+        order.paymentDate = new Date();
+        order.transactionId = razorpayPaymentId;
+        order.status = 'Pending'; // Change from "Payment Pending" to "Pending"
+        
+        await order.save();
+
+        // Now decrease stock and mark coupon as used
+        for (const item of order.orderedItems) {
+            await Product.findByIdAndUpdate(
+                item.product,
+                { $inc: { quantity: -item.quantity } },
+                { new: true }
+            );
+        }
+
+        // Clear cart if not already cleared
+        await Cart.findOneAndUpdate(
+            { userId: userId },
+            { $set: { items: [] } }
+        );
+
+        // If coupon was applied, mark it as used
+        if (order.couponApplied && order.couponCode) {
+            await Coupon.findOneAndUpdate(
+                { code: order.couponCode },
+                {
+                    $push: {
+                        usedBy: {
+                            user: userId,
+                            usedAt: new Date(),
+                            orderId: order._id
+                        }
+                    }
+                }
+            );
+        }
+
+        return res.json({
+            success: true,
+            message: 'Payment completed successfully',
+            orderId: order.orderId
+        });
+
+    } catch (error) {
+        console.error('Error updating order payment:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to update order payment'
         });
     }
 };
@@ -1547,6 +1705,8 @@ module.exports = {
     applyCoupon,
     getWalletBalance,
     placeOrder,
+    retryPayment,
+    updateOrderPayment,
     orderSuccess,
     loadContact,
 };  

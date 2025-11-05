@@ -69,6 +69,11 @@ const toggleCouponStatus = async (req, res) => {
       return res.status(404).json({success:false,message: "Coupon not found" });
     }
 
+    const now = new Date();
+    if (now > coupon.expireOn) {
+      return res.status(400).json({success:false,message: "Cannot toggle status for expired coupons" });
+    }
+
     coupon.isList = !coupon.isList;
     await coupon.save();
     

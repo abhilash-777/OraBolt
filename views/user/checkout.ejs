@@ -468,8 +468,13 @@
 					}
 
 					if (data.success) {
-						Swal.fire({ icon: 'success', title: 'Saved', text: 'Address saved successfully.', timer: 1100, showConfirmButton: false })
-						.then(() => {
+						Swal.fire({ 
+							icon: 'success',
+							title: 'Saved', 
+							text: 'Address saved successfully.', 
+							timer: 1100, 
+							showConfirmButton: false 
+						}).then(() => {
 							window.location.reload();
 						});
 					} else {
@@ -665,13 +670,8 @@
 					color: '#ffc107' // Match your site theme
 				},
 				modal: {
-					ondismiss: function() {
-						Swal.fire({
-							icon: 'info',
-							title: 'Payment Cancelled',
-							text: 'You cancelled the payment process',
-							confirmButtonColor: '#ffc107'
-						});
+					ondismiss: async function (params) {
+						await handlePaymentFailure(data.orderId,"Payment cancelled by user");
 					}
 				}
 			};
@@ -680,18 +680,9 @@
 			const rzp = new Razorpay(options);
 
 			// Handle payment failure
-			rzp.on('payment.failed', function (response) {
+			rzp.on('payment.failed', async function (response) {
 				console.error('Payment failed:', response.error);
-				Swal.fire({
-					icon: 'error',
-					title: 'Payment Failed',
-					html: `
-						<p><b>${response.error.description}</b></p>
-						<small style="color: #666;">Error: ${response.error.code}</small>
-						<br><small style="color: #666;">Reason: ${response.error.reason || 'Unknown'}</small>
-					`,
-					confirmButtonColor: '#d33'
-				});
+				await handlePaymentFailure(data.orderId,response.error.description||"Payment failed");
 			});
 
 			// Open Razorpay checkout
@@ -706,6 +697,32 @@
 			});
 		}
 	}
+
+	    async function handlePaymentFailure(razorpayOrderId,errorMessage) {
+		    try {
+			    Swal.fire({
+                    title: 'Processing...',
+                    text: 'Please wait',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+	    		// Place order with payment failed status
+                await placeOrder('Razorpay', {
+                    razorpayOrderId: razorpayOrderId,
+                    isPaymentFailed: true
+                });
+	    	} catch (error) {
+		    	console.error('Error handling payment failure:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Failed to process. Please contact support.'
+                });
+    		}
+	    }
 
 	    // Verify Razorpay payment and place order
 	    async function verifyAndPlaceOrder(razorpayResponse) {
@@ -735,17 +752,14 @@
 
 			    if (!verifyData.success) {
 				    console.log("Payment verification failed.")
-					Swal.fire({
-						icon:'error',
-						title:"Failed!",
-						text:"Payment verification failed."
-					});
+					await handlePaymentFailure(razorpayResponse.razorpay_order_id,"Payment verification failed");
 			    }
 
 			    // Step 2: Place order after successful verification
 			    await placeOrder('Razorpay', {
 				    razorpayPaymentId: razorpayResponse.razorpay_payment_id,
-				    razorpayOrderId: razorpayResponse.razorpay_order_id
+				    razorpayOrderId: razorpayResponse.razorpay_order_id,
+					isPaymentFailed:false
 			    });
 
 		    } catch (error) {
@@ -789,22 +803,46 @@
 			    const orderData = await orderResponse.json();
 
 			    if (orderData.success) {
-				    Swal.fire({
-					    title: '🎉 Order Placed Successfully!',
-					    html: `
-						    <div style="text-align: center; padding: 10px;">
-							    <p style="font-size: 16px; margin: 10px 0;"><b>Order ID:</b> ${orderData.orderId}</p>
-							    <p style="font-size: 16px; margin: 10px 0;"><b>Total Amount:</b> ₹${orderData.amount}</p>
-							    <p style="color: #28a745; margin-top: 15px;">
-								    <i class="fas fa-check-circle"></i> Your order has been confirmed!
-							    </p>
-						    </div>
-					    `,
-					    icon: 'success',
-				    }).then(() => {
-				     	window.location.href = `/order-success?orderId=${orderData.orderId}`;
-				    });
-			    } else {
+				    if (orderData.paymentFailed) {
+                        // Payment failed but order created
+                        Swal.fire({
+                            title: 'Payment Failed',
+                            html: `
+                                <div style="text-align: center; padding: 10px;">
+                                    <p style="font-size: 16px; margin: 10px 0;"><b>Order ID:</b> ${orderData.orderId}</p>
+                                    <p style="font-size: 16px; margin: 10px 0;"><b>Amount:</b> ₹${orderData.amount}</p>
+                                    <p style="color: #dc3545; margin-top: 15px;">
+                                        <i class="fas fa-exclamation-circle"></i> Your order was created but payment failed.
+                                    </p>
+                                    <p style="font-size: 14px; color: #666;">
+                                        You can retry payment from the orders page.
+                                    </p>
+                                </div>
+                            `,
+                            icon: 'warning',
+                            confirmButtonColor: '#ffc107'
+                        }).then(() => {
+                            window.location.href = `/order-success?orderId=${orderData.orderId}&paymentFailed=true`;
+                        });
+                    } else {
+                        // Successful order
+                        Swal.fire({
+                            title: 'Order Placed Successfully!',
+                            html: `
+                                <div style="text-align: center; padding: 10px;">
+                                    <p style="font-size: 16px; margin: 10px 0;"><b>Order ID:</b> ${orderData.orderId}</p>
+                                    <p style="font-size: 16px; margin: 10px 0;"><b>Total Amount:</b> ₹${orderData.amount}</p>
+                                    <p style="color: #28a745; margin-top: 15px;">
+                                        <i class="fas fa-check-circle"></i> Your order has been confirmed!
+                                    </p>
+                                </div>
+                            `,
+                            icon: 'success',
+                        }).then(() => {
+                            window.location.href = `/order-success?orderId=${orderData.orderId}`;
+                        });
+                    }
+    		    } else {
 				    Swal.fire({
 				        icon: 'error',
 				        title: 'Failed',

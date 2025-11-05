@@ -185,8 +185,29 @@ const editOffer = async (req,res) => {
         const offer = await Offer.findById(id);
         if(!offer)return res.status(404).json({success:false,message:"Offer Id is missing"});
 
-        if(!offerName||!offerType||!offerValue||!offerAppliedTo||!startDate||!endDate){
+        if(!offerName||!offerType||!offerValue||!offerAppliedTo||!endDate){
             return res.status(404).json({success:false,message:"All fields required"});
+        }
+
+        if(startDate){
+            const incomingStart = new Date(startDate);
+            if(isNaN(incomingStart.getTime())){
+                return res.json({success:false,message:"invalid start date."});
+            }
+            const originalStart = offer.startDate;
+            const incomingStr = incomingStart.toISOString().split("T")[0];
+            const originalStr = new Date(originalStart).toISOString().split("T")[0];
+            if(incomingStr !== originalStr){
+                return res.json({success:false,message:"Start date cannot modify after creation."});
+            }
+        }
+
+        const newEnd = new Date(endDate);
+        if(isNaN(newEnd.getTime())){
+            return res.json({success:false,message:"Invalid end date format."});
+        }
+        if(newEnd < offer.startDate){
+            return res.json({success:false,message:"End date cannot be earlier than start date."});
         }
 
         // Validate categories or products based on offerAppliedTo
@@ -214,6 +235,7 @@ const editOffer = async (req,res) => {
         // Check for existing offers on selected categories or products
         if (offerAppliedTo === "category") {
             const existingOffers = await Offer.find({
+                _id:{$ne:id},
                 offerAppliedTo: "category",
                 category: { $in: category },
                 isActive: true,
@@ -232,6 +254,7 @@ const editOffer = async (req,res) => {
         }
         if (offerAppliedTo === "product") {
             const existingOffers = await Offer.find({
+                _id:{$ne:id},
                 offerAppliedTo: "product",
                 product: { $in: product },
                 isActive: true,
@@ -255,7 +278,6 @@ const editOffer = async (req,res) => {
         offer.offerAppliedTo = offerAppliedTo;
         offer.category = offerAppliedTo === "category" ? category : [];
         offer.product = offerAppliedTo === "product" ? product : [];
-        offer.startDate = startDate;
         offer.endDate = endDate;
 
         await offer.save();

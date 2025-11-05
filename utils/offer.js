@@ -36,7 +36,7 @@ async function applyOffersToProducts(products) {
         ? product.category._id.toString()
         : product.category?.toString() || null;
 
-    const regularPrice = product.salePrice || product.regularPrice;
+    const regularPrice = product.regularPrice > product.salePrice ? product.salePrice : product.regularPrice;
     const productOffer = productId ? productOffers[productId] || 0 : 0;
     const categoryOffer = categoryId ? categoryOffers[categoryId] || 0 : 0;
 
@@ -78,35 +78,41 @@ async function getEffectivePrice(product) {
   let percentage = 0;
   let offerId = null;
 
-  // 1. PRODUCT OFFER
+  const currentDate = new Date();
+
   const proOffer = await Offer.findOne({
     offerAppliedTo: "product",
     product: { $in: [product._id] },
     isActive: true,
-    startDate: { $lte: new Date() },
-    endDate: { $gte: new Date() }
+    startDate: { $lte: currentDate },
+    endDate: { $gte: currentDate }
   }).lean();
 
-  if (proOffer) {
-    percentage = proOffer.percentage;
-    price = Math.round(product.regularPrice * (1 - percentage / 100));
-    offerId = proOffer._id;
-  }
-  // 2. CATEGORY OFFER
-  else if (product.category?.categoryOffer > 0) {
-    const catOffer = await Offer.findOne({
+  let catOffer = null;
+  if (product.category && product.category._id) {
+    catOffer = await Offer.findOne({
       offerAppliedTo: "category",
       category: { $in: [product.category._id] },
       isActive: true,
-      startDate: { $lte: new Date() },
-      endDate: { $gte: new Date() }
+      startDate: { $lte: currentDate},
+      endDate: { $gte: currentDate}
     }).lean();
-
-    if (catOffer) {
-      percentage = catOffer.percentage;
-      price = Math.round(product.regularPrice * (1 - percentage / 100));
+  }
+  
+  const productOfferPercentage = proOffer?.percentage || 0;
+  const categoryOfferPercentage = catOffer?.percentage || 0;
+  if(productOfferPercentage > 0 || categoryOfferPercentage > 0){
+    if(productOfferPercentage >= categoryOfferPercentage){
+      percentage = productOfferPercentage;
+      offerId = proOffer._id;
+      offerType = "product";
+    }else{
+      percentage = categoryOfferPercentage;
       offerId = catOffer._id;
+      offerType = "category";
     }
+    price = Math.round(product.salePrice *(1 - percentage/100));
+    console.log(`Applied ${offerType} offer: ${percentage}% off (Product: ${productOfferPercentage}%, Category: ${categoryOfferPercentage}%)`);
   }
 
   return { price, percentage, offerId };

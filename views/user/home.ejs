@@ -156,7 +156,7 @@
 		<% products.forEach(product => { 
 			const isWishlist = wishlistProductIds.includes(product._id.toString())
 		%>
-	<div class="col-sm-12 col-md-6 col-lg-3 ftco-animate d-flex">
+	<div class="col-sm-6 col-md-4 col-lg-3 mb-4 ">
 		<div class="product d-flex flex-column">
 			<button class="wishlist-icon" title="<%= isWishlist ? 'Remove from Wishlist' : 'Add to Wishlist' %>"
 				onclick="event.stopPropagation(); addToWishlist('<%= product._id %>')"
@@ -166,20 +166,20 @@
 			
 			<a href="/product/<%= product._id %>" class="img-prod">
 				<img class="img-fluid" src="/uploads/productsImages/<%= product.image[0] %>"
-					alt="<%= product.productName %>" onerror="this.src='/uploads/productsImages/default.jpg'">
+					alt="<%= product.productName %>" onerror="this.src='/uploads/productsImages/default.jpg'"
+					style="width: 100%; height: 300px; object-fit: cover;">
 				
 				<!-- Offer Badge -->
 				<% if (product.hasOffer && product.appliedOffer > 0) { %>
-					<span class="status" style="position: absolute; top: 10px; left: 10px; background: #ff6b6b; color: white; padding: 5px 10px; border-radius: 3px; font-weight: bold; font-size: 12px;">
+					<span class="status" style="position: absolute; top: 15px; left: 15px; background: #ff6b6b; color: white; padding: 6px 6px; border-radius: 4px; font-weight: bold; font-size: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
 						<%= product.appliedOffer %>% OFF
 					</span>
 				<% } %>
-				
 				<div class="overlay"></div>
 			</a>
 			
-			<div class="text py-3 pb-4 px-3">
-				<div class="d-flex">
+			<div class="text py-3 px-3 flex-grow-1 d-flex flex-column">
+				<div class="d-flex justify-content-between align-items-center mb-2">
 					<div class="cat">
 						<% if(product.status === "Available" && product.quantity > 0){ %>
 							<span class="bg-primary" style="color: white; font-size: 10px;"><%= product.status %></span>
@@ -201,7 +201,7 @@
 				<h3><a href="/product/<%= product._id %>"><%= product.productName %></a></h3>
 				
 				<!-- Price Display with Offer -->
-				<div class="pricing">
+				<div class="pricing mb-3">
 					<% if (product.hasOffer) { %>
 						<p class="price">
 							<span style="text-decoration: line-through; color: #999; font-size: 14px; margin-right: 8px;">
@@ -211,24 +211,24 @@
 								&#8377;<%= product.offerPrice %>
 							</span>
 						</p>
-						<p style="color: #28a745; font-size: 12px; margin-top: -8px;">
+						<p style="color: #28a745; font-size: 12px; margin-top: -8px; margin-bottom: -1rem;">
 							You save &#8377;<%= product.savings %>
 						</p>
 					<% } else { %>
-						<p class="price"><span>&#8377;<%= product.regularPrice %></span></p>
+						<p class="price mb-0"><span>&#8377;<%= product.regularPrice %></span></p>
 					<% } %>
 				</div>
 				
 				<p class="bottom-area d-flex px-3">
 					<% if (user) { %>
-						<a href="#" class="add-to-cart text-center py-2 mr-1" data-id="<%= product._id %>">
+						<a href="#" class="add-to-cart text-center py-2" data-id="<%= product._id %>">
 							<span>Add to cart <i class="ion-ios-add ml-1"></i></span>
 						</a>
 						<a href="/checkout?productId=<%= product._id %>&qty=1" class="buy-now text-center py-2">
 							Buy now<span><i class="ion-ios-cart ml-1"></i></span>
 						</a>
 					<% } else { %>
-						<a href="/login" class="add-to-cart text-center py-2 mr-1">
+						<a href="/login" class="add-to-cart text-center py-2">
 							<span>Add to cart <i class="ion-ios-add ml-1"></i></span>
 						</a>
 						<a href="/login" class="buy-now text-center py-2">

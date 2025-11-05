@@ -59,6 +59,9 @@ router.get("/order-success",userControl.orderSuccess);
 // Razorpay integration routes
 router.post("/checkout/create-razorpay-order", userControl.createRazorpayOrder);
 router.post("/checkout/verify-payment", userControl.verifyPayment);
+// retry payment
+router.post('/order/retry-payment',userControl.retryPayment);
+router.post('/order/update-payment',userControl.updateOrderPayment);
 
 router.get("/contact",userControl.loadContact);
 

@@ -73,8 +73,10 @@
                     <div class="form-group">
                         <label for="startDate">Start Date</label>
                         <input type="date" id="startDate" name="startDate" 
-                            value="<%= offer.startDate.toISOString().split('T')[0] %>">
-                        <small class="errorMsg" id="startDateError"></small>
+                            value="<%= offer.startDate.toISOString().split('T')[0] %>" disabled
+                            style="background-color: #f8f9fa;color: 6c757d;">
+                        <input type="hidden" name="startDate" value="<%= offer.startDate.toISOString().split('T')[0] %>">
+                        <small class="form-text text-muted">Fixed at creation</small>
                     </div>
                     
                     <div class="form-group">
@@ -109,19 +111,14 @@
 
         const startDateInput = document.getElementById("startDate");
         const endDateInput = document.getElementById("endDate");
-        const today = new Date().toISOString().split('T')[0];
-        startDateInput.min = today;
-        startDateInput.addEventListener("change",() => {
-            const start = startDateInput.value;
-            if(start){
-                endDateInput.min = start
-                if(endDateInput.value && endDateInput.value < start){
-                    endDateInput.value = ""
-                }
-            }else{
-                endDateInput.min = today
+        
+        const fixedStartDate = startDateInput.value;
+        if(fixedStartDate){
+            endDateInput.min = fixedStartDate;
+            if(endDateInput.value && endDateInput .value < fixedStartDate){
+                endDateInput.value = "";
             }
-        });
+        }
 
         offerApplied.addEventListener("change",() => {
             categoryField.style.display = offerApplied.value === "category" ? "block" : "none";
@@ -227,7 +224,7 @@
                 const data = await response.json();
                 if(data.success){
                     Swal.fire({icon:"success",title:"Updated.",text:data.message||"Offer updated successsfully",timer:1500,showConfirmButton:false})
-                    window.location.href = "/admin/offers";
+                    .then(() =>window.location.href = "/admin/offers");
                 }else{
                     Swal.fire({icon:"error",title:"Failed!",text:data.message||"Failed to update offer"});
                 }

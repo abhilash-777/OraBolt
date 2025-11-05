@@ -104,6 +104,17 @@ const loadDash = async function (req, res) {
     }
 };
 
+const loadSalesReportPage = async (req, res) => {
+    try {
+        res.render("sales-report", {
+            title: "Sales Report"
+        });
+    } catch (error) {
+        console.error('Sales Report Page Error:', error.message);
+        res.redirect("/admin/pageError");
+    }
+};
+
 // get sales data for different time periods
 const getSalesData = async (period) => {
     try {
@@ -245,7 +256,7 @@ const generateSalesReport = async (req, res) => {
                 $lte: end
             },
             status: { $nin: ['Cancelled',"Returned"] }, 
-            paymentStatus: { $in: ['Paid', 'Pending'] } 
+            paymentStatus: { $in: ['Paid', 'Pending',"Failed"] } 
         };
 
         // Get orders with populated data
@@ -359,7 +370,6 @@ const generatePDFReport = async (reportData, res) => {
         } else {
             doc.text('No orders found for the selected period.');
         }
-
         doc.end();
     } catch (error) {
         console.error("PDF generation error:", error);
@@ -473,6 +483,7 @@ module.exports = {
     loadLogin,
     login,
     loadDash,
+    loadSalesReportPage,
     getChartDataAPI,
     generateSalesReport,
     pageError,

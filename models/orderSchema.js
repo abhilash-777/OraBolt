@@ -110,7 +110,7 @@
         status : {
             type : String,
             required : true,
-            enum : ["Pending","Processing","Shipped","Delivered","Cancelled","Return Request","Partial Return","Returned"]
+            enum : ["Pending","Payment Pending","Processing","Shipped","Delivered","Cancelled","Return Request","Partial Return","Returned"]
         },
         createdOn : {
             type : Date,
@@ -144,7 +144,16 @@
         refundDate:{
             type:Date
         }
-    })
+    });
+
+    // Auto-generate orderId before saving
+orderSchema.pre('save', async function(next) {
+    if (!this.orderId) {
+        const count = await mongoose.model('Order').countDocuments();
+        this.orderId = `ORD${String(count + 1).padStart(6, '0')}`;
+    }
+    next();
+});
 
     const Order = mongoose.model("Order",orderSchema);
 

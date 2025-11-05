@@ -26,6 +26,7 @@ router.use(adminAuth);
 router.get('/', adminController.loadDash);
 
 //dashboard Managemanet
+router.get("/sales-report-page",adminController.loadSalesReportPage);
 router.get('/api/chart-data', adminController.getChartDataAPI);
 router.get("/sales-report",adminController.generateSalesReport);
 
