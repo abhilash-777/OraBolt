@@ -90,14 +90,14 @@
                                     <td><%=data[i].phone%></td>
                                     <td>
                                         <%if(data[i].isBlocked === false){%>
-                                            <span class="badge rounded-pill alert-success">Active</span>
-                                            <button class="btn btn-danger" style="width: 70px; margin-left: 200px; ">
-                                                <a href="/admin/blockCustomer?id=<%=data[i]._id%>" style="font-size: 10px; color: aliceblue; ">Block</a>
+                                            <span id="status-<%= data[i]._id %>" class="badge rounded-pill alert-success">Active</span>
+                                            <button class="btn btn-danger user-status-btn" data-user-id="<%= data[i]._id %>" style="width: 70px; margin-left: 200px; ">
+                                                <a href="#" style="font-size: 10px; color: aliceblue; ">Block</a>
                                             </button>
                                         <%}else{%>
-                                            <span class="badge rounded-pill alert-danger">Blocked</span>
-                                            <button class="btn btn-success" style="width: 80px; margin-left: 150px; ">
-                                                <a href="/admin/unBlockCustomer?id=<%=data[i]._id%>" style="font-size: 10px; color: aliceblue; ">Unblock</a>
+                                            <span id="status-<%= data[i]._id %>" class="badge rounded-pill alert-danger">Blocked</span>
+                                            <button class="btn btn-success user-status-btn" data-user-id="<%= data[i]._id %>" style="width: 80px; margin-left: 150px; ">
+                                                <a href="#" style="font-size: 10px; color: aliceblue; ">Unblock</a>
                                             </button>
                                         <%}%>
                                     </td>
@@ -157,6 +157,49 @@
                 </div>
             <% } %>
         </section>
-        
 
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script>
+
+            document.querySelectorAll(".user-status-btn").forEach(btn => {
+                btn.addEventListener("click",async () => {
+                    const userId = btn.getAttribute("data-user-id");
+                    const statusSpan = document.getElementById(`status-${userId}`);
+                    const statusContent = statusSpan.textContent;
+
+                    const uri = statusContent === "Active" ? `/admin/blockCustomer?id=${userId}` : `/admin/unBlockCustomer?id=${userId}`;
+                    const confirmResult = await Swal.fire({
+                        icon:"warning",
+                        title:"Are you sure ?",
+                        text:"This action will change user status.",
+                        showCancelButton:true,
+                        cancelButtonColor:"#d33",
+                        confirmButtonColor:"#3085d6",
+                        confirmButtonText:"Yes , Do it."
+                    });
+                    if(!confirmResult.isConfirmed)return
+                    try {
+                        const response = await fetch(uri,{
+                            method:"PATCH"
+                        });
+                        const data = await response.json();
+                        if(data.success){
+                            Swal.fire({
+                                icon:"success",
+                                title:"Updated.",
+                                text:data.message,
+                                showConfirmButton:false,
+                                timer:1500
+                            }).then(() => window.location.reload())
+                        }else{
+                            Swal.fire({icon:error,title:"Failed!",text:data.message||"Failed to change the user status"});
+                        }
+                    } catch (error) {
+                        Swal.fire({icon:error,title:"Oops!",text:"Something wrong while processing"});
+                    }
+                });
+            });
+
+        </script>
+        
 <%-include("../partials/admin/footer.ejs")%>

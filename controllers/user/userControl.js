@@ -16,6 +16,7 @@ const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
 const { default: mongoose } = require("mongoose");
 const Offer = require("../../models/offerSchems");
+const { error } = require("console");
 
 require("dotenv").config();
 
@@ -250,7 +251,8 @@ const loadLogin = async function (req, res) {
         if(req.session.user || req.user){
             return res.redirect("/");
         }
-        return res.render("userLogin");
+        const blocked = req.query.blocked === 'true';
+        return res.render("userLogin",{message:blocked ? "Your account has been blocked by admin" : null});
     } catch (error) {
         res.redirect('/pageNotFound');
     }
@@ -287,7 +289,9 @@ const login = async function (req, res) {
 
 const logout = async function (req,res) {
     try {
-        req.session.destroy((err) => {
+        delete req.session.user;
+        delete req.session.userId;
+        req.session.save((err) => {
             if(err){
                 return res.redirect('/pageNotFound');
             }else{
@@ -318,22 +322,28 @@ const loadHome = async function (req, res) {
         .sort({createdAt:-1})
         .lean();
 
-        const processedProducts = await applyOffersToProducts(productsData);
+        const visibleProducts = productsData.filter(product => product.category && product.category.isListed === true);
+        const processedProducts = await applyOffersToProducts(visibleProducts);
 
         let wishlistProductIds = [];
+        let cartCount = 0;
         if (user) {
             const userData = await User.findById(req.session.user._id);
             const wishlist = await Wishlist.findOne({userId:user._id}).lean();
+            const cart = await Cart.findOne({userId:user._id}).lean();
             if(wishlist && wishlist.products){
                 wishlistProductIds = wishlist.products.map(p => p.productId.toString());
             }
-            return res.render("home", { user: userData ,products:processedProducts,wishlistProductIds:wishlistProductIds});
+            if(cart && cart.items){
+                cartCount = cart.items.reduce((total,i) => total + i.quantity,0);
+            }
+            return res.render("home", { user: userData ,products:processedProducts,wishlistProductIds:wishlistProductIds,cartCount});
         }else{
-            return res.render("home",{user:null,products:processedProducts,wishlistProductIds:[]});
+            return res.render("home",{user:null,products:processedProducts,wishlistProductIds:[],cartCount:0});
         }
     } catch (error) {
         console.log("Home Page Not Found");
-        res.status(404).send("Server Error!")
+        res.status(400).send("Something wrong while loading home page!")
     }
 };
 
@@ -411,7 +421,7 @@ const loadShop = async function (req,res) {
         const skip = (page-1)*limit;
 
         const products = await Product.find(filter)
-        .populate('category','name')
+        .populate('category','name isListed')
         .populate('subcategory','name')
         .populate('brand','brandName')
         .skip(skip)
@@ -419,9 +429,25 @@ const loadShop = async function (req,res) {
         .sort(sortOptions)
         .lean();
 
-        const processedProducts = await applyOffersToProducts(products);
+        const visibleProducts = products.filter(product => product.category && product.category.isListed === true);
+        const processedProducts = await applyOffersToProducts(visibleProducts);
 
-        const totalProducts = await Product.countDocuments(filter);
+        const totalCountResult = await Product.aggregate([
+            {$match:filter},
+            {
+                $lookup:{
+                    from:"categories",
+                    localField:"category",
+                    foreignField:"_id",
+                    as:'category'
+                }
+            },
+            {$unwind:{path:"$category",preserveNullAndEmptyArrays:true}},
+            {$match:{'category.isListed':true}},
+            {$count:'total'}
+        ]);
+
+        const totalProducts = totalCountResult[0]?.total || 0;
         const totalPages = Math.ceil(totalProducts/limit);
 
         const categories = await Category.find({isListed:true}).lean();
@@ -451,11 +477,16 @@ const loadShop = async function (req,res) {
         };
 
         let wishlistProductIds = [];
+        let cartCount = [];
         if (user) {
             const userData = await User.findById(req.session?.user?._id);
             const wishlist = await Wishlist.findOne({userId:user._id}).lean();
+            const cart = await Cart.findOne({userId:user._id}).lean();
             if(wishlist && wishlist.products){
                 wishlistProductIds = wishlist.products.map(item => item.productId.toString());
+            }
+            if(cart && cart.items){
+                cartCount = cart.items.reduce((total,item) => total + item.quantity,0);
             }
             return res.render("shop", { 
                 user: userData,
@@ -470,7 +501,8 @@ const loadShop = async function (req,res) {
                 priceRange:priceRange[0]||{minPrice:0,maxPrice:100000},
                 currentFilters,
                 query:req.query,
-                wishlistProductIds:wishlistProductIds
+                wishlistProductIds:wishlistProductIds,
+                cartCount
             });
         }else{
             return res.render("shop",{user:user||null,
@@ -485,7 +517,8 @@ const loadShop = async function (req,res) {
                 priceRange:priceRange[0]||{minPrice:0,maxPrice:100000},
                 currentFilters,
                 query:req.query,
-                wishlistProductIds:[]
+                wishlistProductIds:[],
+                cartCount:0
             });
         }
     } catch (error) {
@@ -525,21 +558,35 @@ const loadProduct = async function (req,res) {
 
 const loadWishlist = async (req,res) => {
     try {
-        const userId = req.session?.user?._id;
-        const userData = await User.findById(userId);
+        const user = req.session?.user;
+        const userData = await User.findById(user._id);
         if(!userData){
             console.log("User Data not found");
             return res.redirect("/pageNotFound");
         }
-        const wishlist = await Wishlist.findOne({userId:userId})
-        .populate({
-            path:"products.productId",
-            select:"productName image regularPrice salePrice productOffer quantity status category"
-        });
 
-        let products = wishlist ? wishlist.products : [];
+        let wishlistProductIds = [];
+        let cartCount = 0;
+        if(user){
+            const wishlist = await Wishlist.findOne({userId:user._id})
+            .populate({
+                path:"products.productId",
+                select:"productName image regularPrice salePrice productOffer quantity status category"
+            });
+            const cart = await Cart.findOne({userId:user._id}).lean();
+            if(cart && cart.items){
+                cartCount = cart.items.reduce((total,item) => total + item.quantity,0);
+            }
+            if(wishlist && wishlist.products){
+                wishlistProductIds = wishlist.products.map(p => p.productId.toString());
+            }
 
-        res.render("wishlist",{user:userData,wishlistItems:products,title:"My Wishlist"});
+            let products = wishlist ? wishlist.products : [];
+
+            res.render("wishlist",{user:userData,wishlistItems:products,wishlistProductIds,cartCount,title:"My Wishlist"});
+        }else{
+            res.render("wishlist",{user:null,wishlistProductIds:[],cartCount:0});
+        }
     } catch (error) {
         console.log("error while load wishlist:",error);
         return res.redirect("/pageNotFound");
@@ -797,17 +844,27 @@ const addToCart = async (req,res) => {
 
 const loadCartPage = async(req,res) => {
     try {
-        const userId = req.session?.user._id||req.user._id;
-        if(!userId){
+        const user = req.session?.user||req.user;
+        if(!user){
             return res.redirect("/login");
         }
-        const userData = await User.findById(userId);
-        const cart = await Cart.findOne({userId:userId}).populate("items.productId").lean();
+        const userData = await User.findById(user._id);
+        const cart = await Cart.findOne({userId:user._id}).populate("items.productId").lean();
         if(!cart||!cart.items||cart.items.length === 0){
             return res.render("cart",{user:userData,cartItems:[]})
         }
         const errorMsg = req.session?.stockError || null ;
         req.session.stockError = null;
+
+        let wishlistProductIds = [];
+        let cartCount = 0;
+        const wishlist = await Wishlist.findOne({userId:user._id}).lean();
+        if(wishlist && wishlist.products){
+            wishlistProductIds = wishlist.products.map(p => p.productId.toString());
+        }
+        if(cart && cart.items){
+            cartCount = cart.items.reduce((total,item) => total + item.quantity,0);
+        }
 
         const cartItems = cart?.items?.map((item) => {
             const product = item.productId;
@@ -824,7 +881,7 @@ const loadCartPage = async(req,res) => {
                 availabilityStatus,
             isOutOfStock:availabilityStatus === "Out of Stock" ||availabilityStatus === "Not Available"}
         });
-        return res.render("cart",{user:userData,cartItems ,errorMsg});
+        return res.render("cart",{user:userData,wishlistProductIds,cartCount,cartItems ,errorMsg});
     } catch (error) {
         console.log("error occure while load cart:",error);
         return res.redirect("/pageNotFound");
@@ -918,6 +975,20 @@ const loadCheckoutPage = async(req,res) => {
         const {productId,qty} = req.query;
         let cartItems = [];
         let subTotal = 0;
+        let wishlistProductIds = [];
+        let cartCount = 0;
+        
+        const cart = await Cart.findOne({userId:user._id}).populate({
+            path:"items.productId",
+            select:"productName image regularPrice salePrice quantity status isBlocked"
+        }).lean();
+        const wishlist = await Wishlist.findOne({userId:user._id}).lean();
+        if(wishlist && wishlist.products){
+            wishlistProductIds = wishlist.products.map(p => p.productId.toString());
+        }
+        if(cart && cart.items){
+            cartCount = cart.items.reduce((total,item) => total + item.quantity,0);
+        }
 
         if(productId){
             const product = await Product.findOne({_id:productId,isBlocked:false,status:"Available"}).lean();
@@ -940,10 +1011,6 @@ const loadCheckoutPage = async(req,res) => {
             });
             subTotal = itemTotal;
         }else{
-            const cart = await Cart.findOne({userId:user._id}).populate({
-                path:"items.productId",
-                select:"productName image regularPrice salePrice quantity status isBlocked"
-            }).lean();
 
             let stockError = null;
             if (cart && cart.items && cart.items.length > 0) {
@@ -984,7 +1051,9 @@ const loadCheckoutPage = async(req,res) => {
             addresses,
             cartItems,
             subTotal,
-            finalPrice:subTotal
+            finalPrice:subTotal,
+            wishlistProductIds,
+            cartCount
         });
     } catch (error) {
         console.log("error occure while load cart:",error);
@@ -1477,7 +1546,7 @@ const placeOrder = async (req,res) => {
             );
         }
 
-        if(paymentStatus !== "Failed"){
+        
             // Decrease stock
             for (const item of cart.items) {
                 await Product.findByIdAndUpdate(
@@ -1492,7 +1561,6 @@ const placeOrder = async (req,res) => {
                 { userId: user._id },
                 { $set: { items: [] } }
             );
-        }
 
         // Clear selected address from session
         delete req.session.selectedAddress;

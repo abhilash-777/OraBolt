@@ -68,7 +68,6 @@ const processImages = async function (files,folderName) {
 };
 
 const addProduct = async function (req,res) {
-
     try {
 
         const product = req.body;
@@ -117,11 +116,9 @@ const addProduct = async function (req,res) {
         console.log("error add product:",error);
         return res.status(500).json({success:false,message:"Something went wrong!"});
     }
-    
 };
 
 const loadProductsList = async function (req,res) {
-
     try {
 
         const brand = await Brand.find();
@@ -138,7 +135,8 @@ const loadProductsList = async function (req,res) {
             filter.category = req.query.category;
         }
         if(req.query.status && req.query.status !== "all"){
-            filter.status = req.query.status;
+            const statusValue = req.query.status.trim().replace(/\s+/g, " ");
+            filter.status = { $regex: `^${statusValue}$`, $options: "i" };
         }
         if(req.query.search && req.query.search.trim() !== ""){
             const searchRegex = new RegExp(req.query.search.trim(),'i');
@@ -179,9 +177,8 @@ const loadProductsList = async function (req,res) {
         }
         
     } catch (error) {
-        return res.status(400).json({error:"error to load product list page:"});
+        return res.redirect("/admin/pageError");
     }
-    
 };
 
 const toggleList = async function (req,res) {
@@ -225,7 +222,6 @@ const loadEditProduct = async (req,res) => {
 };
 
 const editProduct = async function (req,res) {
-
     try {
         const productId = req.params.id;
         const {productName,description,brand,
@@ -271,7 +267,6 @@ const editProduct = async function (req,res) {
         console.error("error editing product:",error);
         res.status(500).json({success:false,error:"Internal server"});
     }
-    
 };
 
 const deleteProduct = async (req,res) => {

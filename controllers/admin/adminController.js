@@ -465,7 +465,9 @@ const generateExcelReport = async (reportData, res) => {
 const logout = async function (req, res) {
 
     try {
-        req.session.destroy((err) => {
+        delete req.session.admin;
+        delete req.session.adminId;
+        req.session.save((err) => {
             if (err) {
                 console.error("Error destroying ssession", err);
                 return res.redirect('/admin/pageError');

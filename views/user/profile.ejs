@@ -73,6 +73,7 @@
                                 <circle cx="12" cy="13" r="4"></circle>
                             </svg>
                         </button>
+                        <small id="image-error" style="color: red;"></small>
                         <% if (user.profileImage) { %>
                             <button class="photo-remove-btn" onclick="removeProfileImage('<%= user._id %>')">
                                 <svg class="icon-small" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -452,6 +453,21 @@
                 photoInput.addEventListener("change", async (e) => {
                     const file = e.target.files[0];
                     if (!file) return;
+                    const allowedType = ["image/jpeg","image/jpg","image/png"];
+                    const fileExtention = file.name.toLowerCase().split(".").pop();
+                    const allowedExtension = ["jpeg","jpg","png"];
+
+                    const imageError = document.getElementById("image-error");
+                    imageError.textContent = "";
+                    if(!allowedType.includes(file.type) || !allowedExtension.includes(fileExtention)){
+                        imageError.textContent = "Only JPG,JPEG and PNG files are allowed.";
+                        return
+                    }
+                    const maxSize = 5 * 1024 * 1024;
+                    if(file.size > maxSize){
+                        imageError.textContent = "Image size should not exeeed 5MB.";
+                        return
+                    }
 
                     const formData = new FormData();
                     formData.append("profileImage", file);

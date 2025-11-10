@@ -203,7 +203,23 @@
         };
 
         fileInput.addEventListener("change", (event) => {
-            fileQueue = Array.from(event.target.files);
+            const files = Array.from(event.target.files);
+            const imageError = document.getElementById("image-error");
+            imageError.style.display = "none";
+            imageError.textContent = "";
+
+            if(!files.length)return
+
+            const allowedTypes = ['image/jpeg','image/jpg','image/png'];
+            const invalidFiles = files.filter((file) => !file.name.toLowerCase().match(/\.(jpg|jpeg|png)$/) || !allowedTypes.includes(file.type));
+            if(invalidFiles.length > 0){
+                imageError.style.display = "block";
+                imageError.textContent = "Only JPG, JPEG, and PNG files are allowed.";
+                fileInput.value = "";
+                return
+            }
+
+            fileQueue = files;
             currentFileIndex = 0;
 
             if(fileQueue.length){
@@ -284,15 +300,7 @@
                 method:"POST",
                 body:formData
             })
-            .then(async res => {
-                const text = await res.text();
-                console.log("server raw response:",res);
-                try {
-                    return JSON.parse(text);
-                } catch (error) {
-                    throw new Error("server did not return json")
-                }
-            })
+            .then(res => res.json())
             .then(data => {
                 if(data.success){
                     Swal.fire({
@@ -301,8 +309,7 @@
                         text:data.message||"Product updated successfully.",
                         showConfirmButton:false,
                         timer:1000
-                    })
-                    window.location.href = `/admin/productLists`;
+                    }).then(() => window.location.href = `/admin/productLists`)
                 }else{
                     Swal.fire({
                         icon:"error",
@@ -323,7 +330,6 @@
     });
 
     function validateForm() {
-
         clearErrorMessages();
         let isValid = true;
 
@@ -364,7 +370,7 @@
         }
 
         if(category === ""){
-            displayErrorMessage("category-error, please select a category");
+            displayErrorMessage("category-error", "please select a category");
             isValid = false;
         }
 
@@ -392,7 +398,7 @@
             const files = input.files;
             for(let i = 0; i < files.length; i++){
                 const fileName = files[i].name.toLowerCase();
-                if(!!fileName.match(/\.(jpg|jpeg|png)$/)){
+                if(!fileName.match(/\.(jpg|jpeg|png)$/)){
                     displayErrorMessage("image-error","File name extension not matching these(.jpg/.jpeg/.png)");
                     isValid = false;
                     break;
@@ -404,7 +410,6 @@
                 }
             }
         })
-          
        return isValid;
     }
        

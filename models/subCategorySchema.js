@@ -21,13 +21,6 @@ const subCategorySchema = new Schema({
         ref:"Category",
         required:true
     },
-    offer : {
-        type  : Number,
-        default : 0
-    },
-    offerAddedAt:{
-        type:Date,
-    },
     createdAt : {
         type : Date,
         default : Date.now

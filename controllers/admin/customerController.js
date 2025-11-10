@@ -48,31 +48,27 @@ const customerInfo = async function (req,res) {
 };
 
 const blockCustomer = async function (req,res) {
-
     try {
 
         let id = req.query.id;
         await User.updateOne({_id:id},{$set:{isBlocked:true}});
-        res.redirect(`/admin/user?page=${req.query.page || 1}`)
+        return res.status(200).json({success:true,message:"Successfully blocked the user."});
         
     } catch (error) {
-        res.redirect('/admin/pageError');
+        return res.status(500).json({success:false,error:"Somthing wrong while processing"});
     }
-    
 };
 
 const unBlockCustomer = async function (req,res) {
-
     try {
 
         let id = req.query.id;
         await User.updateOne({_id:id},{$set:{isBlocked:false}});
-        res.redirect(`/admin/user?page=${req.query.page || 1}`);
+        return res.status(200).json({success:true,message:"Successfully unblocked the user."});
         
     } catch (error) {
-        res.redirect("/admin/pageError");
+        return res.status(500).json({success:false,error:"Somthing wrong while processing"});
     }
-    
 };
 
 module.exports = {

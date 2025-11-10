@@ -1,95 +1,101 @@
 <%-include("../partials/admin/header.ejs") %>
-
-            <!-- Main content -->
-            <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
-                <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-                    <h1 class="h2">Coupon Management</h1>
-                    <a href="/admin/coupons/create" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Create New Coupon
-                    </a>
-                </div>
-
-                <!-- Coupons Table -->
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="card-title mb-0">All Coupons</h5>
-                    </div>
-                    <div class="card-body">
-                        <% if (coupons.length === 0) { %>
-                            <div class="alert alert-info">No coupons found. Create your first coupon!</div>
-                        <% } else { %>
-                            <% const now = new Date(); %>
-                            <div class="table-responsive">
-                                <table class="table table-striped table-hover">
-                                    <thead>
+    <!-- Main content -->
+    <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+        <div
+            class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+            <h1 class="h2">Coupon Management</h1>
+            <a href="/admin/coupons/create" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Create New Coupon
+            </a>
+        </div>
+    
+        <!-- Coupons Table -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">All Coupons</h5>
+            </div>
+            <div class="card-body">
+                <% if (coupons.length===0) { %>
+                    <div class="alert alert-info">No coupons found. Create your first coupon!</div>
+                <% } else { %>
+                    <% const now=new Date(); %>
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Coupon Name</th>
+                                        <th>Amount</th>
+                                        <th>Min Amount</th>
+                                        <th>used</th>
+                                        <th>Start Date</th>
+                                        <th>End Date</th>
+                                        <th>Limit</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <% coupons.forEach(coupon=> { %>
                                         <tr>
-                                            <th>Coupon Name</th>
-                                            <th>Amount</th>
-                                            <th>Min Amount</th>
-                                            <th>used</th>
-                                            <th>Start Date</th>
-                                            <th>End Date</th>
-                                            <th>Limit</th>
-                                            <th>Status</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <% coupons.forEach(coupon => { %>
-                                            <tr>
-                                                <td>
-                                                    <strong><%= coupon.name %></strong>
-                                                    <% if (coupon.usedBy.length> 0) { %>
-                                                        <br>
-                                                        <small class="text-muted">
-                                                            Used by <%= coupon.usedBy.length %> user(s)
-                                                        </small>
-                                                    <% } %>
-                                                </td>
-                                                <td>₹<%= coupon.offerPrice %></td>
-                                                <td>₹<%= coupon.minimumPrice %></td>
-                                                <td><%= coupon.usedBy.length %></td>
-                                                <td><%= coupon.createdOn.toLocaleDateString() %></td>
-                                                <td><%= coupon.expireOn.toLocaleDateString() %></td>
-                                                <td>
-                                                    <%= coupon.usageLimit ? coupon.usageLimit : 'Unlimited' %>
-                                                    <% if (coupon.usageLimit) { %>
-                                                        <br>
-                                                        <small class="text-muted">
-                                                            <%= coupon.usageLimit - coupon.usedBy.length %> left
-                                                        </small>
-                                                    <% } %>
-                                                </td>
-                                                <td>
-                                                    <% const isExpired = now > new Date(coupon.expireOn); %>
-                                                    <% if(isExpired){ %>
-                                                        <span class="badge btn-danger">Expired</span>
-                                                    <% } else { %>
-                                                        <form class="d-inline">
-                                                            <button type="button" data-id="<%= coupon._id %>" class="btn btn-sm <%= coupon.isList ? 'btn-success' : 'btn-secondary' %> status-btn">
-                                                                <%= coupon.isList ? 'Active' : 'Inactive' %>
-                                                            </button>
-                                                        </form>
-                                                    <% } %>
-                                                </td>
-                                                <td>
+                                            <td>
+                                                <strong><%= coupon.name %></strong>
+                                                <% if (coupon.usedBy.length> 0) { %>
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        Used by <%= coupon.usedBy.length %> user(s)
+                                                    </small>
+                                                <% } %>
+                                            </td>
+                                            <td>₹<%= coupon.offerPrice %></td>
+                                            <td>₹<%= coupon.minimumPrice %></td>
+                                            <td><%= coupon.usedBy.length %></td>
+                                            <td><%= coupon.createdOn.toLocaleDateString() %></td>
+                                            <td><%= coupon.expireOn.toLocaleDateString() %></td>
+                                            <td>
+                                                <%= coupon.usageLimit ? coupon.usageLimit : 'Unlimited' %>
+                                                <% if (coupon.usageLimit) { %>
+                                                    <br>
+                                                    <small class="text-muted">
+                                                        <%= coupon.usageLimit - coupon.usedBy.length %> left
+                                                    </small>
+                                                <% } %>
+                                            </td>
+                                            <td>
+                                                <% const isExpired=now> new Date(coupon.expireOn); %>
+                                                <% if(isExpired){ %>
+                                                    <span class="badge btn-danger">Expired</span>
+                                                <% } else { %>
                                                     <form class="d-inline">
-                                                        <button type="button" class="btn btn-danger btn-sm delete-btn" data-id="<%= coupon._id %>">
-                                                            Delete
+                                                        <button type="button" data-id="<%= coupon._id %>"
+                                                            class="btn btn-sm <%= coupon.isList ? 'btn-success' : 'btn-secondary' %> status-btn">
+                                                            <%= coupon.isList ? 'Active' : 'Inactive' %>
                                                         </button>
                                                     </form>
-                                                </td>
-                                            </tr>
-                                        <% }) %>
-                                    </tbody>
-                                </table>
-                            </div>
-                        <% } %>
-                    </div>
-                </div>
-            </main>
+                                                <% } %>
+                                            </td>
+                                            <td class="text-end">
+                                                <div class="dropdown">
+                                                    <a href="#" data-bs-toggle="dropdown"
+                                                        class="btn btn-light rounded btn-sm font-sm">
+                                                        <i class="material-icons md-more_horiz"></i>
+                                                    </a>
+                                                    <div class="dropdown-menu">
+                                                        <a class="dropdown-item"
+                                                            href="/admin/edit-coupon/<%= coupon._id %>">Edit info</a>
+                                                        <a class="dropdown-item text-danger delete-btn" href="#"
+                                                            data-id="<%= coupon._id %>">Delete</a>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <% }) %>
+                                </tbody>
+                            </table>
+                        </div>
+                    <% } %>
+            </div>
         </div>
-    </div>
+    </main>
 
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
@@ -168,4 +174,6 @@
                 }
             });
         });
-    </script>
+        </script>
+
+    <%-include("../partials/admin/footer.ejs") %>

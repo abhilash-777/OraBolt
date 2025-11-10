@@ -108,7 +108,6 @@
                                     <tr>
                                         <th>Name</th>
                                         <th>Description</th>
-                                        <th>Offer%</th>
                                         <th>isListed</th>
                                         <th>List/Unlist</th>
                                         <th>Timestamp</th>
@@ -120,15 +119,8 @@
                                     <%cat.forEach((subCategory,index)=> {%>
 
                                         <tr data-id="<%= subCategory._id %>">
-                                            <td>
-                                                <%= subCategory.name %>
-                                            </td>
-                                            <td>
-                                                <%= subCategory.description %>
-                                            </td>
-                                            <td class="offer-cell">
-                                                <%= subCategory.offer %>
-                                            </td>
+                                            <td><%= subCategory.name %></td>
+                                            <td><%= subCategory.description %></td>
                                             <td class="list-cell">
                                                 <% if(subCategory.isListed) { %>
                                                     <span class="badge rounded-pill alert-success">Listed</span>
@@ -143,9 +135,7 @@
                                                     <button class="btn btn-success btn-list">List</button>
                                                 <% } %>
                                             </td>
-                                            <td>
-                                                <%= new Date(subCategory.createdAt).toLocaleString() %>
-                                            </td>
+                                            <td><%= new Date(subCategory.createdAt).toLocaleString() %></td>
                                             <td class="text-end">
                                                 <div class="dropdown">
                                                     <a href="#" data-bs-toggle="dropdown"
@@ -161,8 +151,7 @@
                                                 </div>
                                             </td>
                                         </tr>
-                                        <% }) %>
-
+                                    <% }) %>
                                 </tbody>
                             </table>
                         </div>

@@ -46,6 +46,51 @@ const createCoupon = async (req, res) => {
   }
 };
 
+const loadEditCoupon = async (req,res) => {
+  try {
+    const couponId = req.params.id;
+    const coupon = await Coupon.findById(couponId);
+    if(!coupon)return res.status(404).render("coupon",{message:"Coupon not found"});
+    res.render("edit-coupon",{coupon});
+  } catch (error) {
+    return res.redirect("/admin/pageError");
+  }
+};
+
+const editCoupon = async (req,res) => {
+  try {
+    const couponId = req.params.id;
+    if(!couponId)return res.status(404).json({success:false,message:"Coupon id is missing"});
+
+    const {name,offerPrice,minimumPrice,startDate,endDate,useageLimit} = req.body;
+    if(!name||!offerPrice||!minimumPrice||!startDate||!endDate){
+      return res.status(404).json({success:false,message:"All fields are required. Please fill the fields"});
+    }
+    const coupon = await Coupon.findById(couponId);
+    const currentCouponStartDate = new Date(coupon.createdOn).toISOString().split('T')[0];
+    if(!coupon)return res.status(404).json({success:false,message:"Coupon not found"});
+    if(currentCouponStartDate !== startDate)return res.json({success:false,message:"Coupon start date cannot changeable"});
+    if(new Date(startDate) > new Date(endDate))return res.json({success:false,message:"End date cannot be before start Date"});
+    if(useageLimit && useageLimit < 0){
+      return res.json({success:false,message:"Useage limit count cannot allow below 0."});
+    }
+
+    coupon.name = name;
+    coupon.offerPrice = offerPrice;
+    coupon.minimumPrice = minimumPrice;
+    coupon.createdOn = startDate;
+    coupon.expireOn = endDate;
+    coupon.usageLimit = useageLimit;
+
+    await coupon.save();
+    return res.status(200).json({success:true,message:"Coupon updated successfully."});
+
+  } catch (error) {
+    console.log("Something wrong while processing:",error);
+    return res.status(500).json({success:false,message:"Something wrong while processing"});
+  }
+};
+
 // Delete coupon
 const deleteCoupon = async (req, res) => {
   try {
@@ -135,6 +180,8 @@ module.exports = {
     getAllCoupons,
     getCreateCoupon,
     createCoupon,
+    loadEditCoupon,
+    editCoupon,
     deleteCoupon,
     toggleCouponStatus,
     applyCoupon,

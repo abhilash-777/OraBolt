@@ -26,7 +26,7 @@
                 
                 <div class="form-group">
                     <label for="offerValue">Offer Value (%)</label>
-                    <input type="text" id="offerValue" name="offerValue" value="<%= offer.percentage %>" >
+                    <input type="number" id="offerValue" name="offerValue" value="<%= offer.percentage %>" >
                     <small class="errorMsg" id="valueError"></small>
                 </div>
                 
@@ -142,8 +142,8 @@
                 errors.nameError = "Offer name should contain atleast one charactor";
             }
             if(!payload.offerType)errors.typeError = "Please select offer type";
-            if(!payload.offerValue.trim()||!/^\d+(\.\d+)?$/.test(payload.offerValue.trim())){
-                errors.valueError = "Offer value should be a digit";
+            if(!payload.offerValue.trim()){
+                errors.valueError = "Offer value should required(Digits)";
             }else{
                 const value = Number(payload.offerValue.trim());
                 if(value < 1||value > 100){

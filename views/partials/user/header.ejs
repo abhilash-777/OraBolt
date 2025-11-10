@@ -120,10 +120,14 @@
                     <li class="nav-item"><a href="blog.html" class="nav-link">Blog</a></li>
                     <li class="nav-item"><a href="/contact" class="nav-link">Contact</a></li>
                     <li class="nav-item cta cta-colored">
-                        <a href="/wishlist" class="nav-link"><span class="icon-heart"></span>[0]</a>
+                        <a href="/wishlist" class="nav-link"><span class="icon-heart"></span>
+                            [<%= typeof wishlistProductIds !== 'undefined' ? wishlistProductIds.length : 0 %>]
+                        </a>
                     </li>
                     <li class="nav-item cta cta-colored">
-                        <a href="/cart" class="nav-link"><span class="icon-shopping_cart"></span>[0]</a>
+                        <a href="/cart" class="nav-link"><span class="icon-shopping_cart"></span>
+                            [<%= typeof cartCount !== 'undefined' ? cartCount : 0 %>]
+                        </a>
                     </li>
                 </ul>
             </div>

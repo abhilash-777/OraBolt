@@ -21,7 +21,7 @@
                 </div>
             </div>
             <div class="header-actions">
-                <!-- ✅ FIXED: Changed order.userId?.id to order.userId?._id -->
+                <!-- FIXED: Changed order.userId?.id to order.userId?._id -->
                 <a href="/orders/<%= typeof order.userId === 'object' ? order.userId._id : order.userId %>" class="btn btn-back">
                     <i class="fas fa-arrow-left"></i> Back to Orders
                 </a>
