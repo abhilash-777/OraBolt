@@ -14,7 +14,23 @@ const userAuth = async (req, res, next) => {
 
         const user = await User.findById(userId);
         if (!user || user.isBlocked) {
-            req.session.destroy(() => res.redirect("/login"));
+            delete req.session.user;
+            delete req.session.userId;
+
+            req.session.save((err) => {  
+                if(err){
+                    console.log("session save error:",err);
+                }
+                if(acceptsJson){
+                    return res.status(404).json({
+                        success:false,blocked:true,
+                        message:"Your account has been blocked by admin",
+                        redirectUrl:"/login?blocked=true"
+                    })
+                }else{
+                    return res.redirect("/login?blocked=true");
+                }
+            });
             return;
         }
 

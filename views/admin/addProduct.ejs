@@ -164,6 +164,7 @@
     </section>
 
     <script src="https://unpkg.com/cropperjs@1.5.13/dist/cropper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
 
         document.addEventListener("DOMContentLoaded",() => {
@@ -249,7 +250,7 @@
 
                 if (cropInstance.length < 3) {
                     validateAndSubmit();
-                    alert("Please upload atleast 3 images");
+                    displayErrorMessage("image-error","Please upload atleast 3 images");
                     return;
                 }
 
@@ -266,23 +267,25 @@
                 .then(res => res.json())
                 .then(data => {
                     if(data.success){
-                        console.log("product saved:",data);
-                        alert("Product added successfully");
-                        window.location.reload();
+                        Swal.fire({
+                            icon:"success",
+                            title:"Added.",
+                            text:"Product added successfully.",
+                            showConfirmButton:false,
+                            timer:1500
+                        }).then(() => window.location.href = "/admin/productLists")
                     }else{
-                        alert(data.message);
+                        Swal.fire({icon:"error",title:"Failed!",text:"Failed to add a product"});
                     }
                 })
                 .catch(err => {
                     console.error("upload error:",err);
-                    alert("something went wrong!");
+                    Swal.fire({icon:"error",title:"Oops!",text:"Something wrong while processing."});
                 })
             });
         });
 
         function validateForm() {
-            
-           console.log("validate form");
            clearErrorMessages();
            let isValid = true;
 
@@ -295,6 +298,8 @@
             const category = document.getElementsByName('category')[0].value;
             const subcategory = document.getElementsByName("subcategory")[0].value;
             const quantity=document.getElementsByName('quantity')[0].value;
+            const images = document.getElementById("images");
+            const hasImages = images && images.files && images.files.length > 0;
 
             if (name.trim() === "") {
                 displayErrorMessage('productName-error', 'Please enter a product name.');
@@ -322,7 +327,7 @@
             }
 
             if(category === ""){
-                displayErrorMessage("category-error, please select a category");
+                displayErrorMessage("category-error", "please select a category");
                 isValid = false;
             }
 

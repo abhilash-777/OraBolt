@@ -1,18 +1,5 @@
-<%- include("../partials/user/header.ejs") %>
-
-	<div class="hero-wrap hero-bread" style="background-image: url('/images/bg_6.jpg');">
-		<div class="container">
-			<div class="row no-gutters slider-text align-items-center justify-content-center">
-				<div class="col-md-9 ftco-animate text-center">
-					<p class="breadcrumbs">
-						<span class="mr-2"><a href="/">Home</a></span>
-						<span>Cart</span>
-					</p>
-					<h1 class="mb-0 bread">My Cart</h1>
-				</div>
-			</div>
-		</div>
-	</div>
+<%- include("../partials/user/header.ejs") %> 
+<%-include("../partials/bread_crumb.ejs",{pageTitle:"Cart",pageName:"Cart"}) %>
 
 	<section class="ftco-section ftco-cart">
 		<div class="container">
@@ -130,59 +117,112 @@
                 text: "<%= errorMsg %>",
                 confirmButtonText: "OK"
             });
+			
         </script>
     <% } %>
 	<script>
         document.addEventListener("DOMContentLoaded", () => {
-            const increaseBtns = document.querySelectorAll(".increase");
-			const decreaseBtns = document.querySelectorAll(".decrease");
+    const increaseBtns = document.querySelectorAll(".increase");
+    const decreaseBtns = document.querySelectorAll(".decrease");
 
-			// Function to update quantity
-			const updateQuantity = async (productId, action) => {
-				try {
-					const response = await fetch("/cart/update", {
-						method: "PUT",
-						headers: { "Content-Type": "application/json" },
-						body: JSON.stringify({ productId, action }),
-					});
+    // Function to update quantity
+    const updateQuantity = async (productId, action) => {
+        try {
+            const response = await fetch("/cart/update", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ productId, action }),
+            });
 
-					const data = await response.json();
-					if(data.success){
-						window.location.reload();
-					}else{
-						Swal.fire({
-							icon:"error",
-							title:"Item quantity reached!",
-							text:data.message||"You can only add upto 5 unit of this product",
-							showConfirmButton:true
-						})
-					}
-				} catch (error) {
-					console.error("Error updating quantity:", error);
-					Swal.fire({
-						icon:"error",
-						title:"Oops!",
-						text:data.message||"Something went wrong while upading quantity",
-					})
-				}
-			};
+            const data = await response.json();
+            
+            if (data.success) {
+                // Find the row for this product
+                const row = document.querySelector(`button[data-id="${productId}"]`).closest('tr');
+                const quantityInput = row.querySelector('input[type="text"]');
+                const totalCell = row.querySelector('.total');
+                const priceCell = row.querySelector('.price');
+                
+                // Get current values
+                let currentQty = parseInt(quantityInput.value);
+                const price = parseInt(priceCell.textContent.replace('₹', '').trim());
+                
+                // Update quantity
+                if (action === "increase") {
+                    currentQty += 1;
+                } else if (action === "decrease") {
+                    currentQty -= 1;
+                }
+                
+                // Update the DOM
+                quantityInput.value = currentQty;
+                const newTotal = currentQty * price;
+                totalCell.textContent = `₹${newTotal}`;
+                
+                // Update cart totals
+                updateCartTotals();
+                
+            } else {
+                Swal.fire({
+                    icon: "error",
+                    title: "Item quantity reached!",
+                    text: data.message || "You can only add upto 5 unit of this product",
+                    showConfirmButton: true
+                });
+            }
+        } catch (error) {
+            console.error("Error updating quantity:", error);
+            Swal.fire({
+                icon: "error",
+                title: "Oops!",
+                text: "Something went wrong while updating quantity",
+            });
+        }
+    };
 
-			// Increase quantity
-			increaseBtns.forEach(btn => {
-				btn.addEventListener("click", () => {
-					const productId = btn.dataset.id;
-					updateQuantity(productId, "increase");
-				});
-			});
+    // Function to recalculate and update cart totals
+    const updateCartTotals = () => {
+        let subtotal = 0;
+        
+        // Calculate subtotal from all rows
+        document.querySelectorAll('tbody tr').forEach(row => {
+            const totalCell = row.querySelector('.total');
+            if (totalCell) {
+                const total = parseInt(totalCell.textContent.replace('₹', '').trim());
+                if (!isNaN(total)) {
+                    subtotal += total;
+                }
+            }
+        });
+        
+        // Update the cart totals section
+        const subtotalElement = document.querySelector('.cart-total .d-flex span:last-child');
+        const totalElement = document.querySelector('.cart-total .total-price span:last-child');
+        
+        if (subtotalElement) {
+            subtotalElement.textContent = `₹${subtotal}`;
+        }
+        if (totalElement) {
+            totalElement.textContent = `₹${subtotal}`;
+        }
+    };
 
-			// Decrease quantity
-			decreaseBtns.forEach(btn => {
-				btn.addEventListener("click", () => {
-					const productId = btn.dataset.id;
-					updateQuantity(productId, "decrease");
-				});
-			});
-		});
+    // Increase quantity
+    increaseBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+            const productId = btn.dataset.id;
+            updateQuantity(productId, "increase");
+        });
+    });
+
+    // Decrease quantity
+    decreaseBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+            const productId = btn.dataset.id;
+            updateQuantity(productId, "decrease");
+        });
+    });
+});
     </script>
 
 	<%- include("../partials/user/footer.ejs") %>

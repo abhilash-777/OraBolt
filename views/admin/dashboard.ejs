@@ -22,7 +22,7 @@
                             <div class="text">
                                 <h6 class="mb-1 card-title">Revenue</h6>
                                 <span>&#8377; <%= totalRevenue.toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}) %></span>
-                                <span class="text-sm">Excluded cancelled,returned and refunded orders amount.</span>
+                                <span class="text-sm">Excluded cancelled,returned <br> and refunded orders amount.</span>
                             </div>
                         </article>
                     </div>
@@ -65,6 +65,18 @@
                         </article>
                     </div>
                 </div>
+                <div class="col-lg-4">
+                    <div class="card card-body mb-4">
+                        <article class="icontext">
+                            <span class="icon icon-sm rounded-circle bg-primary-light">&#8377;</span>
+                            <div class="text">
+                                <h6 class="mb-1 card-title">Discount%</h6>
+                                <span>&#8377; <%= totalDiscount %></span>
+                                <span class="text-sm">users applied.</span>
+                            </div>
+                        </article>
+                    </div>
+                </div>
             </div>
 
             <!-- Sales Analytics Section -->
@@ -72,15 +84,15 @@
                 <div class="col-12">
                     <div class="card mb-4">
                         <header class="card-header">
-                            <h4 class="card-title">Sales Analytics</h4>
+                            <h4 class="card-title">Orders Overview</h4>
                             <div class="row align-items-center">
                                 <div class="col-md-3 col-12 me-auto mb-md-0 mb-3">
                                     <div class="custom_select">
                                         <select class="form-select select-nice" id="analyticsPeriod"
                                             onchange="updateAnalyticsChart()">
-                                            <option value="daily">Daily</option>
+                                            <option value="daily" selected>Last 30 Days</option>
                                             <option value="weekly">Weekly</option>
-                                            <option value="monthly" selected>Monthly</option>
+                                            <option value="monthly">Monthly</option>
                                             <option value="yearly">Yearly</option>
                                         </select>
                                     </div>
@@ -88,11 +100,11 @@
                                 <div class="col-md-3 col-12">
                                     <div class="btn-group" role="group">
                                         <input type="radio" class="btn-check" name="analyticsType" id="revenueBtn"
-                                            autocomplete="off" checked onchange="updateAnalyticsChart()">
+                                            autocomplete="off" onchange="updateAnalyticsChart()">
                                         <label class="btn btn-outline-primary" for="revenueBtn">Revenue</label>
             
                                         <input type="radio" class="btn-check" name="analyticsType" id="ordersBtn" autocomplete="off"
-                                            onchange="updateAnalyticsChart()">
+                                            checked onchange="updateAnalyticsChart()">
                                         <label class="btn btn-outline-primary" for="ordersBtn">Orders</label>
                                     </div>
                                 </div>
@@ -107,7 +119,7 @@
                                             <div>
                                                 <h6 class="mb-1">Total Revenue</h6>
                                                 <h3 class="text-success" id="totalRevenueDisplay">₹0</h3>
-                                                <span class="text-muted" id="revenuePeriod">This month</span>
+                                                <span class="text-muted" id="revenuePeriod">Last 30 days</span>
                                             </div>
                                             <div class="bg-success-light rounded-circle p-3">
                                                 <i class="text-success material-icons fs-4">&#8377;</i>
@@ -121,7 +133,7 @@
                                             <div>
                                                 <h6 class="mb-1">Total Orders</h6>
                                                 <h3 class="text-primary" id="totalOrdersDisplay">0</h3>
-                                                <span class="text-muted" id="ordersPeriod">This month</span>
+                                                <span class="text-muted" id="ordersPeriod">Last 30 days</span>
                                             </div>
                                             <div class="bg-primary-light rounded-circle p-3">
                                                 <i class="text-primary material-icons md-shopping_cart fs-4"></i>
@@ -138,6 +150,66 @@
                     </div>
                 </div>
             </div>
+            <!-- Best Sellers Row -->
+            <div class="row">
+                <!-- Best Selling Products -->
+                <div class="col-lg-6">
+                    <div class="card mb-4">
+                        <header class="card-header">
+                            <h4 class="card-title">Top 10 Best Selling Products</h4>
+                        </header>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover" id="topProductsTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Rank</th>
+                                            <th>Product</th>
+                                            <th>Sold</th>
+                                            <th>Revenue</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="topProductsBody">
+                                        <tr>
+                                            <td colspan="4" class="text-center">Loading...</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Best Selling Categories -->
+                <div class="col-lg-6">
+                    <div class="card mb-4">
+                        <header class="card-header">
+                            <h4 class="card-title">Top Best Selling Categories</h4>
+                        </header>
+                        <div class="card-body">
+                            <div class="chart-container" style="position: relative; height: 300px;">
+                                <canvas id="topCategoriesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+                
+            <!-- Best Selling Brands -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card mb-4">
+                        <header class="card-header">
+                            <h4 class="card-title">Top 10 Best Seeling Brands</h4>
+                        </header>
+                        <div class="card-body">
+                            <div class="chart-container" style="position: relative; height: 300px;">
+                                <canvas id="topBrandsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </section>
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -145,10 +217,15 @@
     <script>
 
         let analyticsChart = null;
+        let categoriesChart = null;
+        let brandsChart = null;
 
         // Initialize analytics chart
         document.addEventListener('DOMContentLoaded', function() {
             initializeAnalyticsChart();
+            loadTopProducts();
+            loadTopCategories();
+            loadTopBrands();
         });
 
         async function initializeAnalyticsChart() {
@@ -158,15 +235,19 @@
         // Update analytics chart based on selections
         async function updateAnalyticsChart() {
             const period = document.getElementById('analyticsPeriod').value;
-            const chartType = document.querySelector('input[name="analyticsType"]:checked').value;
-    
+            const chartType = document.querySelector('input[name="analyticsType"]:checked').id === 'ordersBtn' ? 'orders' : 'revenue';
+
             try {
                 const response = await fetch(`/admin/api/chart-data?period=${period}`);
                 const result = await response.json();
-        
+
                 if (result.success) {
                     renderAnalyticsChart(result.data, period, chartType);
                     updateSummaryCards(result.data, period);
+                    // Update best sellers when period changes
+                    loadTopProducts(period);
+                    loadTopCategories(period);
+                    loadTopBrands(period);
                 } else {
                     console.error('Error fetching analytics data:', result.error);
                     Swal.fire({icon:"error",title:"Failed!",text:"Error fetching analytics data"});
@@ -180,17 +261,51 @@
         // Render the analytics chart
         function renderAnalyticsChart(chartData, period, chartType) {
             const ctx = document.getElementById('salesAnalyticsChart').getContext('2d');
-    
+
             // Destroy existing chart
             if (analyticsChart) {
                 analyticsChart.destroy();
             }
-    
-            // Prepare data
-            const labels = chartData.map(item => formatAnalyticsLabel(item._id, period));
-            const values = chartData.map(item => chartType === 'revenue' ? item.revenue : item.orders);
+
+            // Sort chartData by _id ascending (assuming _id is date string like 'YYYY-MM-DD')
+            chartData.sort((a, b) => new Date(a._id) - new Date(b._id));
+
+            // Generate full date range and fill missing dates with 0
+            let labels = [];
+            let values = [];
+            let fullDataMap = {};
+
+            if (period === 'daily') {
+                // Last 30 days: from today - 29 days to today (30 points)
+                const endDate = new Date();
+                const startDate = new Date(endDate.getTime() - (29 * 24 * 60 * 60 * 1000));
+                const dateRange = [];
+
+                for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                    const currentDate = new Date(d);
+                    const dateKey = currentDate.toISOString().split('T')[0]; // YYYY-MM-DD
+                    dateRange.push(currentDate);
+                }
+
+                // Create map from backend data
+                chartData.forEach(item => {
+                    fullDataMap[item._id] = chartType === 'revenue' ? item.revenue : item.orders;
+                });
+
+                // Fill labels and values
+                dateRange.forEach(date => {
+                    const key = date.toISOString().split('T')[0];
+                    labels.push(date.getDate().toString()); // Day number like "14"
+                    values.push(fullDataMap[key] || 0);
+                });
+            } else {
+                // For other periods, use existing logic (assume backend provides all periods)
+                labels = chartData.map(item => formatAnalyticsLabel(item._id, period));
+                values = chartData.map(item => chartType === 'revenue' ? item.revenue : item.orders);
+            }
+
             const chartLabel = chartType === 'revenue' ? 'Revenue (₹)' : 'Orders';
-    
+
             // Chart colors
             const backgroundColor = chartType === 'revenue' 
                 ? 'rgba(40, 167, 69, 0.1)' 
@@ -203,7 +318,7 @@
                 : 'rgba(0, 123, 255, 1)';
 
             analyticsChart = new Chart(ctx, {
-                type: 'bar',
+                type: 'line',
                 data: {
                     labels: labels,
                     datasets: [{
@@ -212,8 +327,13 @@
                         backgroundColor: backgroundColor,
                         borderColor: borderColor,
                         borderWidth: 2,
-                        borderRadius: 4,
-                        borderSkipped: false,
+                        fill: true,
+                        tension: 0.1,
+                        pointBackgroundColor: pointBackgroundColor,
+                        pointBorderColor: borderColor,
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
                     }]
                 },
                 options: {
@@ -268,7 +388,9 @@
                                 drawBorder: false
                             },
                             ticks: {
-                                color: '#6c757d'
+                                color: '#6c757d',
+                                maxRotation: 45,
+                                minRotation: 45
                             }
                         }
                     },
@@ -284,11 +406,11 @@
         function updateSummaryCards(chartData, period) {
             const totalRevenue = chartData.reduce((sum, item) => sum + item.revenue, 0);
             const totalOrders = chartData.reduce((sum, item) => sum + item.orders, 0);
-    
+
             // Update revenue card
             document.getElementById('totalRevenueDisplay').textContent = `₹${totalRevenue.toLocaleString()}`;
             document.getElementById('revenuePeriod').textContent = getPeriodText(period);
-    
+
             // Update orders card
             document.getElementById('totalOrdersDisplay').textContent = totalOrders.toLocaleString();
             document.getElementById('ordersPeriod').textContent = getPeriodText(period);
@@ -297,7 +419,7 @@
         // Format period text for display
         function getPeriodText(period) {
             const texts = {
-                daily: 'Last 7 days',
+                daily: 'Last 30 days',
                 weekly: 'Last 8 weeks',
                 monthly: 'Last 12 months',
                 yearly: 'Last 5 years'
@@ -305,30 +427,198 @@
             return texts[period] || 'This period';
         }
 
-        // Format labels for different periods
+        // Format labels for different periods (used for non-daily)
         function formatAnalyticsLabel(label, period) {
             switch (period) {
                 case 'daily':
-                    // Format as "Mon", "Tue", etc.
-                    const date = new Date(label);
-                    return date.toLocaleDateString('en-IN', { weekday: 'short' });
-            
+                    // Not used for daily anymore, handled in render
+                    return label;
+        
                 case 'weekly':
-                    // Format as "Week 1", "Week 2", etc.
+                   // Format as "Week 1", "Week 2", etc.
                     const [year, week] = label.split('-');
                     return `W${week}`;
-            
+        
                 case 'monthly':
                     // Format as "Jan", "Feb", etc.
                     const [y, m] = label.split('-');
                     return new Date(y, m - 1).toLocaleDateString('en-IN', { month: 'short' });
-            
+        
                 case 'yearly':
                     // Format as "2023", "2024", etc.
                     return label;
-            
+        
                 default:
                     return label;
+            }
+        }
+
+        // Top Products Table
+        async function loadTopProducts(period = 'monthly') {
+            try {
+                const response = await fetch(`/admin/api/top-products?period=${period}`);
+                const result = await response.json();
+
+                if (result.success && result.data.length > 0) {
+                    const tbody = document.getElementById('topProductsBody');
+                    tbody.innerHTML = '';
+
+                    result.data.forEach((product, index) => {
+                        const row = `
+                            <tr>
+                                <td><strong>${index + 1}</strong></td>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <img src="${product.productImage && product.productImage[0] 
+                                            ? '/uploads/productsImages/' + product.productImage[0] 
+                                            : '/placeholder.jpg'}"
+                                            alt="${product.productName}"
+                                            class="img-sm rounded me-2"
+                                            style="width: 40px; height: 40px; object-fit: cover;">
+
+                                        <span>${product.productName}</span>
+                                    </div>
+                                </td>
+                                <td><span class="badge bg-success">${product.totalQuantity}</span></td>
+                                <td><strong>₹${product.totalRevenue.toLocaleString()}</strong></td>
+                            </tr>
+                        `;
+                        tbody.innerHTML += row;
+                    });
+                } else {
+                    document.getElementById('topProductsBody').innerHTML = '<tr><td colspan="4" class="text-center">No data available</td></tr>';
+                }
+            } catch (error) {
+                console.error('Error loading top products:', error);
+                document.getElementById('topProductsBody').innerHTML = '<tr><td colspan="4" class="text-center text-danger">Error loading data</td></tr>';
+            }
+        }
+
+        // Top Categories Chart
+        async function loadTopCategories(period = 'monthly') {
+            try {
+                const response = await fetch(`/admin/api/top-categories?period=${period}`);
+                const result = await response.json();
+
+                if (result.success && result.data.length > 0) {
+                    const ctx = document.getElementById('topCategoriesChart').getContext('2d');
+
+                    if (categoriesChart) {
+                        categoriesChart.destroy();
+                    }
+
+                    const labels = result.data.map(cat => cat.categoryName);
+                    const data = result.data.map(cat => cat.totalQuantity);
+                    const revenues = result.data.map(cat => cat.totalRevenue);
+
+                    const colors = [
+                        'rgba(255, 99, 132, 0.7)',
+                        'rgba(54, 162, 235, 0.7)',
+                        'rgba(255, 206, 86, 0.7)',
+                        'rgba(75, 192, 192, 0.7)',
+                        'rgba(153, 102, 255, 0.7)',
+                        'rgba(255, 159, 64, 0.7)',
+                        'rgba(199, 199, 199, 0.7)',
+                        'rgba(83, 102, 255, 0.7)',
+                        'rgba(255, 99, 255, 0.7)',
+                        'rgba(50, 205, 50, 0.7)'
+                    ];
+
+                    categoriesChart = new Chart(ctx, {
+                        type: 'doughnut',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Units Sold',
+                                data: data,
+                                backgroundColor: colors,
+                                borderWidth: 2,
+                                borderColor: '#fff'
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: {
+                                    position: 'right',
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            const label = context.label || '';
+                                            const value = context.parsed || 0;
+                                            const revenue = revenues[context.dataIndex];
+                                            return `${label}: ${value} units (₹${revenue.toLocaleString()})`;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading top categories:', error);
+            }
+        }
+
+        // Top Brands Chart
+        async function loadTopBrands(period = 'monthly') {
+            try {
+                const response = await fetch(`/admin/api/top-brands?period=${period}`);
+                const result = await response.json();
+
+                if (result.success && result.data.length > 0) {
+                    const ctx = document.getElementById('topBrandsChart').getContext('2d');
+
+                    if (brandsChart) {
+                        brandsChart.destroy();
+                    }
+
+                    const labels = result.data.map(brand => brand.brandName);
+                    const data = result.data.map(brand => brand.totalQuantity);
+
+                    brandsChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                label: 'Units Sold',
+                                data: data,
+                                backgroundColor: 'rgba(153, 102, 255, 0.6)',
+                                borderColor: 'rgba(153, 102, 255, 1)',
+                                borderWidth: 2,
+                                borderRadius: 4
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            indexAxis: 'y',
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    callbacks: {
+                                        label: function(context) {
+                                            return `Units Sold: ${context.parsed.x}`;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                x: {
+                                    beginAtZero: true,
+                                    grid: { color: 'rgba(0, 0, 0, 0.05)' }
+                                },
+                                y: {
+                                    grid: { display: false }
+                                }
+                            }
+                        }
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading top brands:', error);
             }
         }
 

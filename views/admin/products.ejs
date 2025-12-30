@@ -75,7 +75,7 @@
                         <div class="col-md-2 col-6">
                             <select class="form-select" name="status">
                                 <option value="all">All Status</option>
-                                <option value="Available" <%= query.status == "Available" ?"selected":"" %>>Available</option>
+                                <option value="Available" <%= query.status  == "Available" ?"selected":"" %>>Available</option>
                                 <option value="Out of Stock" <%= query.status == "Out of Stock" ?"selected":"" %>>Out of Stock</option>
                                 <option value="Not Available" <%= query.status == "Not Available" ?"selected":"" %>>Not Available</option>
                             </select>

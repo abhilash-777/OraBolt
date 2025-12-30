@@ -1,0 +1,261 @@
+<!-- File: views/partials/breadcrumb.ejs -->
+<style>
+.breadcrumb-container {
+    background: linear-gradient(rgba(0,0,0,0.5),rgba(0,0,0,0.5)), url('/images/bg_6.jpg') center/cover no-repeat;
+    height: 45vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    position: relative;
+}
+
+.breadcrumb-content {
+    z-index: 1;
+}
+
+.breadcrumb-title {
+    color: white;
+    font-weight: bold;
+    font-size: 2.5rem;
+    margin-bottom: 1rem;
+    text-transform: capitalize;
+}
+
+.breadcrumb-nav {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-size: 1rem;
+}
+
+.breadcrumb-nav a {
+    color: #ffc107;
+    font-weight: bold;
+    text-decoration: none;
+    transition: color 0.3s ease;
+}
+
+.breadcrumb-nav a:hover {
+    color: #ffed4e;
+    text-decoration: underline;
+}
+
+.breadcrumb-separator {
+    color: #ffffff;
+    margin: 0 0.25rem;
+}
+
+.breadcrumb-current {
+    color: #e0e0e0;
+}
+
+@media (max-width: 768px) {
+    .breadcrumb-container {
+        height: 35vh;
+    }
+    
+    .breadcrumb-title {
+        font-size: 2rem;
+    }
+    
+    .breadcrumb-nav {
+        font-size: 0.9rem;
+    }
+}
+</style>
+
+<div class="breadcrumb-container">
+    <div class="container breadcrumb-content">
+        <h1 class="breadcrumb-title"><%= pageTitle || 'Page' %></h1>
+        <nav class="breadcrumb-nav" aria-label="breadcrumb" id="breadcrumbNav">
+            <a href="/">Home</a>
+            <span class="breadcrumb-separator">/</span>
+            <span class="breadcrumb-current"><%= pageName || pageTitle || 'Page' %></span>
+        </nav>
+    </div>
+</div>
+
+<script>
+(function() {
+    const STORAGE_KEY = 'breadcrumbHistory';
+    
+    // Route configuration
+    const routeConfig = {
+        '/': { name: 'Home', priority: 0, showInTrail: false },
+        '/shop': { name: 'Shop', priority: 1, showInTrail: true },
+        '/product': { name: 'Product', priority: 2, showInTrail: true },
+        '/cart': { name: 'Cart', priority: 3, showInTrail: false },
+        '/wishlist': { name: 'Wishlist', priority: 2, showInTrail: false },
+        '/checkout': { name: 'Checkout', priority: 4, showInTrail: false },
+        '/profile': { name: 'My Account', priority: 1, showInTrail: false },
+        '/addresses': { name: 'Addresses', priority: 2, showInTrail: false },
+        '/orders': { name: 'My Orders', priority: 2, showInTrail: false },
+        '/wallet': { name: 'Wallet', priority: 2, showInTrail: false }
+    };
+    
+    const currentPage = '<%= pageName || pageTitle || "Page" %>';
+    const currentPath = window.location.pathname;
+    
+    // CRITICAL: Clear history if on home page
+    if (currentPath === '/' || currentPath === '' || currentPath === '/home') {
+        sessionStorage.removeItem(STORAGE_KEY);
+        console.log('✅ Breadcrumb history cleared - on home page');
+        return; // Exit script, no need to build breadcrumb
+    }
+    
+    // Get route info
+    function getRouteInfo(path) {
+        const cleanPath = path.split('?')[0].replace(/\/$/, '');
+        
+        if (routeConfig[cleanPath]) {
+            return { ...routeConfig[cleanPath], path: cleanPath };
+        }
+        
+        const pathParts = cleanPath.split('/').filter(p => p);
+        if (pathParts.length > 0) {
+            const basePath = '/' + pathParts[0];
+            if (routeConfig[basePath]) {
+                return { ...routeConfig[basePath], path: cleanPath };
+            }
+        }
+        
+        return null;
+    }
+    
+    // Build smart breadcrumb
+    function buildBreadcrumbTrail() {
+        const breadcrumbNav = document.getElementById('breadcrumbNav');
+        if (!breadcrumbNav) return;
+        
+        // Double-check: Clear on home
+        if (currentPath === '/' || currentPath === '' || currentPath === '/home') {
+            sessionStorage.removeItem(STORAGE_KEY);
+            breadcrumbNav.innerHTML = '<a href="/">Home</a>';
+            console.log('✅ Home page - history cleared');
+            return;
+        }
+        
+        // Get history
+        let history = [];
+        try {
+            const stored = sessionStorage.getItem(STORAGE_KEY);
+            history = stored ? JSON.parse(stored) : [];
+        } catch (e) {
+            console.error('Error reading breadcrumb history:', e);
+            history = [];
+        }
+        
+        const currentRouteInfo = getRouteInfo(currentPath);
+        const currentPageData = {
+            path: currentPath,
+            name: currentPage,
+            routeInfo: currentRouteInfo,
+            timestamp: Date.now()
+        };
+        
+        // Remove current page if exists
+        history = history.filter(item => item.path !== currentPath);
+        
+        // Smart filtering based on page type
+        let filteredHistory = [];
+        
+        // For Product pages: Keep only Shop in history
+        if (currentPath.includes('/product/')) {
+            const shopIndex = history.map(h => h.path).lastIndexOf('/shop');
+            if (shopIndex !== -1) {
+                filteredHistory = [history[shopIndex]];
+            }
+        }
+        // For Cart: Keep Shop and Product if they exist
+        else if (currentPath === '/cart') {
+            const shopIndex = history.map(h => h.path).lastIndexOf('/shop');
+            if (shopIndex !== -1) {
+                filteredHistory.push(history[shopIndex]);
+            }
+            
+            for (let i = history.length - 1; i >= 0; i--) {
+                if (history[i].path.includes('/product/')) {
+                    filteredHistory.push(history[i]);
+                    break;
+                }
+            }
+        }
+        // For Checkout page: Show Cart in breadcrumb trail
+        else if(currentPath === '/checkout'){
+            // Find Cart page
+            const cartIndex = history.map(h => h.path).lastIndexOf('/cart');
+            
+            if (cartIndex !== -1) {
+                // Cart exists - build trail before cart
+                const beforeCart = history.slice(0, cartIndex);
+                
+                // Find Shop
+                const shopIndex = beforeCart.map(h => h.path).lastIndexOf('/shop');
+                if (shopIndex !== -1) {
+                    filteredHistory.push(beforeCart[shopIndex]);
+                }
+                
+                // Find Product
+                for (let i = beforeCart.length - 1; i >= 0; i--) {
+                    if (beforeCart[i].path.includes('/product/')) {
+                        filteredHistory.push(beforeCart[i]);
+                        break;
+                    }
+                }
+                
+                // Add Cart to trail
+                filteredHistory.push(history[cartIndex]);
+            }
+        }
+        // For other pages: Show only priority routes
+        else {
+            filteredHistory = history.filter(item => {
+                return item.routeInfo && item.routeInfo.showInTrail;
+            }).slice(-2);
+        }
+        
+        // Add current page to history
+        history.push(currentPageData);
+        
+        // Keep reasonable size
+        if (history.length > 10) {
+            history = history.slice(-10);
+        }
+        
+        // Save history
+        try {
+            sessionStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+        } catch (e) {
+            console.error('Error saving breadcrumb history:', e);
+        }
+        
+        // Build breadcrumb HTML
+        let breadcrumbHTML = '<a href="/">Home</a>';
+        
+        // Add filtered trail
+        for (const item of filteredHistory) {
+            const routeInfo = item.routeInfo;
+            if (routeInfo && routeInfo.name !== 'Home') {
+                breadcrumbHTML += '<span class="breadcrumb-separator">/</span>';
+                breadcrumbHTML += `<a href="${item.path}">${routeInfo.name}</a>`;
+            }
+        }
+        
+        // Add current page
+        breadcrumbHTML += '<span class="breadcrumb-separator">/</span>';
+        breadcrumbHTML += `<span class="breadcrumb-current">${currentPage}</span>`;
+        
+        breadcrumbNav.innerHTML = breadcrumbHTML;
+    }
+    
+    // Initialize
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', buildBreadcrumbTrail);
+    } else {
+        buildBreadcrumbTrail();
+    }
+})();
+</script>

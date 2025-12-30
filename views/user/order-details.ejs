@@ -21,7 +21,7 @@
                 </div>
             </div>
             <div class="header-actions">
-                <!-- ✅ FIXED: Changed order.userId?.id to order.userId?._id -->
+                <!-- FIXED: Changed order.userId?.id to order.userId?._id -->
                 <a href="/orders/<%= typeof order.userId === 'object' ? order.userId._id : order.userId %>" class="btn btn-back">
                     <i class="fas fa-arrow-left"></i> Back to Orders
                 </a>
@@ -86,7 +86,7 @@
                                             <% } %>
                                         </div>
                                         <div class="product-info">
-                                            <div class="product-name"><%= item.product?.productName || 'Product' %></div>
+                                            <div class="product-name"><a href="/product/<%= item.product._id %>" style="color: #20212a;"><%= item.product?.productName || 'Product' %></a></div>
                                             <div class="product-price">₹<%= item.price.toLocaleString('en-IN') %></div>
                                         </div>
                                     </div>

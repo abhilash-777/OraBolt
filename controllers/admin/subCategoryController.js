@@ -3,7 +3,6 @@ const subCategory = require("../../models/subCategorySchema");
 const mongoose = require("mongoose");
 
 const subCategoryInfo = async function (req,res) {
-
     try {
 
         const page = parseInt(req.query.page)||1;
@@ -33,13 +32,11 @@ const subCategoryInfo = async function (req,res) {
             totalSubCategory:totalSubCategories,
             categories,
             search
-        });
-        
+        });    
     } catch (error) {
         console.error("Sub category info error:",error);
         res.redirect("/admin/pageError")
-    }
-    
+    } 
 };
 
 const addSubCategory = async function (req,res) {
@@ -57,8 +54,6 @@ const addSubCategory = async function (req,res) {
                 name,
                 description,
                 categoryId,
-                offer:offer||0,
-                offerAddedAt:offer?new Date():null
             });
             await newSubCategory.save();
             return res.json({success:true,message:"Sub Category added successfully"});
@@ -67,14 +62,11 @@ const addSubCategory = async function (req,res) {
     } catch (error) {
         console.error("error in creating subcategory:",error);
         return res.status(500).json({success:false,error:"Invalid server error"});
-    }
-    
+    }  
 };
 
 const loadEditSubCategory = async function (req,res) {
-
     try {
-
         const subCategoryId = req.params.id;
         if(!mongoose.Types.ObjectId.isValid(subCategoryId)){
             return res.redirect("/admin/pageError")
@@ -87,13 +79,12 @@ const loadEditSubCategory = async function (req,res) {
         res.render("editSubCategory",{subcategory,categories});
         
     } catch (error) {
-        
-    }
-    
+        console.log("somthing wrong while processing:",error);
+        return res.redirect("/admin/pageError");
+    }  
 };
 
 const editSubCategory = async function (req,res) {
-
     try {
         const {name,description,categoryId} = req.body;
         const subcategoryId = req.params.id;
@@ -133,11 +124,9 @@ const editSubCategory = async function (req,res) {
             return res.status(500).json({success:false,error:"Internal server error"});
         }
     }
-    
 };
 
 const deleteSubCategory = async function (req,res) {
-
     try {
         const subCategoryId = req.params.id;
         if(!mongoose.Types.ObjectId.isValid(subCategoryId)){
@@ -154,12 +143,10 @@ const deleteSubCategory = async function (req,res) {
     } catch (error) {
         console.error("error in delete sub category:",error);
         return res.status(500).json({success:false,error:"Internal server  error"});
-    }
-    
+    }   
 };
 
 const toggleList = async function (req,res) {
-
     try {
 
         const {subCategoryId,isListed} = req.body;
@@ -172,8 +159,7 @@ const toggleList = async function (req,res) {
     } catch (error) {
         console.error("error listing and unlisting sub Category:",error);
         res.status(500).json({success:false,error:"Internal server error"});
-    }
-    
+    }  
 };
 
 module.exports = {

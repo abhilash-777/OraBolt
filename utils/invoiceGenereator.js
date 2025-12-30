@@ -48,15 +48,14 @@ function generateInvoice(order, userData, filePath) {
             // Order Status
             doc.fontSize(10)
                .font('Helvetica-Bold')
-               .text('Order Status: ', 350, 145, { continued: true, align: 'right' })
                .fillColor(getStatusColor(order.status))
-               .text(order.status, { align: 'right' });
+               .text(`Order Status: ${order.status}`, 350, 145, { align: 'right' });
 
             // Horizontal line
             doc.strokeColor('#bdc3c7')
                .lineWidth(1)
-               .moveTo(50, 150)
-               .lineTo(550, 150)
+               .moveTo(50, 155)
+               .lineTo(550, 155)
                .stroke();
 
             // Billing Information
@@ -85,8 +84,8 @@ function generateInvoice(order, userData, filePath) {
                .fillColor('#34495e')
                .text(order.address?.name || userData.name || 'N/A', 320, 210)
                .text(order.address?.address || 'N/A', 320, 225, { width: 230 })
-               .text(`${order.address?.city || ''}, ${order.address?.state || ''} - ${order.address?.pincode || ''}`, 320, 240)
-               .text(`Phone: ${order.address?.phone || userData.phone || 'N/A'}`, 320, 255);
+               .text(`${order.address?.city || ''}, ${order.address?.state || ''} - ${order.address?.pincode || ''}`, 320, 250)
+               .text(`Phone: ${order.address?.phone || userData.phone || 'N/A'}`, 320, 265);
 
             // Table Header
             const tableTop = 310;

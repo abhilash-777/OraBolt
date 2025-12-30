@@ -60,7 +60,6 @@ const userSchema = new Schema({
     referralCode : {
         type : String,
         unique : true,
-        required : true
     },
     referredBy : {
         type : Schema.Types.ObjectId,

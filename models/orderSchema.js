@@ -2,15 +2,9 @@
 
     const {Schema} = mongoose;
 
-    function generateUniqueOrderId() {
-        const randomPart = Math.floor(100000 + Math.random() * 900000);
-        return `ORD${randomPart}`;
-    }
-
     const orderSchema = new Schema ({
         orderId : {
             type : String,
-            default : generateUniqueOrderId,
             unique : true
         },
         userId: {

@@ -410,11 +410,11 @@
                 if (name === '') {
                     showError(nameInput, nameError, 'Name should is required');
                     return false;
-                }else if(!/^(?=.*[A-Za-z])[A-Za-z\s._]+$/.test(name)){
-                    showError(nameInput, nameError, 'Name should contain alphabetic characters');
+                }else if(!/^[A-Za-z][A-Za-z\s._]*$/.test(name)){
+                    showError(nameInput, nameError, 'Name should start with alphabetic characters(Name should not contain digits and special character)');
                     return false;
-                }else if (name.length < 3) {
-                    showError(nameInput, nameError, 'Name must be at least 3 characters');
+                }else if (name.length < 3  || name.length > 20) {
+                    showError(nameInput, nameError, 'User name should be contain 3 to 20 characters');
                     return false;
                 } else {
                     showSuccess(nameInput, nameError);

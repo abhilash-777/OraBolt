@@ -9,22 +9,17 @@ const ExcelJS = require("exceljs");
 
 
 const loadLogin = (req, res) => {
-
     if (req.session.admin) {
         return res.redirect('/admin');
     }
     res.render("login", { message: null });
-
 };
 
 const login = async function (req, res) {
-
     try {
 
         const { email, password } = req.body;
-        //console.log("admin data", email, password);
         const admin = await User.findOne({ email, isAdmin: true });
-        //console.log("stored admin data:", admin);
 
         if (!admin) {
             return res.render("login",{message:"Admin not found"});
@@ -43,7 +38,6 @@ const login = async function (req, res) {
         console.log("Login error", error);
         return res.redirect('/admin/pageError');
     }
-
 };
 
 const pageError = async function (req, res) {
@@ -64,7 +58,7 @@ const loadDash = async function (req, res) {
             {
                 $match: { 
                     status: {$nin:["Cancelled","Returned"]},
-                    paymentStatus: {$in:["Paid","Pending"]}
+                    paymentStatus: {$in:["Paid","Pending","Partial Refund Initiated"]}
                 }
             },
             {
@@ -75,6 +69,21 @@ const loadDash = async function (req, res) {
                     totalOrders: { $sum: 1 }
                 }
             }
+        ]);
+
+        const discountData = await Order.aggregate([
+            {
+                $match: { 
+                    status: {$nin:["Cancelled","Returned"]},
+                    paymentStatus: {$in:["Paid","Pending"]}
+                }
+            },
+            {
+                $group:{
+                    _id:null,
+                    totalDiscount:{$sum:"$discount"}
+                }
+            },{$project:{_id:0,totalDiscount:1}}
         ]);
 
         const netRevenue = revenueData.length > 0 ? 
@@ -91,6 +100,7 @@ const loadDash = async function (req, res) {
             categoryCount,
             ordersCount,
             totalRevenue:netRevenue,
+            totalDiscount:discountData[0].totalDiscount > 0 ? discountData[0].totalDiscount : 0,
             chartData: {
                 daily: dailyData,
                 weekly: weeklyData,
@@ -164,7 +174,7 @@ const getSalesData = async (period) => {
                         $lte: endDate
                     },
                     status: { $nin: ["Cancelled", "Returned"] },
-                    paymentStatus: { $in: ["Paid", "Pending"] }
+                    paymentStatus: { $in: ["Paid", "Pending","Partial Refund Initiated"] }
                 }
             },
             {
@@ -207,6 +217,245 @@ const getChartDataAPI = async (req, res) => {
     } catch (error) {
         console.error('Chart API Error:', error);
         res.status(500).json({ error: 'Internal server error' });
+    }
+};
+
+// Helper function to get date range for period (used by best sellers)
+const getDateRangeForPeriod = (period) => {
+    const now = new Date();
+    let startDate = new Date(now);
+    let daysBack;
+
+    switch (period) {
+        case 'daily':
+            daysBack = 7;
+            startDate.setDate(now.getDate() - daysBack + 1);
+            break;
+        case 'weekly':
+            daysBack = 56;
+            startDate.setDate(now.getDate() - daysBack + 1);
+            break;
+        case 'monthly':
+            daysBack = 365;
+            startDate.setDate(now.getDate() - daysBack + 1);
+            break;
+        case 'yearly':
+            daysBack = 1825;
+            startDate.setDate(now.getDate() - daysBack + 1);
+            break;
+        default:
+            daysBack = 365;
+            startDate.setDate(now.getDate() - daysBack + 1);
+    }
+
+    startDate.setHours(0, 0, 0, 0);
+    const endDate = new Date(now);
+    endDate.setHours(23, 59, 59, 999);
+
+    return { startDate, endDate };
+};
+
+// Get top 10 best selling products with period filter
+const getTopProducts = async (req, res) => {
+    try {
+        const { period = 'monthly' } = req.query;
+        const dateRange = getDateRangeForPeriod(period);
+
+        const topProducts = await Order.aggregate([
+            {
+                $match: {
+                    createdOn: {
+                        $gte: dateRange.startDate,
+                        $lte: dateRange.endDate
+                    },
+                    status: { $nin: ["Cancelled", "Returned"] },
+                    paymentStatus: { $in: ["Paid", "Pending","Partial Refund Initiated"] }
+                }
+            },
+            { $unwind: "$orderedItems" },
+            {
+                $match: {
+                    "orderedItems.status": { $nin: ["Cancelled", "Returned"] }
+                }
+            },
+            {
+                $group: {
+                    _id: "$orderedItems.product",
+                    totalQuantity: { $sum: "$orderedItems.quantity" },
+                    totalRevenue: { 
+                        $sum: { 
+                            $multiply: ["$orderedItems.quantity", "$orderedItems.price"] 
+                        } 
+                    }
+                }
+            },
+            { $sort: { totalQuantity: -1 } },
+            { $limit: 10 },
+            {
+                $lookup: {
+                    from: "products",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "productInfo"
+                }
+            },
+            { $unwind: "$productInfo" },
+            {
+                $project: {
+                    productName: "$productInfo.productName",
+                    productImage: "$productInfo.image",
+                    totalQuantity: 1,
+                    totalRevenue: 1
+                }
+            }
+        ]);
+
+        res.json({ success: true, data: topProducts });
+    } catch (error) {
+        console.error('Top Products Error:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+};
+
+// Get top 10 best selling categories with period filter
+const getTopCategories = async (req, res) => {
+    try {
+        const { period = 'monthly' } = req.query;
+        const dateRange = getDateRangeForPeriod(period);
+
+        const topCategories = await Order.aggregate([
+            {
+                $match: {
+                    createdOn: {
+                        $gte: dateRange.startDate,
+                        $lte: dateRange.endDate
+                    },
+                    status: { $nin: ["Cancelled", "Returned"] },
+                    paymentStatus: { $in: ["Paid", "Pending","Partial Refund Initiated"] }
+                }
+            },
+            { $unwind: "$orderedItems" },
+            {
+                $match: {
+                    "orderedItems.status": { $nin: ["Cancelled", "Returned"] }
+                }
+            },
+            {
+                $lookup: {
+                    from: "products",
+                    localField: "orderedItems.product",
+                    foreignField: "_id",
+                    as: "productInfo"
+                }
+            },
+            { $unwind: "$productInfo" },
+            {
+                $group: {
+                    _id: "$productInfo.category",
+                    totalQuantity: { $sum: "$orderedItems.quantity" },
+                    totalRevenue: { 
+                        $sum: { 
+                            $multiply: ["$orderedItems.quantity", "$orderedItems.price"] 
+                        } 
+                    }
+                }
+            },
+            { $sort: { totalQuantity: -1 } },
+            { $limit: 10 },
+            {
+                $lookup: {
+                    from: "categories",
+                    localField: "_id",
+                    foreignField: "_id",
+                    as: "categoryInfo"
+                }
+            },
+            { $unwind: "$categoryInfo" },
+            {
+                $project: {
+                    categoryName: "$categoryInfo.name",
+                    totalQuantity: 1,
+                    totalRevenue: 1
+                }
+            }
+        ]);
+
+        res.json({ success: true, data: topCategories });
+    } catch (error) {
+        console.error('Top Categories Error:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+    }
+};
+
+// Get top 10 best selling brands with period filter
+const getTopBrands = async (req, res) => {
+    try {
+        const { period = 'monthly' } = req.query;
+        const dateRange = getDateRangeForPeriod(period);
+
+        const topBrands = await Order.aggregate([
+            {
+                $match: {
+                    createdOn: {
+                        $gte: dateRange.startDate,
+                        $lte: dateRange.endDate
+                    },
+                    status: { $nin: ["Cancelled", "Returned"] },
+                    paymentStatus: { $in: ["Paid", "Pending","Partial Refund Initiated"] }
+                }
+            },
+            { $unwind: "$orderedItems" },
+            {
+                $match: {
+                    "orderedItems.status": { $nin: ["Cancelled", "Returned"] }
+                }
+            },
+            {
+                $lookup: {
+                    from: "products",
+                    localField: "orderedItems.product",
+                    foreignField: "_id",
+                    as: "productInfo"
+                }
+            },
+            { $unwind: "$productInfo" },
+            {
+                $lookup: {
+                    from: "brands",
+                    localField: "productInfo.brand",
+                    foreignField: "_id",
+                    as: "brandInfo"
+                }
+            },
+            { $unwind: "$brandInfo" },
+            {
+                $group: {
+                    _id: "$brandInfo._id",
+                    brandName: { $first: "$brandInfo.brandName" },
+                    totalQuantity: { $sum: "$orderedItems.quantity" },
+                    totalRevenue: { 
+                        $sum: { 
+                            $multiply: ["$orderedItems.quantity", "$orderedItems.price"] 
+                        } 
+                    }
+                }
+            },
+            { $sort: { totalQuantity: -1 } },
+            { $limit: 10 },
+            {
+                $project: {
+                    _id: 0,
+                    brandName: 1,
+                    totalQuantity: 1,
+                    totalRevenue: 1
+                }
+            }
+        ]);
+
+        res.json({ success: true, data: topBrands });
+    } catch (error) {
+        console.error('Top Brands Error:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
     }
 };
 
@@ -256,7 +505,7 @@ const generateSalesReport = async (req, res) => {
                 $lte: end
             },
             status: { $nin: ['Cancelled',"Returned"] }, 
-            paymentStatus: { $in: ['Paid', 'Pending',"Failed"] } 
+            paymentStatus: { $in: ['Paid', 'Pending',"Failed","Partial Refund Initiated"] } 
         };
 
         // Get orders with populated data
@@ -465,7 +714,9 @@ const generateExcelReport = async (reportData, res) => {
 const logout = async function (req, res) {
 
     try {
-        req.session.destroy((err) => {
+        delete req.session.admin;
+        delete req.session.adminId;
+        req.session.save((err) => {
             if (err) {
                 console.error("Error destroying ssession", err);
                 return res.redirect('/admin/pageError');
@@ -485,6 +736,9 @@ module.exports = {
     loadDash,
     loadSalesReportPage,
     getChartDataAPI,
+    getTopProducts,
+    getTopCategories,
+    getTopBrands,
     generateSalesReport,
     pageError,
     logout

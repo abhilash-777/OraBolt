@@ -65,7 +65,7 @@
 									<p class="mb-4">A small river named Duden flows by their place and supplies it with
 										the necessary regelialia. It is a paradisematic country.</p>
 
-									<p><a href="#" class="btn-custom">Discover Now</a></p>
+									<p><a href="/shop?sortBy=newest&limit=6&page=1" class="btn-custom">Discover Now</a></p>
 								</div>
 							</div>
 						</div>
@@ -88,7 +88,8 @@
 									<p class="mb-4">A small river named Duden flows by their place and supplies it with
 										the necessary regelialia. It is a paradisematic country.</p>
 
-									<p><a href="#" class="btn-custom">Discover Now</a></p>
+									<p><a href="/shop?subcategories=689ebef44017dd1f173442d5&sortBy=newest&limit=6&page=1"
+										class="btn-custom">Discover Now</a></p>
 								</div>
 							</div>
 						</div>
@@ -145,8 +146,8 @@
 		<div class="container">
 			<div class="row justify-content-center mb-3 pb-3">
 				<div class="col-md-12 heading-section text-center ftco-animate">
-					<h2 class="mb-4">New Watches Arrival</h2>
-					<p>Far far away, behind the word mountains, far from the countries Vokalia and Consonantia</p>
+					<h2 class="mb-4">New Watch Arrivals</h2>
+					<hr>
 				</div>
 			</div>
 		</div>
@@ -158,11 +159,13 @@
 		%>
 	<div class="col-sm-6 col-md-4 col-lg-3 mb-4 ">
 		<div class="product d-flex flex-column">
-			<button class="wishlist-icon" title="<%= isWishlist ? 'Remove from Wishlist' : 'Add to Wishlist' %>"
-				onclick="event.stopPropagation(); addToWishlist('<%= product._id %>')"
-				style="background: none; border: none; cursor: pointer; position: absolute; top: 10px; right: 10px; z-index: 10;">
-				<span class="icon-heart heart-icon <%= isWishlist ? 'in-wishlist' : '' %>"></span>
-			</button>
+			<% if(user && user !== 'undefined'){ %>
+			    <button class="wishlist-icon" title="<%= isWishlist ? 'Remove from Wishlist' : 'Add to Wishlist' %>"
+				    onclick="event.stopPropagation(); addToWishlist('<%= product._id %>')"
+				    style="background: none; border: none; cursor: pointer; position: absolute; top: 10px; right: 10px; z-index: 10;">
+				    <span class="icon-heart heart-icon <%= isWishlist ? 'in-wishlist' : '' %>"></span>
+			    </button>
+			<% } %>
 			
 			<a href="/product/<%= product._id %>" class="img-prod">
 				<img class="img-fluid" src="/uploads/productsImages/<%= product.image[0] %>"
@@ -182,9 +185,9 @@
 				<div class="d-flex justify-content-between align-items-center mb-2">
 					<div class="cat">
 						<% if(product.status === "Available" && product.quantity > 0){ %>
-							<span class="bg-primary" style="color: white; font-size: 10px;"><%= product.status %></span>
+							<span class="bg-success" style="color: white; font-size: 10px;"><%= product.status %></span>
 						<% } else { %>
-							<span style="color: rgb(255, 255, 255); font-size: 8px; background-color: red;">Out Of Stock</span>
+							<span class="bg-danger" style="color: white; font-size: 10px;">Out Of Stock</span>
 						<% } %>
 					</div>
 					<div class="rating">
@@ -228,7 +231,7 @@
 							Buy now<span><i class="ion-ios-cart ml-1"></i></span>
 						</a>
 					<% } else { %>
-						<a href="/login" class="add-to-cart text-center py-2">
+						<a href="/login" class="text-center py-2" style="background: #000; color: white; border-radius: 10px;font-weight: 300;">
 							<span>Add to cart <i class="ion-ios-add ml-1"></i></span>
 						</a>
 						<a href="/login" class="buy-now text-center py-2">
@@ -353,6 +356,7 @@
 					const data = await response.json();
 					if(data.success){
 						Swal.fire({icon:'success',title:"Added.",text:'product added to cart',showConfirmButton:false,timer:1500})
+						.then(() => window.location.reload())
 					}else{
 						Swal.fire({icon:"error",title:"Failed!",text:data.message||"Failed to add product into cart"});
 					}

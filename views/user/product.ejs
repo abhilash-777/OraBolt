@@ -1,31 +1,46 @@
 <%-include("../partials/user/header.ejs") %>
 
+<%-include("../partials/bread_crumb.ejs",{pageTitle:product.productName,pageName:product.productName}) %>
+
     <style>
 		.product-image-gallery {
-    position: relative;
-    width: 100%;
+    display: flex;
+    gap: 15px;
+    height: 500px; /* Fixed height to match main image */
+    align-items: flex-start;
 }
 
 .main-image-container {
     position: relative;
-    margin-bottom: 20px;
+    flex: 1; /* Take remaining space */
     border-radius: 12px;
     overflow: hidden;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
     background: #f8f9fa;
+    border: 1px solid rgba(0, 0, 0, 0.05);
 }
 
 .main-image {
     width: 100%;
-    height: 450px;
-    object-fit: cover;
+    height: 400px;
+    object-fit: fill;
     cursor: zoom-in;
-    transition: all 0.4s ease;
+    transition: all 0.1s ease;
     display: block;
 }
 
 .main-image:hover {
     transform: scale(1.03);
+}
+
+/* Zoomed state for in-place zoom */
+.main-image.zoomed {
+    cursor: grab;
+    transition: none; /* Instant for pan */
+}
+
+.main-image.zoomed:active {
+    cursor: grabbing;
 }
 
 .image-counter {
@@ -42,39 +57,41 @@
     backdrop-filter: blur(10px);
 }
 
-.thumbnail-container {
+.vertical-thumbnail-container {
     display: flex;
+    flex-direction: column;
     gap: 12px;
-    overflow-x: auto;
-    padding: 15px 5px;
-    margin-top: 10px;
+    width: 85px; /* Fixed width for thumbnails */
+    height: 100%;
+    overflow-y: auto;
+    padding: 0 5px;
     scroll-behavior: smooth;
     scrollbar-width: thin;
     scrollbar-color: #dee2e6 #f8f9fa;
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
-.thumbnail-container::-webkit-scrollbar {
-    height: 8px;
+.vertical-thumbnail-container::-webkit-scrollbar {
+    width: 8px;
 }
 
-.thumbnail-container::-webkit-scrollbar-track {
+.vertical-thumbnail-container::-webkit-scrollbar-track {
     background: #f8f9fa;
     border-radius: 10px;
 }
 
-.thumbnail-container::-webkit-scrollbar-thumb {
+.vertical-thumbnail-container::-webkit-scrollbar-thumb {
     background: #dee2e6;
     border-radius: 10px;
     transition: background 0.3s ease;
 }
 
-.thumbnail-container::-webkit-scrollbar-thumb:hover {
+.vertical-thumbnail-container::-webkit-scrollbar-thumb:hover {
     background: #adb5bd;
 }
 
 .thumbnail {
-    flex-shrink: 0;
-    width: 85px;
+    width: 100%;
     height: 85px;
     object-fit: cover;
     border-radius: 10px;
@@ -83,6 +100,7 @@
     border: 3px solid transparent;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     opacity: 0.8;
+    flex-shrink: 0;
 }
 
 .thumbnail:hover {
@@ -97,29 +115,6 @@
     transform: translateY(-2px) scale(1.05);
     opacity: 1;
     box-shadow: 0 4px 15px rgba(0, 123, 255, 0.4);
-}
-
-.image-zoom-modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.95);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 9999;
-    cursor: pointer;
-    animation: fadeIn 0.3s ease;
-}
-
-.image-zoom-modal img {
-    max-width: 90%;
-    max-height: 90%;
-    object-fit: contain;
-    border-radius: 8px;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
 }
 
 @keyframes fadeIn {
@@ -223,22 +218,48 @@
     .product-details {
         padding-left: 0 !important;
         margin-top: 30px;
+        margin-left: 20px;
     }
+    .product-image-gallery {
+        flex-direction: column;
+        height: auto;
+        gap: 15px;
+    }
+    .vertical-thumbnail-container {
+        flex-direction: row;
+        width: auto;
+        height: 85px;
+        overflow-x: auto;
+        overflow-y: hidden;
+        gap: 12px;
+    }
+
+    .thumbnail {
+        width: 85px;
+        height: 100%;
+        min-width: 85px;
+    } 
 }
 
 @media (max-width: 768px) {
-    .main-image {
-        height: 300px;
+    .main-image-container {
+        aspect-ratio: 1 / 1;
+        max-height: 350px;
+    }
+
+    .main-image{
+        height: 100%;
+        margin-left: 20px;
     }
     
     .thumbnail {
         width: 70px;
         height: 70px;
+        min-width: 70px;
     }
     
-    .thumbnail-container {
+    .vertical-thumbnail-container {
         gap: 8px;
-        padding: 10px 0;
     }
     
     .product-details h3 {
@@ -254,6 +275,12 @@
     .image-counter {
         font-size: 12px;
         padding: 6px 10px;
+    }
+
+    /* Mobile zoom: simple scale on double-tap */
+    .main-image.zoomed {
+        transform: scale(1.5) !important;
+        cursor: zoom-out;
     }
 }
 
@@ -271,7 +298,7 @@
         font-size: 1.6rem;
     }
     
-    .thumbnail-container {
+    .vertical-thumbnail-container {
         gap: 6px;
     }
 }
@@ -345,64 +372,97 @@
         	display: block;
            	overflow: hidden;
         }
-	</style>
+        /* User Review Card Styles */
+        .border-left-primary {
+            border-left: 4px solid #007bff !important;
+        }
 
-	<div class="hero-wrap hero-bread" style="background-image: url('/images/bg_6.jpg');">
-		<div class="container">
-			<div class="row no-gutters slider-text align-items-center justify-content-center">
-				<div class="col-md-9 ftco-animate text-center">
-					<p class="breadcrumbs"><span class="mr-2"><a href="/">Home</a></span> <span>Shop</span></p>
-					<h1 class="mb-0 bread">Product</h1>
-				</div>
-			</div>
-		</div>
-	</div>
+        .alert-info.border-left-primary {
+            background-color: #f8f9fa;
+            border-color: #dee2e6;
+        }
+
+        /* Star Rating Styles */
+        .star-rating-input .stars-interactive {
+            font-size: 40px;
+            cursor: pointer;
+            display: inline-block;
+        }
+
+        .star-input {
+            color: #ddd;
+            transition: color 0.2s;
+            cursor: pointer;
+            margin: 0 3px;
+        }
+
+        .star-input:hover,
+        .star-input.active {
+            color: #f4c430;
+        }
+
+        .rating-bars .progress {
+            background-color: #f0f0f0;
+        }
+
+        .review-images img {
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .review-images img:hover {
+            transform: scale(1.05);
+        }
+
+        .helpful-btn.marked {
+            background-color: #007bff;
+            color: white;
+        }
+	</style>
 
 	<section class="ftco-section">
 		<div class="container">
 			<div class="row">
 				<div class="col-lg-6 mb-5 ftco-animate">
                 <div class="product-image-gallery">
-                    <!-- Main Image Display -->
-                    <div class="main-image-container">
-                        <button class="wishlist-icon" title="<%= isWishlist ? 'Remove from Wishlist' : 'Add to Wishlist' %>"
-							onclick="event.stopPropagation(); addToWishlist('<%= product._id %>')"
-			     			style="background: none; border: none; cursor: pointer; position: absolute; top: 10px; right: 10px; z-index: 10;">
-							<span class="icon-heart heart-icon <%= isWishlist ? 'in-wishlist' : '' %>"></span>
-						</button>
-                        <% if (product.image && product.image.length > 0) { %>
-                            <img id="mainImage" 
-                                 src="/uploads/productsImages/<%= product.image[0] %>" 
-                                 class="img-fluid main-image" 
-                                 alt="<%= product.productName %>"
-                                 style="width: 100%; height: 400px; object-fit: cover; cursor: zoom-in;">
-                        <% } else { %>
-                            <img id="mainImage" 
-                                 src="/uploads/productsImages/default.png" 
-                                 class="img-fluid main-image" 
-                                 alt="<%= product.productName %>"
-                                 style="width: 100%; height: 400px; object-fit: cover;">
-                        <% } %>
-                        
-                        <!-- Image Counter -->
-                        <div class="image-counter" style="position: absolute; top: 15px; right: 15px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 20px; font-size: 12px;">
-                            <span id="currentImageIndex">1</span> / <span id="totalImages"><%= product.image ? product.image.length : 1 %></span>
-                        </div>
-                    </div>
-                    
-                    <!-- Thumbnail Images -->
+                    <!-- Vertical Thumbnails (Left Side) -->
                     <% if (product.image && product.image.length > 1) { %>
-                        <div class="thumbnail-container" 
-                             style="display: flex; gap: 10px; overflow-x: auto; padding: 10px 0; margin-top: 15px;">
+                        <div class="vertical-thumbnail-container">
                             <% product.image.forEach((image, index) => { %>
                                 <img src="/uploads/productsImages/<%= image %>" 
                                      alt="<%= product.productName %> - Image <%= index + 1 %>" 
                                      class="thumbnail <%= index === 0 ? 'active' : '' %>" 
-                                     data-index="<%= index %>"
-                                     style="flex-shrink: 0; width: 80px; height: 80px; object-fit: cover; border-radius: 8px; cursor: pointer; transition: all 0.3s ease; border: 2px solid <%= index === 0 ? '#007bff' : 'transparent' %>;">
+                                     data-index="<%= index %>">
                             <% }); %>
                         </div>
                     <% } %>
+                    
+                    <!-- Main Image Display -->
+                    <div class="main-image-container">
+                        <% if(user && user !== 'undefined'){ %>
+                            <button class="wishlist-icon" title="<%= isWishlist ? 'Remove from Wishlist' : 'Add to Wishlist' %>"
+							    onclick="event.stopPropagation(); addToWishlist('<%= product._id %>')"
+			     			    style="background: none; border: none; cursor: pointer; position: absolute; top: 10px; right: 10px; z-index: 10;">
+							    <span class="icon-heart heart-icon <%= isWishlist ? 'in-wishlist' : '' %>"></span>
+						    </button>
+                        <% } %>
+                        <% if (product.image && product.image.length > 0) { %>
+                            <img id="mainImage" 
+                                 src="/uploads/productsImages/<%= product.image[0] %>" 
+                                 class="img-fluid main-image" 
+                                 alt="<%= product.productName %>">
+                        <% } else { %>
+                            <img id="mainImage" 
+                                 src="/uploads/productsImages/default.png" 
+                                 class="img-fluid main-image" 
+                                 alt="<%= product.productName %>">
+                        <% } %>
+                        
+                        <!-- Image Counter -->
+                        <div class="image-counter">
+                            <span id="currentImageIndex">1</span> / <span id="totalImages"><%= product.image ? product.image.length : 1 %></span>
+                        </div>
+                    </div>
                 </div>
             </div>
 				<div class="col-lg-6 product-details pl-md-5 ftco-animate">
@@ -441,19 +501,6 @@
 					<p></p>
 					<p><%= product.description %></p>
 					<div class="row mt-4">
-						<!-- <div class="col-md-6">
-							<div class="form-group d-flex">
-								<div class="select-wrap">
-									<div class="icon"><span class="ion-ios-arrow-down"></span></div>
-									<select name="" id="" class="form-control">
-										<option value="">Small</option>
-										<option value="">Medium</option>
-										<option value="">Large</option>
-										<option value="">Extra Large</option>
-									</select>
-								</div>
-							</div>
-						</div> -->
 						<div class="w-100"></div>
 						<div class="input-group col-md-6 d-flex mb-3">
 							<span class="input-group-btn mr-2">
@@ -478,17 +525,23 @@
                             <div class="col-md-12">
 							    <p style="color: #000;">Stock : <%= product.quantity %></p>
 						    </div>
-
-                            <p>
-                                <a href="#" class=" add-to-cart btn btn-black py-3 px-5 mr-2" data-id="<%= product._id %>">Add to Cart</a>
-						        <a href="/checkout/<%= product._id %>" class="btn btn-primary py-3 px-5">Buy now</a>
-                            </p>
+                            <% if(user){ %>
+                                <p>
+                                    <a href="#" class=" add-to-cart btn btn-black py-3 px-5 mr-2" data-id="<%= product._id %>">Add to Cart</a>
+						            <a href="/checkout?productId=<%= product._id %>&qty=1" class="btn btn-primary py-3 px-5">Buy now</a>
+                                </p>
+                            <% } else { %>
+                                <p>
+                                    <a href="/login" class="btn btn-black py-3 px-5 mr-2">Add to Cart</a>
+						            <a href="/login" class="btn btn-primary py-3 px-5">Buy now</a>
+                                </p>
+                            <% } %>
                         <% } %>
 					</div>
 				</div>
 			</div>
 
-			<div class="row mt-5">
+			<div class="row mt-3">
 				<div class="col-md-12 nav-link-wrap">
 					<div class="nav nav-pills d-flex text-center" id="v-pills-tab" role="tablist"
 						aria-orientation="vertical">
@@ -527,144 +580,260 @@
 									their.</p>
 							</div>
 						</div>
-						<div class="tab-pane fade" id="v-pills-3" role="tabpanel" aria-labelledby="v-pills-day-3-tab">
-							<div class="row p-4">
-								<div class="col-md-7">
-									<h3 class="mb-4">23 Reviews</h3>
-									<div class="review">
-										<div class="user-img" style="background-image: url(images/person_1.jpg)"></div>
-										<div class="desc">
-											<h4>
-												<span class="text-left">Jacob Webb</span>
-												<span class="text-right">14 March 2018</span>
-											</h4>
-											<p class="star">
-												<span>
-													<i class="ion-ios-star-outline"></i>
-													<i class="ion-ios-star-outline"></i>
-													<i class="ion-ios-star-outline"></i>
-													<i class="ion-ios-star-outline"></i>
-													<i class="ion-ios-star-outline"></i>
-												</span>
-												<span class="text-right"><a href="#" class="reply"><i
-															class="icon-reply"></i></a></span>
-											</p>
-											<p>When she reached the first hills of the Italic Mountains, she had a last
-												view back on the skyline of her hometown Bookmarksgrov</p>
-										</div>
-									</div>
-									<div class="review">
-										<div class="user-img" style="background-image: url(images/person_2.jpg)"></div>
-										<div class="desc">
-											<h4>
-												<span class="text-left">Jacob Webb</span>
-												<span class="text-right">14 March 2018</span>
-											</h4>
-											<p class="star">
-												<span>
-													<i class="ion-ios-star-outline"></i>
-													<i class="ion-ios-star-outline"></i>
-													<i class="ion-ios-star-outline"></i>
-													<i class="ion-ios-star-outline"></i>
-													<i class="ion-ios-star-outline"></i>
-												</span>
-												<span class="text-right"><a href="#" class="reply"><i
-															class="icon-reply"></i></a></span>
-											</p>
-											<p>When she reached the first hills of the Italic Mountains, she had a last
-												view back on the skyline of her hometown Bookmarksgrov</p>
-										</div>
-									</div>
-									<div class="review">
-										<div class="user-img" style="background-image: url(images/person_3.jpg)"></div>
-										<div class="desc">
-											<h4>
-												<span class="text-left">Jacob Webb</span>
-												<span class="text-right">14 March 2018</span>
-											</h4>
-											<p class="star">
-												<span>
-													<i class="ion-ios-star-outline"></i>
-													<i class="ion-ios-star-outline"></i>
-													<i class="ion-ios-star-outline"></i>
-													<i class="ion-ios-star-outline"></i>
-													<i class="ion-ios-star-outline"></i>
-												</span>
-												<span class="text-right"><a href="#" class="reply"><i
-															class="icon-reply"></i></a></span>
-											</p>
-											<p>When she reached the first hills of the Italic Mountains, she had a last
-												view back on the skyline of her hometown Bookmarksgrov</p>
-										</div>
-									</div>
-								</div>
-								<div class="col-md-4">
-									<div class="rating-wrap">
-										<h3 class="mb-4">Give a Review</h3>
-										<p class="star">
-											<span>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												(98%)
-											</span>
-											<span>20 Reviews</span>
-										</p>
-										<p class="star">
-											<span>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												(85%)
-											</span>
-											<span>10 Reviews</span>
-										</p>
-										<p class="star">
-											<span>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												(98%)
-											</span>
-											<span>5 Reviews</span>
-										</p>
-										<p class="star">
-											<span>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												(98%)
-											</span>
-											<span>0 Reviews</span>
-										</p>
-										<p class="star">
-											<span>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												<i class="ion-ios-star-outline"></i>
-												(98%)
-											</span>
-											<span>0 Reviews</span>
-										</p>
-									</div>
-								</div>
-							</div>
-						</div>
+						<!-- Reviews Tab Content -->
+                        <div class="tab-pane fade" id="v-pills-3" role="tabpanel" aria-labelledby="v-pills-day-3-tab">
+                            <div class="row p-4">
+                                <!-- Left Column: Reviews List -->
+                                <div class="col-md-8">
+                                    <!-- Rating Summary -->
+                                    <div class="rating-summary mb-4">
+                                        <div class="d-flex align-items-center mb-3">
+                                            <h2 class="display-4 mb-0 mr-3"><%= ratingData.average.toFixed(1) %></h2>
+                                            <div>
+                                                <div class="stars mb-1">
+                                                    <% for(let i = 1; i <= 5; i++) { %>
+                                                        <i class="<%= i <= Math.round(ratingData.average) ? 'ion-ios-star' : 'ion-ios-star-outline' %>"></i>
+                                                    <% } %>
+                                                </div>
+                                                <p class="text-muted mb-0"><%= ratingData.total %> reviews</p>
+                                            </div>
+                                        </div>
+
+                                        <!-- Rating Distribution -->
+                                        <div class="rating-bars">
+                                            <% for(let star = 5; star >= 1; star--) { %>
+                                                <div class="d-flex align-items-center mb-2">
+                                                    <span class="mr-2"><%= star %> <i class="ion-ios-star"></i></span>
+                                                    <div class="progress flex-grow-1 mr-2" style="height: 8px;">
+                                                        <% const percentage = ratingData.total > 0 ? (ratingData.distribution[star] / ratingData.total * 100) : 0; %>
+                                                        <div class="progress-bar bg-warning" role="progressbar" 
+                                                            style="width: <%= percentage %>%"></div>
+                                                    </div>
+                                                    <span class="text-muted small"><%= ratingData.distribution[star] %></span>
+                                                </div>
+                                            <% } %>
+                                        </div>
+                                    </div>
+
+                                    <!-- Write Review Button OR User's Review -->
+                                    <% if(user && userReview) { %>
+                                        <!-- User's Existing Review -->
+                                        <div class="alert alert-info border-left-primary mb-4">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div class="flex-grow-1">
+                                                    <h5 class="mb-2">
+                                                        <i class="ion-ios-checkmark-circle text-success"></i> Your Review
+                                                    </h5>
+                                                    <div class="stars mb-2">
+                                                        <% for(let i = 1; i <= 5; i++) { %>
+                                                            <i class="<%= i <= userReview.rating ? 'ion-ios-star' : 'ion-ios-star-outline' %>" 
+                                                               style="color: #f4c430; font-size: 18px;"></i>
+                                                        <% } %>
+                                                    </div>
+                                                    <h6 class="mb-1"><%= userReview.title %></h6>
+                                                    <p class="mb-0"><%= userReview.comment %></p>
+                                                    <small class="text-muted">
+                                                        Posted on <%= new Date(userReview.createdAt).toLocaleDateString('en-US', { 
+                                                            year: 'numeric', month: 'long', day: 'numeric' 
+                                                        }) %>
+                                                    </small>
+                                                </div>
+                                                <div class="ml-3">
+                                                    <button class="btn btn-sm btn-outline-primary mb-2" 
+                                                        onclick="editUserReview('<%= userReview._id %>', <%= userReview.rating %>, '<%= userReview.title.replace(/'/g, "\\'") %>', '<%= userReview.comment.replace(/'/g, "\\'").replace(/\n/g, "\\n") %>')">
+                                                        <i class="ion-ios-create"></i> Edit
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger" 
+                                                        onclick="deleteUserReview('<%= userReview._id %>')">
+                                                        <i class="ion-ios-trash"></i> Delete
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <% } else if(user && canReview && !userReview) { %>
+                                        <button class="btn btn-primary mb-4" data-toggle="modal" data-target="#reviewModal">
+                                            <i class="ion-ios-create"></i> Write a Review
+                                        </button>
+                                    <% } else if(!canReview && user) { %>
+                                        <div class="alert alert-info">
+                                            <i class="ion-ios-information-circle"></i> Purchase and receive this product to write a review
+                                        </div>
+                                    <% } %>
+
+                                    <!-- Filter and Sort -->
+                                    <div class="d-flex justify-content-between align-items-center mb-3">
+                                        <div>
+                                            <select id="ratingFilter" class="form-control form-control-sm d-inline-block w-auto">
+                                                <option value="">All Ratings</option>
+                                                <option value="5">5 Stars</option>
+                                                <option value="4">4 Stars</option>
+                                                <option value="3">3 Stars</option>
+                                                <option value="2">2 Stars</option>
+                                                <option value="1">1 Star</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <select id="sortReviews" class="form-control form-control-sm">
+                                                <option value="recent">Most Recent</option>
+                                                <option value="helpful">Most Helpful</option>
+                                                <option value="rating-high">Highest Rating</option>
+                                                <option value="rating-low">Lowest Rating</option>
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    <!-- Reviews List -->
+                                    <div id="reviewsList">
+                                        <% if(recentReviews && recentReviews.length > 0) { %>
+                                            <% recentReviews.forEach(review => { %>
+                                                <div class="review mb-4 pb-4 border-bottom">
+                                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                                        <div>
+                                                            <h5 class="mb-1"><%= review.userId?.name || 'Anonymous' %></h5>
+                                                            <div class="stars mb-1">
+                                                                <% for(let i = 1; i <= 5; i++) { %>
+                                                                    <i class="<%= i <= review.rating ? 'ion-ios-star' : 'ion-ios-star-outline' %>" 
+                                                                        style="color: #f4c430;"></i>
+                                                                <% } %>
+                                                            </div>
+                                                            <p class="text-muted small mb-0">
+                                                                <%= new Date(review.createdAt).toLocaleDateString('en-US', { 
+                                                                    year: 'numeric', month: 'long', day: 'numeric' 
+                                                                }) %>
+                                                                <% if(review.isVerifiedPurchase) { %>
+                                                                    <span class="badge badge-success ml-2">Verified Purchase</span>
+                                                                <% } %>
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                            
+                                                    <h6 class="mb-2"><%= review.title %></h6>
+                                                    <p class="mb-2"><%= review.comment %></p>
+                            
+                                                    <% if(user) { %>
+                                                        <button class="btn btn-sm btn-outline-secondary helpful-btn" 
+                                                            data-review-id="<%= review._id %>">
+                                                            <i class="ion-ios-thumbs-up"></i> 
+                                                            Helpful (<span class="helpful-count"><%= review.helpfulCount %></span>)
+                                                        </button>
+                                                    <% } else { %>
+                                                        <span class="text-muted small">
+                                                            <i class="ion-ios-thumbs-up"></i> <%= review.helpfulCount %> people found this helpful
+                                                        </span>
+                                                    <% } %>
+                                                </div>
+                                            <% }); %>
+                                        <% } else { %>
+                                            <div class="text-center py-5">
+                                                <i class="ion-ios-chatbubbles" style="font-size: 48px; color: #ccc;"></i>
+                                                <p class="text-muted mt-3">No reviews yet. Be the first to review this product!</p>
+                                            </div>
+                                        <% } %>
+                                    </div>
+
+                                    <!-- Load More Button -->
+                                    <div class="text-center mt-4" id="loadMoreContainer" style="display: none;">
+                                        <button class="btn btn-outline-primary" id="loadMoreReviews">
+                                            Load More Reviews
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Right Column -->
+                                <div class="col-md-4">
+                                    <div class="card">
+                                        <div class="card-body">
+                                            <h5 class="card-title mb-3">Customer Reviews</h5>
+                                            <div class="text-center mb-3">
+                                                <h2>
+                                                    <%= ratingData.average.toFixed(1) %>
+                                                </h2>
+                                                <div class="stars">
+                                                    <% for(let i=1; i <=5; i++) { %>
+                                                        <i class="<%= i <= Math.round(ratingData.average) ? 'ion-ios-star' : 'ion-ios-star-outline' %>"
+                                                            style="color: #f4c430;"></i>
+                                                    <% } %>
+                                                </div>
+                                                <p class="text-muted small">Based on <%= ratingData.total %> reviews</p>
+                                            </div>
+                                
+                                            <% if(user && canReview && !userReview) { %>
+                                                <button class="btn btn-primary btn-block" data-toggle="modal" data-target="#reviewModal">
+                                                    Write a Review
+                                                </button>
+                                            <% } %>
+                                        </div>
+                                    </div>
+                                </div>
+                                </div>
+                                </div>
+
+                        <!-- Review Modal (for Add/Edit) -->
+                        <div class="modal fade" id="reviewModal" tabindex="-1" role="dialog">
+                            <div class="modal-dialog modal-lg" role="document">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h5 class="modal-title" id="reviewModalTitle">Write a Review</h5>
+                                        <button type="button" class="close" data-dismiss="modal">
+                                            <span>&times;</span>
+                                        </button>
+                                    </div>
+                                    <form id="reviewForm">
+                                        <div class="modal-body">
+                                            <!-- Rating -->
+                                            <div class="form-group">
+                                                <label>Rating *</label>
+                                                <div class="star-rating-input">
+                                                    <input type="hidden" id="rating" name="rating" value="0" required>
+                                                    <div class="stars-interactive">
+                                                        <i class="ion-ios-star-outline star-input" data-rating="1"></i>
+                                                        <i class="ion-ios-star-outline star-input" data-rating="2"></i>
+                                                        <i class="ion-ios-star-outline star-input" data-rating="3"></i>
+                                                        <i class="ion-ios-star-outline star-input" data-rating="4"></i>
+                                                        <i class="ion-ios-star-outline star-input" data-rating="5"></i>
+                                                    </div>
+                                                </div>
+                                                <small class="form-text text-muted">Click to rate</small>
+                                            </div>
+                        
+                                            <!-- Title -->
+                                            <div class="form-group">
+                                                <label for="reviewTitle">Review Title *</label>
+                                                <input type="text" class="form-control" id="reviewTitle"
+                                                    placeholder="Sum up your review in one line" maxlength="100" required>
+                                                <small class="form-text text-muted">Max 100 characters</small>
+                                            </div>
+                        
+                                            <!-- Comment -->
+                                            <div class="form-group">
+                                                <label for="reviewComment">Your Review *</label>
+                                                <textarea class="form-control" id="reviewComment" rows="5"
+                                                    placeholder="Tell us what you think about this product" maxlength="1000"
+                                                    required></textarea>
+                                                <small class="form-text text-muted">
+                                                    <span id="commentCount">0</span>/1000 characters
+                                                </small>
+                                            </div>
+                        
+                                            <input type="hidden" id="productId" value="<%= product._id %>">
+                                            <input type="hidden" id="reviewId" value="">
+                                            <input type="hidden" id="isEditing" value="false">
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                                            <button type="submit" class="btn btn-primary" id="submitReviewBtn">
+                                                <i class="ion-ios-checkmark"></i> Submit Review
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
 					</div>
 				</div>
 			</div>
 
-            <div class="container mt-5">
+            <div class="container similar-product-section">
                 <h3 class="mb-4">Similar Products</h3>
                 <div class="row">
                     <% if (similarProducts && similarProducts.length> 0) { %>
@@ -718,6 +887,7 @@
 		</div>
 	</section>
 
+    <script src="/js/review.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 	<script>
 
@@ -760,6 +930,7 @@
             const mainImage = document.getElementById('mainImage');
             const thumbnails = document.querySelectorAll('.thumbnail');
             const currentImageIndexElement = document.getElementById('currentImageIndex');
+            const ZOOM_SCALE = 2.5; // Adjust zoom level (2.5x)
     
             thumbnails.forEach((thumbnail, index) => {
                 thumbnail.addEventListener('click', () => {
@@ -787,6 +958,8 @@
                     if (currentImageIndexElement) {
                         currentImageIndexElement.textContent = index + 1;
                     }
+                    // Reset zoom when switching images
+                    resetZoom();
                 }
             }
     
@@ -828,48 +1001,62 @@
                 }
             });
 
-    
-            mainImage.addEventListener('click', function() {
-        
-                const modal = document.createElement('div');
-                modal.style.cssText = `
-                    position: fixed;
-                    top: 0;
-                    left: 0;
-                    width: 100%;
-                    height: 100%;
-                    background: rgba(0,0,0,0.9);
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    z-index: 9999;
-                    cursor: pointer;
-                `;
-        
-                const zoomedImg = document.createElement('img');
-                zoomedImg.src = this.src;
-                zoomedImg.style.cssText = `
-                    max-width: 90%;
-                    max-height: 90%;
-                    object-fit: contain;
-                `;
-        
-                modal.appendChild(zoomedImg);
-                document.body.appendChild(modal);
-        
-        
-                modal.addEventListener('click', () => {
-                    document.body.removeChild(modal);
-                });
-        
-        
-                const handleEscape = (e) => {
-                    if (e.key === 'Escape') {
-                        document.body.removeChild(modal);
-                        document.removeEventListener('keydown', handleEscape);
-                    }
-                };
-                document.addEventListener('keydown', handleEscape);
+            // Improved Image Zoom: In-place zoom towards cursor on hover (desktop)
+            // On mouseleave, reset to normal
+            mainImage.addEventListener('mousemove', (e) => {
+                if (window.innerWidth <= 768) return; // Disable hover zoom on mobile
+                const rect = mainImage.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 100;
+                const y = ((e.clientY - rect.top) / rect.height) * 100;
+                mainImage.style.transformOrigin = `${x}% ${y}%`;
+                mainImage.style.transform = `scale(${ZOOM_SCALE})`;
+            });
+
+            mainImage.addEventListener('mouseleave', () => {
+                if (window.innerWidth <= 768) return;
+                mainImage.style.transform = '';
+                mainImage.style.transformOrigin = 'center center';
+            });
+
+            // Mobile: Double-tap to toggle fixed zoom
+            let tapCount = 0;
+            let tapTimer;
+            mainImage.addEventListener('click', (e) => {
+                if (window.innerWidth > 768) return; // Desktop uses hover
+                e.stopPropagation();
+                tapCount++;
+                if (tapCount === 1) {
+                    tapTimer = setTimeout(() => {
+                        tapCount = 0;
+                    }, 300);
+                } else {
+                    clearTimeout(tapTimer);
+                    tapCount = 0;
+                    toggleMobileZoom();
+                }
+            });
+
+            function toggleMobileZoom() {
+                mainImage.classList.toggle('zoomed');
+                if (mainImage.classList.contains('zoomed')) {
+                    mainImage.style.transformOrigin = 'center center';
+                    mainImage.style.transform = `scale(1.5)`; // Fixed scale for mobile
+                } else {
+                    resetZoom();
+                }
+            }
+
+            function resetZoom() {
+                mainImage.classList.remove('zoomed');
+                mainImage.style.transform = '';
+                mainImage.style.transformOrigin = 'center center';
+            }
+
+            // Optional: Keyboard zoom toggle (Escape to reset)
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') {
+                    resetZoom();
+                }
             });
 
             document.querySelectorAll('.add-to-cart').forEach(btn => {
@@ -910,7 +1097,7 @@
                                 title:"Done.",
                                 showConfirmButton:false,
                                 timer:1000
-                            })
+                            }).then(() => window.location.href = "/cart")
                         } else {
                             Swal.fire({
                                 icon:"error",
@@ -927,10 +1114,99 @@
                     }
                 });
             });
-
         });
 
+        // Edit User Review
+        function editUserReview(reviewId, rating, title, comment) {
+            console.log('Editing review:', reviewId);
+    
+            // Set modal title
+            document.getElementById('reviewModalTitle').textContent = 'Edit Your Review';
+    
+            // Set form values
+            document.getElementById('reviewId').value = reviewId;
+            document.getElementById('isEditing').value = 'true';
+            document.getElementById('rating').value = rating;
+            document.getElementById('reviewTitle').value = title;
+            document.getElementById('reviewComment').value = comment;
+            document.getElementById('commentCount').textContent = comment.length;
+    
+            // Update star display
+            const starInputs = document.querySelectorAll('.star-input');
+            starInputs.forEach(star => {
+                const starRating = parseInt(star.dataset.rating);
+                if (starRating <= rating) {
+                    star.classList.remove('ion-ios-star-outline');
+                    star.classList.add('ion-ios-star', 'active');
+                } else {
+                    star.classList.remove('ion-ios-star', 'active');
+                    star.classList.add('ion-ios-star-outline');
+                }
+            });
+    
+            // Change submit button text
+            document.getElementById('submitReviewBtn').innerHTML = '<i class="ion-ios-checkmark"></i> Update Review';
+    
+            // Open modal
+            if (typeof $ !== 'undefined' && $.fn.modal) {
+                $('#reviewModal').modal('show');
+            } else if (typeof bootstrap !== 'undefined') {
+                const modal = new bootstrap.Modal(document.getElementById('reviewModal'));
+                modal.show();
+            }
+        }
+
+        // Delete User Review
+        async function deleteUserReview(reviewId) {
+            const result = await Swal.fire({
+                title: 'Delete Your Review?',
+                text: "This action cannot be undone!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            });
+    
+            if (!result.isConfirmed) return;
+    
+            try {
+                const response = await fetch(`/review/delete/${reviewId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+        
+                const data = await response.json();
+        
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Deleted!',
+                        text: 'Your review has been deleted',
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: data.message || 'Failed to delete review'
+                    });
+                }
+            } catch (error) {
+                console.error('Error deleting review:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: 'Something went wrong. Please try again.'
+                });
+            }
+        }
 	</script>
 
-
-<%-include("../partials/user/footer.ejs")%>
+<%-include("../partials/user/footer.ejs") %>

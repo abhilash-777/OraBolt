@@ -2,6 +2,8 @@ const mongoose = require("mongoose");
 const User = require("../../models/userSchema");
 const Address = require("../../models/addressSchema");
 const Orders = require("../../models/orderSchema");
+const Cart = require("../../models/cartSchema");
+const Wishlist = require("../../models/wishlistSchema");
 const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
 const session = require("express-session");
@@ -68,36 +70,45 @@ const forgotPasword = async function (req,res) {
         const {email} = req.body;
         const findUser = await User.findOne({email:email});
         if(!findUser){
-            return res.redirect("/pageNotFound");
+            return res.status(404).json({success:false,message:`User not found for this email ${email} Address`});
         }
         const otp = generateOtp();
-        const emailSend = await sendVerificationMail(email,otp,"forgot password");
+        const emailSend = await sendVerificationMail(email,otp,"Forgot password email verification");
         if(!emailSend){
-            return res.redirect("/pageNotFound");
+            return res.status(400).json({success:false,message:"Failed to send mail"});
         }
         req.session.userOtp = otp;
         req.session.email = email;
         req.session.otpExpiry = Date.now() + 10 * 60 * 1000;
-        res.render("forgotVerify-otp");
         console.log("forgot reset otp:",otp);
+        res.status(200).json({success:true,message:`OTP successfully send to ${email} mail`,redirectUrl:"/forgotVerifyotp"});
 
     } catch (error) {
         console.error("forgot password error:",error);
+        return res.status(500).json({successs:false,message:"Something wrong while processing"});
+    }
+};
+
+const loadForgotVerifyOtp = (req,res) => {
+    try {
+        res.render("forgotVerify-otp");
+    } catch (error) {
+        console.log("Failed to load forgot verify otp page:",error);
         return res.redirect("/pageNotFound");
     }
 };
 
 const forgotResendOtp = async function (req,res) {
     try {
-        const {email} = req.session.userData;
+        const email = req.session.email;
         if(!email){
             return res.status(404).json({success:false,message:"Email not found in session"});
         }
         const otp = generateOtp();
         req.session.userOtp = otp;
-        const sendMail = sendVerificationMail(email,otp);
+        const sendMail = sendVerificationMail(email,otp,"Forgot password email verification");
         if(!sendMail){
-            return res.status(400).json({success:false,message:"Error to send otp into mail"});
+            return res.status(400).json({success:false,message:`Error to send otp into mail ${email}`});
         }
         return res.status(200).json({success:true});
     } catch (error) {
@@ -109,8 +120,6 @@ const forgotResendOtp = async function (req,res) {
 const verifyForgototp = async function (req,res) {
     try {
         const enderedOtp = (req.body.otp||"").trim();
-        console.log(`userOtp in session:${req.session?.userOtp},
-            user input otp:${enderedOtp}`);
         if(!enderedOtp){
             return res.status(404).json({success:false,message:"OTP required"});
         }
@@ -193,6 +202,17 @@ const renderProfileTab = async function (req,res,tabName,errorMsg) {
         let addresses = [];
         let orders = [];
         let wallet = null;
+        let wishlistProductIds = [];
+        let cartCount = 0;
+
+        const cart = await Cart.findOne({userId:req.session.user._id}).lean();
+        const wishlist = await Wishlist.findOne({userId:req.session.user._id}).lean();
+        if(wishlist && wishlist.products){
+            wishlistProductIds = wishlist.products.map(p => p.productId.toString());
+        }
+        if(cart && cart.items){
+            cartCount = cart.items.reduce((total,item) => total + item.quantity,0);
+        }
 
         if(tabName === "addresses"){
             addresses = await Address.find({userId}).sort({createdOn:-1});
@@ -218,7 +238,7 @@ const renderProfileTab = async function (req,res,tabName,errorMsg) {
             }
         }
 
-        return res.render("profile",{user:findUser,activeTab:tabName,addresses,orders,wallet});
+        return res.render("profile",{user:findUser,wishlistProductIds,cartCount,activeTab:tabName,addresses,orders,wallet});
     } catch (error) {
         console.error(`${errorMsg}:${error}`);
         return res.redirect("/pageNotFound");
@@ -234,7 +254,17 @@ const loadEditProfile = async(req,res) => {
         if(!findUser){
             console.log("user not found");
         }
-        res.render("editProfile",{user:findUser});
+        let wishlistProductIds = [];
+        let cartCount = 0;
+        const cart = await Cart.findOne({userId:req.session.user._id}).lean();
+        const wishlist = await Wishlist.findOne({userId:req.session.user._id}).lean();
+        if(wishlist && wishlist.products){
+            wishlistProductIds = wishlist.products.map(p => p.productId.toString);
+        }
+        if(cart && cart.items){
+            cartCount = cart.items.reduce((total,item) => total + item.quantity,0);
+        }
+        res.render("editProfile",{user:findUser,wishlistProductIds,cartCount});
     } catch (error) {
         console.error("error to load edit profile:",error);
         return res.redirect("/pageNotFound");
@@ -391,7 +421,6 @@ const resendOtp = async (req, res) => {
 const uploadProfileImage = async (req, res) => {
     try {
         const userId = req.session?.user?._id;
-        console.log("logined user id:",userId);
         const user = await User.findById(userId);
         if (!user) {
             return res.status(404).json({ success: false, message: "User not found" });
@@ -457,8 +486,18 @@ const loadAddAddress = async (req,res) => {
         if(!userData){
             console.log("user data not found.");
         }
+        let wishlistProductIds = [];
+        let cartCount = 0;
+        const cart = await Cart.findOne({userId:req.session.user._id}).lean();
+        const wishlist = await Wishlist.findOne({userId:req.session.user._id}).lean();
+        if(wishlist && wishlist.products){
+            wishlistProductIds = wishlist.products.map(p => p.productId.toString);
+        }
+        if(cart && cart.items){
+            cartCount = cart.items.reduce((total,item) => total + item.quantity,0);
+        }
         console.log("user data:",userData);
-        res.render("addAddress",{user:userData});
+        res.render("addAddress",{user:userData,wishlistProductIds,cartCount});
     } catch (error) {
         console.log("error occure while loading add address:",error);
         return res.redirect("/pageNotFound")
@@ -479,7 +518,7 @@ const addAddress = async (req,res) => {
         if(!/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(phone)){
             return res.status(400).json({success:false,message:"Invalid phone number"});
         }
-        if(!/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(altPhone)){
+        if(altPhone !== "" && !/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(altPhone)){
             return res.status(400).json({success:false,message:"Invalid alternative phone number"});
         }
         if(!/^[1-9][0-9]{5}$/.test(pincode)){
@@ -501,8 +540,7 @@ const addAddress = async (req,res) => {
             isDefault:existingAddresses.length === 0
         });
 
-        await newAddress.save();
-        
+        await newAddress.save(); 
         return res.status(200).json({success:true,message:"Added Successfully.",address:newAddress,redirectUrl:`/addresses`})
 
     } catch (error) {
@@ -524,7 +562,17 @@ const loadEditAddress = async (req,res) => {
             console.log("User not found");
             return res.redirect("/pageNotFound");
         }
-        res.render("editAddress",{user:findUser,address:findAddress,activeTab:"addresses"});
+        let wishlistProductIds = [];
+        let cartCount = 0;
+        const cart = await Cart.findOne({userId:req.session.user._id}).lean();
+        const wishlist = await Wishlist.findOne({userId:req.session.user._id}).lean();
+        if(wishlist && wishlist.products){
+            wishlistProductIds = wishlist.products.map(p => p.productId.toString);
+        }
+        if(cart && cart.items){
+            cartCount = cart.items.reduce((total,item) => total + item.quantity,0);
+        }
+        res.render("editAddress",{user:findUser,address:findAddress,wishlistProductIds,cartCount,activeTab:"addresses"});
     } catch (error) {
         console.log("error while loading edit address");
         return res.redirect("/pageNotFound");
@@ -538,15 +586,13 @@ const editAddress = async (req,res) => {
         if(!addressId){
             return res.status(404).json({success:false,message:"Address not found"});
         }
-        
-        if(!addressType||!name||!address||!phone||!altPhone||!street||!city|!state||!pincode||!landMark){
+        if(!addressType||!name||!address||!phone||  !street||!city|!state||!pincode||!landMark){
             return res.status(404).json({success:false,message:"All fields required"});
         }
-
         if(!/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(phone)){
             return res.status(400).json({success:false,message:"Invalid phone number"});
         }
-        if(!/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(altPhone)){
+        if(altPhone !== "" && !/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(altPhone)){
             return res.status(400).json({success:false,message:"Invalid alternative phone number"});
         }
         if(!/^[1-9][0-9]{5}$/.test(pincode)){
@@ -632,8 +678,18 @@ const loadOrderDetails = async (req, res) => {
         if (!order) { 
             return res.redirect('/pageNotFound');
         }
+        let wishlistProductIds = [];
+        let cartCount = 0;
+        const cart = await Cart.findOne({userId:req.session.user._id}).lean();
+        const wishlist = await Wishlist.findOne({userId:req.session.user._id}).lean();
+        if(wishlist && wishlist.products){
+            wishlistProductIds = wishlist.products.map(p => p.productId.toString);
+        }
+        if(cart && cart.items){
+            cartCount = cart.items.reduce((total,item) => total + item.quantity,0);
+        }
         
-        res.render('order-details', {user:userData, order });
+        res.render('order-details', {user:userData, order,wishlistProductIds,cartCount });
     } catch (error) {
         console.error('Error loading order details:', error);
         res.redirect('/pageNotFound');
@@ -812,7 +868,7 @@ const cancelSingleItem = async (req,res) => {
                 // order.refundAmount = totalRefund;
                 order.finalPrice = 0;
             } else {
-                order.paymentStatus = 'Partial Refund';
+                order.paymentStatus = 'Partial Refund Initiated';
             }
             
             order.refundDate = new Date();
@@ -1072,20 +1128,16 @@ const changePassword = async (req,res) => {
         if(!existUser){
             return res.json({success:false,message:"User not found"});
         }
-
         if(!currPassword||!newPassword||!confirmPassword){
             return res.json({success:false,message:"All fields are required"});
         }
-
         const isMatch = await bcrypt.compare(currPassword,existUser.password);
         if(!isMatch){
             return res.json({success:false,message:"Wrong current password"});
         }
-
         if(currPassword === newPassword){
             return res.json({success:false,message:"Please try with new password"});
         }
-
         if(newPassword !== confirmPassword){
             return res.json({success:false,message:"Password doesn't match , Please enter correct password"});
         }
@@ -1102,6 +1154,7 @@ const changePassword = async (req,res) => {
 module.exports = {
     loadForgot,
     forgotPasword,
+    loadForgotVerifyOtp,
     verifyForgototp,
     getResetPassword,
     forgotResendOtp,

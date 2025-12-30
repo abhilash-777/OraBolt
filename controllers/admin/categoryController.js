@@ -3,7 +3,6 @@ const Category = require("../../models/categorySchema");
 
 
 const categoryInfo = async function (req,res) {
-
     try {
 
         const page = parseInt(req.query.page) || 1;
@@ -42,13 +41,10 @@ const categoryInfo = async function (req,res) {
         console.error("Category info error",error);
         res.redirect("/admin/pageError");
     }
-    
 };
 
 const addCategory = async function (req,res) {
-
-    const {name,description,offer} = req.body;
-
+    const {name,description} = req.body;
     try {
 
         const trimmedName = name.trim();
@@ -59,8 +55,6 @@ const addCategory = async function (req,res) {
             const newCategory = new Category({
                 name:trimmedName,
                 description,
-                offer:offer||0,
-                offerAddedAt:offer?new Date():null
             });
             await newCategory.save();
             return res.status(200).json({success:true,redirectUrl:"/admin/category"});
@@ -68,8 +62,7 @@ const addCategory = async function (req,res) {
 
     } catch (error) {
         return res.status(500).json({error:"Internal Server Error"});
-    }
-    
+    } 
 };
 
 const loadEditCategory = async function (req,res) {
@@ -136,7 +129,6 @@ const editCategory = async function (req,res) {
 };
 
 const deleteCategory = async function (req,res) {
-
     try {
         const categoryId = req.params.id;
         if(!mongoose.Types.ObjectId.isValid(categoryId)){
@@ -151,12 +143,10 @@ const deleteCategory = async function (req,res) {
     } catch (error) {
         console.error("delete category error:",error);
         return res.status(500).json({success:false,error:"Internal server error"});
-    }
-    
+    } 
 };
 
 const toggleList = async function (req,res) {
-
     try {
 
         const {categoryId,isListed} = req.body;
@@ -169,8 +159,7 @@ const toggleList = async function (req,res) {
     } catch (error) {
         console.error("error toggle listing",error);
         res.status(500).json({success:false,message:"Server error"});
-    }
-    
+    }  
 };
 
 module.exports = {

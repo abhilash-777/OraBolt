@@ -54,7 +54,7 @@ const cartSchema = new Schema ({
 },{timestamps:true})
 
 cartSchema.virtual("cartTotal").get(function(){
-    return this.items.reduce(sum,i => sum + i.totalPrice,0);
+    return this.items.reduce((sum,i) => sum + i.totalPrice,0);
 });
 
 const Cart = mongoose.model("Cart",cartSchema);

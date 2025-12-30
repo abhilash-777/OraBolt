@@ -60,7 +60,7 @@
                     <!-- Address Type -->
                     <div class="form-group">
                         <label for="addressType">Address Type *</label>
-                        <select name="addressType" id="addressType" style="width: 100%; padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
+                        <select name="addressType" id="addressType" style="width: 100%; color: rgb(133, 134, 133); padding: 0.75rem 1rem; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 1rem;">
                             <option value="<%= address.addressType %>">Select Address Type</option>
                             <option value="Home" <%=address.addressType === 'Home'?'selected':'' %>>Home</option>
                             <option value="Work" <%=address.addressType === 'Work'?'selected':'' %>>Work</option>
@@ -150,7 +150,9 @@
                                 <svg class="input-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
-                                <input type="text" id="state" name="state" placeholder="Enter state" value="<%= address.state ? address.state : '' %>">
+                                <select id="state" name="state" style="width: 100%; padding: 0.75rem 2rem; border: 2px solid #e2e8f0; border-radius: 8px; color: rgb(133, 134, 133);">
+                                    <option value="">Select State</option>
+                                </select>
                             </div>
                             <small id="stateError" class="errorMsg"></small>
                         </div>
@@ -194,6 +196,82 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
 
+        const states = [
+            "Andaman and Nicobar Islands", "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chandigarh",
+            "Chhattisgarh", "Dadra and Nagar Haveli and Daman and Diu", "Delhi", "Goa", "Gujarat", "Haryana",
+            "Himachal Pradesh", "Jammu and Kashmir", "Jharkhand", "Karnataka", "Kerala", "Ladakh", "Lakshadweep",
+            "Madhya Pradesh", "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Puducherry",
+            "Punjab", "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand", "West Bengal"
+        ];
+
+        // Pincode ranges by state (approximate; based on standard postal zones)
+        const pincodeRanges = {
+            "Andaman and Nicobar Islands": ["744101-744304"],
+            "Andhra Pradesh": ["500001-534999"],
+            "Arunachal Pradesh": ["791001-792999"],
+            "Assam": ["781001-788999"],
+            "Bihar": ["800001-854999"],
+            "Chandigarh": ["160001-160036"],
+            "Chhattisgarh": ["490001-497999"],
+            "Dadra and Nagar Haveli and Daman and Diu": ["396210-396220", "396230-396240"],
+            "Delhi": ["110001-110099"],
+            "Goa": ["403001-403999"],
+            "Gujarat": ["360001-396999"],
+            "Haryana": ["121001-136999"],
+            "Himachal Pradesh": ["171001-177999"],
+            "Jammu and Kashmir": ["180001-190999"],
+            "Jharkhand": ["815001-834999"],
+            "Karnataka": ["560001-577999"],
+            "Kerala": ["670001-695999"],
+            "Ladakh": ["194001-194999"],
+            "Lakshadweep": ["682001-682559"],
+            "Madhya Pradesh": ["450001-488999"],
+            "Maharashtra": ["400001-444999"],
+            "Manipur": ["795001-795159"],
+            "Meghalaya": ["793001-794999"],
+            "Mizoram": ["796001-796999"],
+            "Nagaland": ["797001-798999"],
+            "Odisha": ["751001-770017"],
+            "Puducherry": ["605001-609999"],
+            "Punjab": ["140001-160999"],
+            "Rajasthan": ["300001-349999"],
+            "Sikkim": ["737101-737139"],
+            "Tamil Nadu": ["600001-643999"],
+            "Telangana": ["500001-509999"],
+            "Tripura": ["799001-799289"],
+            "Uttar Pradesh": ["200001-285999"],
+            "Uttarakhand": ["246001-263999"],
+            "West Bengal": ["700001-743999"]
+        };
+
+        // Populate state dropdown
+        const stateSelect = document.getElementById("state");
+        const initialState = "<%= locals.address ? address.state : '' %>".trim();
+        states.forEach(state => {
+            const option = document.createElement("option");
+            option.value = state;
+            option.textContent = state;
+            if (state === initialState) {
+                option.selected = true;
+            }
+            stateSelect.appendChild(option);
+        });
+
+        function isValidPincodeForState(pincode, state) {
+            if (!state || !pincode) return false;
+            const ranges = pincodeRanges[state] || [];
+            const pinNum = parseInt(pincode);
+            for (let rangeStr of ranges) {
+                const [startStr, endStr] = rangeStr.split('-');
+                const start = parseInt(startStr);
+                const end = parseInt(endStr);
+                if (pinNum >= start && pinNum <= end) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         const editAddressForm = document.getElementById("editAddressForm");
 
         function validation(){
@@ -226,21 +304,37 @@
 
             if(!name){
                 errors.nameError = "Name should required";
-            }else if(!/^(?=.*[A-Za-z])[A-Za-z\s._]+$/.test(name)){
-                errors.nameError = "Name should contain alphabetic characters";
-            }else if(name.length < 5 || name.length > 20)errors.nameError = "Name should contain 5 to 20 characters";
+            }else if(!/^[A-Za-z]+(?:[\s'-][A-Za-z]+)*$/.test(name)){
+                errors.nameError = "Name should contain alphabetic characters(not include digits and special characters).";
+            }else if(name.length < 5 || name.length > 20)errors.nameError = "Name should only contain 5 to 20 characters";
 
-            if(!address)errors.addressError = "Address should required";
+            if(!address){
+                errors.addressError = "Address should required";
+            }else if(!/^[a-zA-Z0-9\s.,'#\-\/]{3,}$/.test(address)){
+                errors.addressError = "Invalid address format. Example(123 Main St, city, district and state names)not allowed special characters(exclude '#').";
+            }
+            if(!phone){
+                errors.phoneError = "Phone number should required";
+            }else if(!/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(phone)){
+                errors.phoneError = "Phone number should be 10 digit valid number";
+            }
+            if(!city){
+                errors.cityError = "City name should required";
+            }else if(!/^[a-zA-Z]+(?:[\s-][a-zA-Z]+)*$/.test(city)){
+                errors.cityError = "Invalid city name.Not allowed digits, accent and special characters";
+            }
+            if(!state)errors.stateError = "State name should required";
 
-            if(!phone||!/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(phone))errors.phoneError = "Phone number should be 10 digit valid number";
-
-            if(!city||!/^[A-Za-z\s]+$/.test(city))errors.cityError = "City name should required";
-
-            if(!state||!/^[A-Za-z\s]+$/.test(state))errors.stateError = "State name should required";
-
-            if(!street)errors.streetError = "Street name should required";
-
-            if(!pincode || !/^[1-9][0-9]{5}$/.test(pincode))errors.pincodeError = "Pincode should required(6-digits valid pin number)";
+            if(!street){
+                errors.streetError = "Street name should required";
+            }else if(!/^[a-zA-Z0-9\s,.'-]{3,}$/.test(street)){
+                errors.streetError = "Invalid street name format. Example(123 Main Street).Not allowed special characters.";
+            }
+            if(!pincode || !/^[1-9][0-9]{5}$/.test(pincode)){
+                errors.pincodeError = "Pincode should required 6-digits number(not allow 000000)";
+            }else if(state && !isValidPincodeForState(pincode, state)){
+                errors.pincodeError = `Pincode ${pincode} is not valid for ${state}. Please enter a pincode from ${state}.`;
+            }
 
             if(!landMark ||!/^[A-Za-z\s]+$/.test(landMark))errors.landmarkError = "Landmark should required";
 
@@ -252,7 +346,6 @@
                 }
             });
             return isValid
-
         }
 
         editAddressForm.addEventListener("submit",async(e) => {
@@ -299,7 +392,7 @@
                         title:"Updated.",
                         text:data.message,
                         showConfirmButton:false,
-                        timer:1000
+                        timer:1500
                     })
                     .then(() => window.location.href = data.redirectUrl)
                 }else{
@@ -309,7 +402,6 @@
                         text:data.message||"Error occured while updating",
                     })
                 }
-
             } catch (error) {
                 Swal.fire({
                     icon:"error",
@@ -317,7 +409,6 @@
                     text:"Something went wrong while editing address",
                 })
             }
-
         });
 
     </script>

@@ -28,12 +28,16 @@ router.get('/', adminController.loadDash);
 //dashboard Managemanet
 router.get("/sales-report-page",adminController.loadSalesReportPage);
 router.get('/api/chart-data', adminController.getChartDataAPI);
+// NEW ROUTES - Add these three routes for best sellers
+router.get('/api/top-products', adminController.getTopProducts);
+router.get('/api/top-categories', adminController.getTopCategories);
+router.get('/api/top-brands', adminController.getTopBrands);
 router.get("/sales-report",adminController.generateSalesReport);
 
 // user management
 router.get("/user", customerController.customerInfo);
-router.get('/blockCustomer', customerController.blockCustomer);
-router.get('/unBlockCustomer', customerController.unBlockCustomer);
+router.patch('/blockCustomer', customerController.blockCustomer);
+router.patch('/unBlockCustomer', customerController.unBlockCustomer);
 
 // category management
 router.get('/category', categoryController.categoryInfo);
@@ -106,6 +110,8 @@ router.patch("/offers/toggle/:id",offerController.statusChange);
 router.get("/coupons", couponController.getAllCoupons);
 router.get("/coupons/create", couponController.getCreateCoupon);
 router.post("/coupons/create", couponController.createCoupon);
+router.get("/edit-coupon/:id",couponController.loadEditCoupon);
+router.put('/edit-coupon/:id',couponController.editCoupon);
 router.delete("/coupons/delete/:id", couponController.deleteCoupon);
 router.patch("/coupons/toggle-status/:id", couponController.toggleCouponStatus);
 
