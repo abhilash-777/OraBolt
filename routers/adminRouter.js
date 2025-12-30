@@ -28,6 +28,10 @@ router.get('/', adminController.loadDash);
 //dashboard Managemanet
 router.get("/sales-report-page",adminController.loadSalesReportPage);
 router.get('/api/chart-data', adminController.getChartDataAPI);
+// NEW ROUTES - Add these three routes for best sellers
+router.get('/api/top-products', adminController.getTopProducts);
+router.get('/api/top-categories', adminController.getTopCategories);
+router.get('/api/top-brands', adminController.getTopBrands);
 router.get("/sales-report",adminController.generateSalesReport);
 
 // user management

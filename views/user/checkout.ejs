@@ -1,5 +1,7 @@
 <%-include("../partials/user/header.ejs")%>
 
+<%-include("../partials/bread_crumb.ejs",{pageTitle:'Checkout',pageName:'Checkout'}) %>
+
 <style>
 	.errorMsg{
 		color: red;
@@ -11,33 +13,18 @@
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
     cursor: pointer;
 }
-
 .coupon-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
-
 .coupon-card .card-body {
     padding: 12px;
 }
-
 .coupon-card .btn {
     font-size: 0.8rem;
     padding: 4px 8px;
 }
 </style>
-
-	<div class="hero-wrap hero-bread" style="background-image: url('/images/bg_6.jpg');">
-		<div class="container">
-			<div class="row no-gutters slider-text align-items-center justify-content-center">
-				<div class="col-md-9 ftco-animate text-center">
-					<p class="breadcrumbs"><span class="mr-2"><a href="/" style="font-weight: 600;">Home</a></span> <span>Checkout</span></p>
-					<hr>
-					<h1 class="mb-0 bread">Checkout</h1>
-				</div>
-			</div>
-		</div>
-	</div>
 
 	<section class="container py-4">
 		<div class="row align-items-start">
@@ -160,6 +147,10 @@
 											</button>
 										<% } %>
 									</div>
+									<% if(isDirectBuy && cartItems.length > 0){ %>
+									    <input type="hidden" id="directProductId" value="<%= cartItems[0].productId._id %>">
+                                        <input type="hidden" id="directQty" value="<%= cartItems[0].quantity %>">
+									<% } %>
 								</div>
 							<% }); %>
 					
@@ -267,6 +258,7 @@
 										<div class="col-md-6">
 											<label class="form-label">Address Type</label>
 											<select name="addressType" class="form-select" style="color: rgb(133, 134, 133);">
+												<option value="">Select one</option>
 												<option value="Home">Home</option>
 												<option value="Work">Work</option>
 												<option value="Other">Other</option>
@@ -458,6 +450,7 @@
 
 			function validation(payload){
 				let isValid = true;
+				document.querySelectorAll(".errorMsg").forEach(elem => elem.textContent = "");
 				let errors = {
 					addressTypeError:"",
 					nameError:"",
@@ -475,14 +468,26 @@
 
                 if(!payload.name){
                     errors.nameError = "Name should required"
-                }else if(!/^(?=.*[A-Za-z])[A-Za-z\s._]+$/.test(payload.name)){
-					errors.nameError = "Name should contain alphabetis characters";
+                }else if(!/^[A-Za-z]+(?:[\s'-][A-Za-z]+)*$/.test(payload.name)){
+					errors.nameError = "Name should contain alphabetis characters(Name should not contain digits and special characters)";
 				}else if(payload.name.length < 5 || payload.name.length > 20)errors.nameError = "Name should contain 5 to 20 characters";
-                if(!payload.address)errors.addressError = "Address should required";
+                if(!payload.address){
+					errors.addressError = "Address should required";
+				}else if(!/^[a-zA-Z0-9\s.,'#\-\/]{3,}$/.test(payload.address)){
+					errors.addressError = "Invalid address format. Example(123 Main St, city, district and state names)not allowed special characters(exclude '#').";
+				}
                 if(!payload.phone||!/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(payload.phone))errors.phoneError = "Phone number should be 10 digit valid number";
-                if(!payload.city||!/^[A-Za-z\s]+$/.test(payload.city))errors.cityError = "City name should required";
+                if(!payload.city){
+					errors.cityError = "City name should required";
+				}else if(!/^[a-zA-Z]+(?:[\s-][a-zA-Z]+)*$/.test(payload.city)){
+					errors.cityError = "Invalid city name.Not allowed digits, accent and special characters";
+				}
                 if(!payload.state)errors.stateError = "State name should required";
-                if(!payload.street)errors.streetError = "Street name should required";
+                if(!payload.street){
+					errors.streetError = "Street name should required";
+				} else if(!/^[a-zA-Z0-9\s,.'-]{3,}$/.test(payload.street)){
+					errors.streetError = "Invalid street name format. Example(123 Main Street).Not allowed special characters.";
+				}
                 if(!payload.pincode || !/^[1-9][0-9]{5}$/.test(payload.pincode)){
                     errors.pincodeError = "Pincode should required 6-digits number(not allow 000000)";
                 }else if(payload.state && !isValidPincodeForState(payload.pincode, payload.state)){
@@ -867,15 +872,24 @@
 			    });
 
 				const appliedCouponCode = document.getElementById('appliedCouponCode').value;
+				const productId = document.getElementById("directProductId");
+			    const quantity = document.getElementById("directQty");
+
+				const bodyData = {
+					paymentMethod,
+					appliedCouponCode:appliedCouponCode||null,
+				    ...paymentDetails
+			    };
+
+				if(productId && quantity){
+					bodyData.productId = productId.value;
+					bodyData.quantity = quantity.value || 1;
+				}
 
 			    const orderResponse = await fetch('/checkout/place-order', {
 				    method: 'POST',
 				    headers: { 'Content-Type': 'application/json' },
-				    body: JSON.stringify({
-					    paymentMethod,
-						appliedCouponCode:appliedCouponCode||null,
-					    ...paymentDetails
-				    })
+				    body: JSON.stringify(bodyData)
 			    });
 
 			    const orderData = await orderResponse.json();
@@ -940,8 +954,6 @@
 
 		async function removeFromCart(productId) {
             try {
-                console.log("Removing product:", productId); // Debug log
-        
                 const result = await Swal.fire({
                     icon: 'warning',
                     title: 'Are you sure?',
@@ -958,8 +970,6 @@
                     return;
                 }
 
-                console.log("Sending DELETE request to:", `/checkout/remove/${productId}`);
-
                 const response = await fetch(`/checkout/remove/${productId}`, {
                     method: "DELETE",
                     headers: {
@@ -967,8 +977,6 @@
                         'Accept': 'application/json'
                     }
                 });
-
-                console.log("Response status:", response.status);
 
                 // Check if response is JSON
                 const contentType = response.headers.get("content-type");

@@ -1,5 +1,7 @@
 <%-include("../partials/user/header.ejs")%>
 
+<%-include("../partials/bread_crumb.ejs",{pageTitle:"Shop",pageName:"Shop"}) %>
+
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 
     <style>
@@ -166,16 +168,13 @@
 		
     </style>
 
-	<div class="hero-wrap hero-bread" style="background-image: url('images/bg_6.jpg');">
-		<div class="container">
-			<div class="row no-gutters slider-text align-items-center justify-content-center">
-				<div class="col-md-9 ftco-animate text-center">
-					<p class="breadcrumbs"><span class="mr-2"><a href="/">Home</a></span> <span>Shop</span></p>
-					<h1 class="mb-0 bread">Shop</h1>
-				</div>
-			</div>
-		</div>
-	</div>
+	<!-- <div class="hero-wrap hero-bread d-flex align-items-center justify-content-center text-center" 
+     style="background: linear-gradient(rgba(0,0,0,0.5),rgba(0,0,0,0.5)), url('/images/bg_6.jpg') center/cover no-repeat; height: 45vh;">
+      <div class="container">
+        <h1 class="text-white fw-bold display-4 mb-2">Shop</h1>
+        <p class="text-light"><a href="/" class="text-warning fw-bold">Home</a> / <span>Shop</span></p>
+      </div>
+    </div> -->
 
 	<section class="ftco-section bg-light">
 		<div class="container">
@@ -222,7 +221,7 @@
 									<% if (currentFilters?.subcategories) { %>
                                         <% (Array.isArray(currentFilters.subcategories) ? currentFilters.subcategories : [currentFilters.subcategories]).forEach(subId => { %>
                                             <span class="active-filter-tag">
-                                                Subcategory: <%= subcategories.find(sub => String(sub._id) === String(subId))?.name || 'Unknown' %>
+                                                Subcategory: <%= subcategories.find(sub => String(sub._id) === String(currentFilters.subcategories))?.name || 'Unknown' %>
                                                 <span class="remove" data-filter="subcategories" data-value="<%= subId %>">&times;</span>
                                             </span>
                                         <% }) %>
@@ -242,7 +241,7 @@
 									<% } %>
 									<% if (currentFilters?.minPrice || currentFilters?.maxPrice){ %>
 										<span class="active-filter-tag">
-											Price: $<%= currentFilters?.minPrice || '0' %> - $
+											Price: &#8377;<%= currentFilters?.minPrice || '0' %> - &#8733;
 											<%= currentFilters?.maxPrice || 'Max' %>
 											<span class="remove" data-filter="price">&times;</span>
 										</span>
@@ -253,52 +252,44 @@
 								</a>
 							</div>
 						<% } %>
-		
 								
+						<!-- CATEGORY FILTER -->
 						<div class="filter-group">
 							<h6><i class="fas fa-list"></i> Categories</h6>
-							<div class="fancy-collapse-panel">
-								<div class="panel-group" id="accordion" role="tablist">
-									<% categories?.forEach((cat, index)=> { %>
-										<div class="panel panel-default">
-											<div class="panel-heading" role="tab" id="heading<%= index %>">
-												<h4 class="panel-title">
-												    <a class="<%= index !== 0 ? 'collapsed' : '' %>"
-												    data-toggle="collapse" data-parent="#accordion"
-												    href="#collapse<%= index %>"
-												    aria-expanded="<%= index === 0 ? 'true' : 'false' %>"
-												    aria-controls="collapse<%= index %>"> <%= cat.name %> </a>
-												</h4>
-											</div>
-											<div id="collapse<%= index %>" role="tabpanel"
-												class="panel-collapse collapse <%= index === 0 ? 'show' : '' %>"
-												aria-labelledby="heading<%= index %>">
-												<div class="panel-body">
-													<ul class="list-unstyled">
-														<% subcategories?.filter(sub=> String(sub.categoryId) ===
-														String(cat._id)).forEach(sub => { %>
-														    <li class="mb-1">
-                                                                <label class="custom-control custom-checkbox">
-                                                                    <input type="checkbox" name="subcategories"
-                                                                        value="<%= sub._id %>" class="filter-checkbox"
-                                                                        <%= Array.isArray(currentFilters?.subcategories) ? 
-                                                                        currentFilters.subcategories.includes(String(sub._id)) ? 'checked' : '' : 
-                                                                    currentFilters?.subcategories === String(sub._id) ? 'checked' : '' %>>
-                                                                    <span class="custom-control-indicator"></span>
-                                                                    <span> <%= sub.name %> </span>
-                                                                </label>
-                                                            </li>
-														<% }) %>
-													</ul>
-												</div>
-											</div>
-										</div>
-									<% }) %>
-								</div>
-							</div>
+							<ul class="list-unstyled">
+								<% categories.forEach(cat=> { %>
+									<li class="mb-1">
+										<label class="custom-control custom-checkbox">
+											<input type="checkbox" name="category" value="<%= cat._id %>"
+												class="filter-checkbox category-filter" <%=currentFilters?.category===String(cat._id)
+												? 'checked' : '' %>>
+											<span class="custom-control-indicator"></span>
+											<span><%= cat.name %></span>
+										</label>
+									</li>
+								<% }) %>
+							</ul>
 						</div>
-		
-						
+
+                        <!-- SUBCATEGORY FILTER -->
+						<div class="filter-group">
+							<h6><i class="fas fa-list-ul"></i> Subcategories</h6>
+							<ul class="list-unstyled" id="subcategoryList">
+								<% subcategories.forEach(sub=> { %>
+									<li class="mb-1">
+										<label class="custom-control custom-checkbox">
+											<input type="checkbox" name="subcategories" value="<%= sub._id %>"
+												class="filter-checkbox subcategory-filter" <%=Array.isArray(currentFilters?.subcategories) ?
+												currentFilters.subcategories.includes(String(sub._id)) ? 'checked' : '' :
+												currentFilters?.subcategories===String(sub._id) ? 'checked' : '' %>>
+											<span class="custom-control-indicator"></span>
+											<span><%= sub.name %></span>
+										</label>
+									</li>
+								<% }) %>
+							</ul>
+						</div>
+				
 						<% if (brands && brands.length> 0) { %>
 						    <div class="filter-group">
 				  			    <h6><i class="fas fa-tags"></i> Brands</h6>
@@ -442,11 +433,11 @@
 										<div class="text py-3 px-3 flex-grow-1 d-flex flex-column">
 											<div class="cat">
 												<% if(product.status==="Available" && product.quantity> 0){ %>
-													<span class="bg-primary" style="color: white; font-size: 10px;">
+													<span class="bg-success" style="color: white; font-size: 10px;">
 														<%= product.status %>
 													</span>
 												<% } else { %>
-										    		<span style="color: rgb(255, 255, 255); font-size: 8px; background-color: red;">Out Of Stock</span>
+										    		<span class="bg-danger" style="color: white; font-size: 10px;">Out Of Stock</span>
 												<% } %>
 											</div>
 											<div class="d-flex justify-content-between">
@@ -477,12 +468,21 @@
 												</div>
 											</div>
 							
-											<% if(product.quantity> 0){ %>
+											<% if( user && product.quantity> 0){ %>
 												<p class="bottom-area d-flex px-3">
 													<a href="#" class="add-to-cart text-center py-2 mr-1" data-id="<%= product._id %>">
 														<span>Add to cart <i class="ion-ios-add ml-1"></i></span>
 													</a>
 													<a href="/checkout?productId=<%= product._id %>&qty=1" class="buy-now text-center py-2">
+														Buy now<span><i class="ion-ios-cart ml-1"></i></span>
+													</a>
+												</p>
+											<% } else { %>
+												<p class="bottom-area d-flex px-3">
+													<a href="/login" class="cart-btn text-center py-2 mr-1" style="color: white;background: #000;border-radius: 10px;font-weight: 200;">
+														<span>Add to cart <i class="ion-ios-add ml-1"></i></span>
+													</a>
+													<a href="/login" class="buy-now text-center py-2">
 														Buy now<span><i class="ion-ios-cart ml-1"></i></span>
 													</a>
 												</p>
@@ -575,7 +575,6 @@
 	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 	<script>
 		async function addToWishlist(productId) {
-			console.log("product id:",productId);
 			try {
 				const response = await fetch(`/wishlist/add/${productId}`,{
 					method:"POST",
@@ -584,9 +583,7 @@
 					},
 				});
 
-				console.log("response status:",response.status);
 				const data = await response.json();
-				console.log("response data:",data);
 				if(data.success){
 					Swal.fire({
 						icon:"success",
@@ -661,7 +658,6 @@
                     applyFilters();
                 });
             });
-
             
             const colorOptions = document.querySelectorAll('.color-option');
             colorOptions.forEach(colorOption => {
@@ -670,10 +666,8 @@
                     colorOptions.forEach(option => {
                         option.classList.remove('active');
                     });
-            
                     
                     this.classList.add('active');
-            
                     
                     const color = this.getAttribute('data-color');
                     const colorInput = document.querySelector('input[name="color"]');
@@ -684,7 +678,6 @@
                     applyFilters();
                 });
             });
-
             
             const priceInputs = document.querySelectorAll('input[name="minPrice"], input[name="maxPrice"]');
             function handlePriceInput(){
@@ -694,7 +687,6 @@
                     debouncedApplyFilters();
                 }
 			}
-
             
             const searchForm = document.getElementById('searchForm');
             if (searchForm) {
@@ -703,7 +695,6 @@
                     applyFilters();
                 });
             }
-
             
             const removeButtons = document.querySelectorAll('.remove');
             removeButtons.forEach(button => {
@@ -744,7 +735,6 @@
 
             function applyFilters() {
                 const params = new URLSearchParams();
-        
                 
                 function getElementValue(selector) {
                     const element = document.querySelector(selector);
@@ -756,18 +746,16 @@
 					const values = Array.from(checkedElements).map(element => element.value);
                     return values.length > 0 ?values : "";
                 }
-        
                 
                 function getActiveColor() {
                     const activeColor = document.querySelector('.color-option.active');
                     return activeColor ? activeColor.getAttribute('data-color') : '';
                 }
-
                 
                 const filters = {
                     search: getElementValue('input[name="search"]'),
                     subcategories: getCheckedValue('subcategories'),
-                    category: getElementValue('select[name="category"]'),
+                    category: getCheckedValue('category'),
                     brand: getElementValue('select[name="brand"]'),
                     minPrice: getElementValue('input[name="minPrice"]'),
                     maxPrice: getElementValue('input[name="maxPrice"]'),
@@ -777,7 +765,6 @@
                     limit: getElementValue('select[name="limit"]'),
                     page: 1 
                 };
-
                 
                 Object.keys(filters).forEach(key => {
                     if (filters[key]) {
@@ -792,11 +779,9 @@
 						}
                     }
                 });
-
                 
                 window.location.href = '/shop?' + params.toString();
             }
-
             
             function debounce(func, wait) {
                 let timeout;
@@ -809,7 +794,6 @@
                     timeout = setTimeout(later, wait);
                 };
             }
-
             
             const debouncedApplyFilters = debounce(applyFilters, 500);
             priceInputs.forEach(input => {
@@ -818,7 +802,6 @@
 
                 input.addEventListener('input', handlePriceInput);
             });
-
             
             const collapseElements = document.querySelectorAll('[data-toggle="collapse"]');
             collapseElements.forEach(element => {
@@ -841,7 +824,6 @@
                                 toggle.classList.add('collapsed');
                                 toggle.setAttribute('aria-expanded', 'false');
                             });
-                    
                             
                             targetElement.classList.add('show');
                             this.classList.remove('collapsed');
@@ -850,7 +832,6 @@
                     }
                 });
             });
-
             
             function initializeFilters() {
 				const urlParams = new URLSearchParams(window.location.search);

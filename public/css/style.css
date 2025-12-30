@@ -512,7 +512,6 @@ mark,
 .img-fluid {
   max-width: 100%;
   height: auto;
-  margin-bottom: 20px;
 }
 
 .img-thumbnail {
@@ -10336,7 +10335,7 @@ button.bg-dark:focus {
 
   .pl-md-5,
   .px-md-5 {
-    padding-left: 3rem !important;
+    padding-left: 7rem !important;
   }
 
   .m-md-n1 {
@@ -12749,6 +12748,7 @@ h5,
   -webkit-transition: all 0.3s ease;
   -ms-transition: all 0.3s ease;
   transition: all 0.3s ease;
+  border-radius: 0px 0px 10px 10px;
 }
 
 @media (max-width: 991.98px) {
@@ -12868,7 +12868,8 @@ h5,
 .product .text {
   position: relative;
   width: 100%;
-  background-color: #f6f3f1;
+  background-color: #e9e7de;
+  border-radius: 0px 0px 10px 10px;
 }
 
 .product .text h3 {

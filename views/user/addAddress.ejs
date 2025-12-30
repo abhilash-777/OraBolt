@@ -302,20 +302,32 @@
 
             if(!addressType)errors.addressTypeError = "Please select an address type";
 
-            if(!name||!/^(?=.*[A-Za-z])[A-Za-z\s._]+$/.test(name)){
-                errors.nameError = "Name should have Charactors"
+            if(!name||!/^[A-Za-z]+(?:[\s'-][A-Za-z]+)*$/.test(name)){
+                errors.nameError = "Name should have Characters(not include digits and special characters)."
             }else if(name.length < 5 || name.length > 20)errors.nameError = "Name should contain 5 to 20 characters";
 
-            if(!address)errors.addressError = "Address should required";
-
-            if(!phone||!/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(phone))errors.phoneError = "Phone number should be 10 digit valid number(not like this 0000000000)";
-
-            if(!city||!/^[A-Za-z\s]+$/.test(city))errors.cityError = "City name should required";
-
+            if(!address){
+                errors.addressError = "Address should required";
+            }else if(!/^[a-zA-Z0-9\s.,'#\-\/]{3,}$/.test(address)){
+                errors.addressError = "Invalid address format. Example(123 Main St, city, district and state names)not allowed special characters(exclude '#').";
+            }
+            if(!phone){
+                errors.phoneError = "Phone number should required.";
+            }else if(!/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(phone)){
+                errors.phoneError = "Phone number should be 10 digit valid number(not like this 0000000000).";
+            }
+            if(!city){
+                errors.cityError = "City name should required";
+            }else if(!/^[a-zA-Z]+(?:[\s-][a-zA-Z]+)*$/.test(city)){
+                errors.cityError = "Invalid city name.Not allowed digits, accent and special characters";
+            }
             if(!state)errors.stateError = "State name should required";
 
-            if(!street)errors.streetError = "Street name should required";
-
+            if(!street){
+                errors.streetError = "Street name should required";
+            }else if(!/^[a-zA-Z0-9\s,.'-]{3,}$/.test(street)){
+                errors.streetError = "Invalid street name format. Example(123 Main Street).Not allowed special characters.";
+            }
             if(!pincode || !/^[1-9][0-9]{5}$/.test(pincode)){
                 errors.pincodeError = "Pincode should required 6-digits number(not allow 000000)";
             }else if(state && !isValidPincodeForState(pincode, state)){
@@ -377,7 +389,6 @@
                         text:data.message||"Error occure while adding address",
                     })
                 }
-
             } catch (error) {
                 Swal.fire({
                     icon:"error",

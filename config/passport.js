@@ -10,43 +10,43 @@ passport.use(new googleStrategy({
 },
 
 async function (accessToken,refreshToken,profile,done) {
-
     try {
-
         let user = await User.findOne({googleId:profile.id});
 
         if(user){
             return done(null,user);
-        }else{
-            user = new User({
-                name:profile.displayName,
-                email:profile.emails[0].value,
-                googleId:profile.id
-            });
+        }
+
+        const email = profile.emails[0].value;
+        user = await User.findOne({email:email});
+
+        if(user){
+            user.googleId = profile.id;
             await user.save();
             return done(null,user);
         }
+        user = new User({
+            name:profile.displayName,
+            email:profile.emails[0].value,
+            googleId:profile.id
+        });
+        await user.save();
+        return done(null,user);
         
     } catch (error) {
         return done(error,null)
-    }
-    
+    } 
 }
-
 ));
 
 passport.serializeUser((user,done) => {
-
     done(null,user.id);
-
 });
 
 passport.deserializeUser((id,done) => {
-
     User.findById(id)
     .then(user => done(null,user))
-    .catch(err => done(err,null))
-
+    .catch(err => done(err,null));
 })
 
 module.exports = passport

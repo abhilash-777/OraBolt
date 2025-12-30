@@ -9,6 +9,7 @@ const Wishlist = require("../../models/wishlistSchema");
 const Order = require("../../models/orderSchema");
 const Wallet = require("../../models/walletSchema");
 const Coupon = require("../../models/couponSchema");
+const Review = require("../../models/reviewSchema");
 const {applyOffersToProducts,getEffectivePrice} = require("../../utils/offer");
 const razorpayInstance = require("../../config/razorpay");
 const crypto = require("crypto");
@@ -16,7 +17,6 @@ const nodemailer = require("nodemailer");
 const bcrypt = require("bcrypt");
 const { default: mongoose } = require("mongoose");
 const Offer = require("../../models/offerSchems");
-const { error } = require("console");
 
 require("dotenv").config();
 
@@ -502,7 +502,9 @@ const loadShop = async function (req,res) {
                 currentFilters,
                 query:req.query,
                 wishlistProductIds:wishlistProductIds,
-                cartCount
+                cartCount,
+                pageTitle:'Shop',
+                pageName:'Shop'
             });
         }else{
             return res.render("shop",{user:user||null,
@@ -518,7 +520,9 @@ const loadShop = async function (req,res) {
                 currentFilters,
                 query:req.query,
                 wishlistProductIds:[],
-                cartCount:0
+                cartCount:0,
+                pageTitle:'Shop',
+                pageName:'Shop'
             });
         }
     } catch (error) {
@@ -539,16 +543,94 @@ const loadProduct = async function (req,res) {
         if(!productData){
             return res.render("page-404",{error:"Product not found"});
         }
+
         const processedProducts = await applyOffersToProducts(productData);
         const similarProducts = await Product.find({category:productData.category,_id:{$ne:productId}}).limit(6).lean();
+
         let isWishlist = false;
         let userData = null;
+        let canReview = false;
+        let userReview = null;
+        let wishlistProductIds = [];
+        let cartCount = 0;
+
         if(user){
+            const wishlist = await Wishlist.findOne({userId:user._id}).lean();
+            const cart = await Cart.findOne({userId:user._id}).lean();
+            if(wishlist && wishlist.products){
+                wishlistProductIds = wishlist.products.map(item => item.productId.toString());
+            }
+            if(cart && cart.items){
+                cartCount = cart.items.reduce((total,item) => total + item.quantity,0);
+            }
+
             userData = await User.findById(user._id);
             const userWishlist = await Wishlist.findOne({userId:user._id,"products.productId":productId});
-            isWishlist = !!userWishlist
+            isWishlist = !!userWishlist;
+
+            const deliveredOrder = await Order.findOne({
+                userId:user._id,
+                "orderedItems.product":productId,
+                "orderedItems.status":"Delivered"
+            });
+
+            canReview = !!deliveredOrder;
+            if(deliveredOrder){
+                userReview = await Review.findOne({productId:productId,userId:user._id});
+            }
         }
-        return res.render("product",{user:userData,product:processedProducts,similarProducts,isWishlist})
+        // Review summery
+        const reviewStatus = await Review.aggregate([
+            {
+                $match:{
+                    productId:new mongoose.Types.ObjectId(productId),
+                    status:"approved"
+                }
+            },
+            {
+                $group:{
+                    _id:null,
+                    avgRating:{$avg:"$rating"},
+                    totalReviews:{$sum:1},
+                    ratings:{$push:"$rating"}
+                }
+            }
+        ]);
+
+        let ratingData = {
+            average:0,
+            total:0,
+            distribution:{5:0,4:0,3:0,2:0,1:0}
+        };
+
+        if(reviewStatus.length > 0){
+            ratingData.average = Math.round(reviewStatus[0].avgRating*10)/10;
+            ratingData.total = reviewStatus[0].totalReviews;
+            // calculate distribution
+            reviewStatus[0].ratings.forEach(rating => ratingData.distribution[rating]++ );
+        }
+
+        const recentReviews = await Review.find({
+            productId:productId,
+            status:"approved"
+        })
+        .populate("userId" ,"name")
+        .sort({createdAt:-1})
+        .limit(3)
+        .skip();
+
+        return res.render("product",{
+            user:userData,
+            product:processedProducts,
+            similarProducts,
+            isWishlist,
+            canReview,
+            userReview,
+            ratingData,
+            recentReviews : recentReviews || [],
+            wishlistProductIds,
+            cartCount
+        });
         
     } catch (error) {
         console.log("Error occure in page loading:",error);
@@ -571,6 +653,10 @@ const loadWishlist = async (req,res) => {
             const wishlist = await Wishlist.findOne({userId:user._id})
             .populate({
                 path:"products.productId",
+                populate:{
+                    path:"category",
+                    select:"categoryOffer isListed categoryName"
+                },
                 select:"productName image regularPrice salePrice productOffer quantity status category"
             });
             const cart = await Cart.findOne({userId:user._id}).lean();
@@ -581,7 +667,68 @@ const loadWishlist = async (req,res) => {
                 wishlistProductIds = wishlist.products.map(p => p.productId.toString());
             }
 
-            let products = wishlist ? wishlist.products : [];
+            let products = [];
+            if(wishlist && wishlist.products){
+                // Recalculate prices dynamically for each wishlist item
+                products = await Promise.all(wishlist.products.map(async (item) => {
+                    const product = item.productId;
+                    
+                    if(!product || product.isBlocked || product.status !== "Available"){
+                        return {
+                            ...item.toObject(),
+                            effectivePrice: item.effectivePrice,
+                            regularPrice: item.regularPrice,
+                            appliedOfferPercentage: item.appliedOfferPercentage,
+                            savings: item.savings,
+                            hasOffer: false,
+                            isUnavailable: true
+                        };
+                    }
+
+                    // Get current effective price
+                    const {price:currentEffectivePrice, percentage:currentPercentage, offerId:currentOfferId} = await getEffectivePrice(product);
+                    const hasOffer = currentPercentage > 0;
+                    const currentRegularPrice = product.salePrice > 0 ? product.salePrice : product.regularPrice;
+                    const savings = hasOffer ? Math.round(currentRegularPrice - currentEffectivePrice) : 0;
+
+                    return {
+                        ...item.toObject(),
+                        effectivePrice: currentEffectivePrice,
+                        regularPrice: currentRegularPrice,
+                        appliedOfferPercentage: currentPercentage,
+                        appliedOfferId: currentOfferId,
+                        savings: savings,
+                        hasOffer: hasOffer,
+                        isUnavailable: false
+                    };
+                }));
+
+                // Update wishlist with new prices in background
+                const bulkOps = products.map((item) => ({
+                    updateOne: {
+                        filter: { 
+                            _id: wishlist._id, 
+                            'products.productId': item.productId._id 
+                        },
+                        update: {
+                            $set: {
+                                'products.$.effectivePrice': item.effectivePrice,
+                                'products.$.regularPrice': item.regularPrice,
+                                'products.$.appliedOfferPercentage': item.appliedOfferPercentage,
+                                'products.$.appliedOfferId': item.appliedOfferId,
+                                'products.$.savings': item.savings,
+                                'products.$.hasOffer': item.hasOffer
+                            }
+                        }
+                    }
+                }));
+
+                if(bulkOps.length > 0){
+                    await Wishlist.bulkWrite(bulkOps).catch(err => 
+                        console.log("Error updating wishlist prices:", err)
+                    );
+                }
+            }
 
             res.render("wishlist",{user:userData,wishlistItems:products,wishlistProductIds,cartCount,title:"My Wishlist"});
         }else{
@@ -708,8 +855,10 @@ const addToCartFromWishlist = async (req,res) => {
         } 
 
         const effectivePrice = wishlistItem.effectivePrice;
+        console.log("wishlist effective price:",effectivePrice);
         const percentage = wishlistItem.appliedOfferPercentage;
         const offerId = wishlistItem.appliedOfferId;
+        console.log("product regular price that is stored in wishlist:",wishlistItem.regularPrice);
 
         let cart = await Cart.findOne({userId});
         if(!cart){
@@ -781,6 +930,11 @@ const addToCart = async (req,res) => {
             return res.status(400).json({message: "Product is unavailable"});
         }
 
+        // Check if category is blocked
+        if(product.category && !product.category.isListed){
+            return res.status(400).json({message: "This product category is currently unavailable"});
+        }
+
         const {price:effectivePrice,offerId,percentage} = await getEffectivePrice(product);
 
         if(product.quantity <= 0){
@@ -821,7 +975,7 @@ const addToCart = async (req,res) => {
                 quantity: quantityToAdd,
                 price: effectivePrice,
                 totalPrice: effectivePrice * quantityToAdd,
-                regularPrice:product.regularPrice,
+                regularPrice:product.salePrice > 0 ? product.salePrice : product.regularPrice,
                 appliedOfferPercentage:percentage,
                 appliedOfferId:offerId||null,
             });
@@ -849,13 +1003,15 @@ const loadCartPage = async(req,res) => {
             return res.redirect("/login");
         }
         const userData = await User.findById(user._id);
-        const cart = await Cart.findOne({userId:user._id}).populate("items.productId").lean();
-        if(!cart||!cart.items||cart.items.length === 0){
-            return res.render("cart",{user:userData,cartItems:[]})
-        }
-        const errorMsg = req.session?.stockError || null ;
-        req.session.stockError = null;
-
+        const cart = await Cart.findOne({userId:user._id})
+        .populate({
+            path:"items.productId",
+            populate:{
+                path:"category",
+                select:"categoryOffer isListed categoryName"
+            }
+        }).lean();
+        
         let wishlistProductIds = [];
         let cartCount = 0;
         const wishlist = await Wishlist.findOne({userId:user._id}).lean();
@@ -866,21 +1022,74 @@ const loadCartPage = async(req,res) => {
             cartCount = cart.items.reduce((total,item) => total + item.quantity,0);
         }
 
-        const cartItems = cart?.items?.map((item) => {
+        if(!cart||!cart.items||cart.items.length === 0){
+            return res.render("cart",{user:userData,cartItems:[],cartCount,wishlistProductIds});
+        }
+        const errorMsg = req.session?.stockError || null ;
+        req.session.stockError = null;
+
+        // Recalculate prices dynamically for each item
+        const cartItems = await Promise.all(cart.items.map(async (item) => {
             const product = item.productId;
             let availabilityStatus = "Available";
+            
             if(!product){
                 availabilityStatus = "Not Available";
             }else if(product.isBlocked){
+                availabilityStatus = "Not Available"
+            }else if(product.category && !product.category.isListed){
                 availabilityStatus = "Not Available"
             }else if(product.quantity <= 0||product.stock <= 0){
                 availabilityStatus = "Out of Stock"
             }
 
-            return {...item,
+            
+            let currentPrice = item.price; 
+            let currentPercentage = item.appliedOfferPercentage || 0;
+            let currentOfferId = item.appliedOfferId;
+
+            if(product && !product.isBlocked && product.status === "Available"){
+                const priceData = await getEffectivePrice(product);
+                currentPrice = priceData.price;
+                currentPercentage = priceData.percentage || 0;
+                currentOfferId = priceData.offerId || null;
+            }
+
+            return {
+                ...item,
+                price: currentPrice,
+                totalPrice: currentPrice * item.quantity,
+                appliedOfferPercentage: currentPercentage,
+                appliedOfferId: currentOfferId,
                 availabilityStatus,
-            isOutOfStock:availabilityStatus === "Out of Stock" ||availabilityStatus === "Not Available"}
-        });
+                isOutOfStock: availabilityStatus === "Out of Stock" || availabilityStatus === "Not Available"
+            }
+        }));
+
+        // Update cart with new prices
+        const bulkOps = cartItems.map((item, index) => ({
+            updateOne: {
+                filter: { 
+                    _id: cart._id, 
+                    'items._id': cart.items[index]._id 
+                },
+                update: {
+                    $set: {
+                        'items.$.price': item.price,
+                        'items.$.totalPrice': item.totalPrice,
+                        'items.$.appliedOfferPercentage': item.appliedOfferPercentage,
+                        'items.$.appliedOfferId': item.appliedOfferId
+                    }
+                }
+            }
+        }));
+
+        if(bulkOps.length > 0){
+            await Cart.bulkWrite(bulkOps).catch(err => 
+                console.log("Error updating cart prices:", err)
+            );
+        }
+
         return res.render("cart",{user:userData,wishlistProductIds,cartCount,cartItems ,errorMsg});
     } catch (error) {
         console.log("error occure while load cart:",error);
@@ -980,6 +1189,10 @@ const loadCheckoutPage = async(req,res) => {
         
         const cart = await Cart.findOne({userId:user._id}).populate({
             path:"items.productId",
+            populate:{
+                path:"category",
+                select:"isListed name"
+            },
             select:"productName image regularPrice salePrice quantity status isBlocked"
         }).lean();
         const wishlist = await Wishlist.findOne({userId:user._id}).lean();
@@ -991,14 +1204,20 @@ const loadCheckoutPage = async(req,res) => {
         }
 
         if(productId){
-            const product = await Product.findOne({_id:productId,isBlocked:false,status:"Available"}).lean();
+            const product = await Product.findOne({_id:productId,isBlocked:false,status:"Available"}).populate("category").lean();
             if(!product)return res.redirect("/shop");
+
+            // Check if category is blocked
+            if(product.category && !product.category.isListed){
+                req.session.stockError = `Cannot purchase ${product.productName}. Category "${product.category.name}" is currently unavailable.`;
+                return res.redirect("/shop");
+            }
 
             const quantity = parseInt(qty) > 0 ? parseInt(qty) : 1;
             if(quantity > product.quantity){
                 return res.render("cart",{user,cartItems:[],errorMsg:`Only ${product.quantity} unit(s) available for ${product.productName}`})
             }
-            const price = product.regularPrice || product.salePrice;
+            const {price} = await getEffectivePrice(product);
             const itemTotal = price * quantity;
 
             cartItems.push({
@@ -1013,6 +1232,8 @@ const loadCheckoutPage = async(req,res) => {
         }else{
 
             let stockError = null;
+            let blockedCategoryError = null;
+
             if (cart && cart.items && cart.items.length > 0) {
                 cartItems = cart.items
                     .filter(item => item.productId != null) 
@@ -1021,8 +1242,14 @@ const loadCheckoutPage = async(req,res) => {
                         const price = item.price || item.productId.salePrice || item.productId.regularPrice;
                         const itemTotal = price * item.quantity;
                     
+                        // check stock availability
                         if(item.quantity > product.quantity){
                             stockError = `Only ${product.quantity} unit(s) of ${product.productName} available. Please reduce quantity.`;
+                        }
+
+                        // Check if category is blocked
+                        if(product.category && !product.category.isListed){
+                            blockedCategoryError = `Cannot checkout, ${product.productName} belongs to an unavailable category: ${product.category.name}. Please remove it from cart.`;
                         }
                         return {
                             ...item,
@@ -1033,6 +1260,12 @@ const loadCheckoutPage = async(req,res) => {
                             calculatedTotal: itemTotal
                         };
                     });
+
+                    // Check for blocked category error first
+                    if(blockedCategoryError){
+                        req.session.stockError = blockedCategoryError;
+                        return res.redirect("/cart");
+                    }
 
                     if(stockError){
                         req.session.stockError = stockError;
@@ -1053,7 +1286,8 @@ const loadCheckoutPage = async(req,res) => {
             subTotal,
             finalPrice:subTotal,
             wishlistProductIds,
-            cartCount
+            cartCount,
+            isDirectBuy:!!productId
         });
     } catch (error) {
         console.log("error occure while load cart:",error);
@@ -1091,7 +1325,7 @@ const editAddress = async (req,res) => {
         if(!addressType||!name||!address||!phone||!street||!city||!state||!pincode||!landMark) {
             return res.status(400).json({success: false, message: "Please fill all required fields"});
         }
-        if(!/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(altPhone)){
+        if(altPhone && !/^(?!([6-9])\1{9})[6-9]\d{9}$/.test(altPhone)){
             return res.json({success:false,message:"Phone number should be a 10 digit valid number"});
         }
         await Address.updateOne({_id:id,userId:user._id},{$set:{addressType,name,address,phone,altPhone,street,city,state,pincode,landMark}});
@@ -1392,47 +1626,86 @@ const placeOrder = async (req,res) => {
         const selectedAddressId = req.session.selectedAddress;
         if (!selectedAddressId)return res.json({ message: "Please select a delivery address" });
 
-        const  {paymentMethod , razorpayPaymentId , razorpayOrderId,appliedCouponCode,isPaymentFailed} = req.body;
+        const  {paymentMethod , razorpayPaymentId , razorpayOrderId,appliedCouponCode,isPaymentFailed,productId,quantity} = req.body;
 
         if (!['Cash On Delivery', 'Razorpay', 'Wallet'].includes(paymentMethod)) {
             return res.json({ message: "Invalid payment method" });
         }
 
-        const cart = await Cart.findOne({ userId: user._id }).populate({
-            path:'items.productId',
-            select:"productName image regularPrice salePrice stock status isBlocked"
-        });
-        if (!cart || cart.items.length === 0)return res.json({ message: "Cart is empty" });
-
-        for (const item of cart.items) {
-            const product = item.productId;
-            
-            if (!product || product.isBlocked||product.status !== "Available") {
-                return res.json({ 
-                    message: `Product ${product?.productName || 'unknown'} is no longer available` 
-                });
-            }
-
-            if (product.quantity < item.quantity) {
-                return res.json({ 
-                    message: `Insufficient stock for ${product.productName}. Only ${product.quantity} available.` 
-                });
-            }
-        }
-
         const address = await Address.findById(selectedAddressId);
         if (!address)return res.json({ message: "Address not found" });
 
-        // Calculate total
-        const totalPrice = cart.items.reduce((sum, item) => {
-            return sum + (item.price * item.quantity);
-        }, 0);
+        let orderedItems = [];
+        let totalPrice = 0;
+
+        if(productId){
+            const product = await Product.findOne({_id:productId,status:"Available",isBlocked:false}).populate("category").lean();
+            if(!product){
+                return res.status(404).json({success:false,message:"Product not found."});
+            }
+            const quty = parseInt(quantity) > 0 ? parseInt(quantity) : 1;
+            if(quty > product.quantity){
+                return res.status(400).json({success:false,message:`Insufficient stock for ${product.productName}.Only ${product.quantity} unit(s) available.`});
+            }
+            const {price} = await getEffectivePrice(product);
+            const itemTotal = price * quty;
+            totalPrice = itemTotal;
+            console.log("Single product to order , Total price:",totalPrice +","+"Type of total price:",typeof totalPrice);
+            orderedItems.push({
+                product:product._id,
+                name:product.productName,
+                image:product.image[0],
+                quantity:quty,
+                price
+            });
+        }else{
+            const cart = await Cart.findOne({ userId: user._id }).populate({
+                path:'items.productId',
+                select:"productName image regularPrice salePrice stock status isBlocked"
+            });
+            if (!cart || cart.items.length === 0)return res.json({ message: "Cart is empty" });
+    
+            for (const item of cart.items) {
+                const product = item.productId;
+                
+                if (!product || product.isBlocked||product.status !== "Available") {
+                    return res.json({ 
+                        message: `Product ${product?.productName || 'unknown'} is no longer available` 
+                    });
+                }
+    
+                if (product.quantity < item.quantity) {
+                    return res.json({ 
+                        message: `Insufficient stock for ${product.productName}. Only ${product.quantity} available.` 
+                    });
+                }
+            }
+    
+            // Calculate total
+            totalPrice = cart.items.reduce((sum, item) => {
+                return sum + (item.price * item.quantity);
+            }, 0);
+            console.log("User to order items from cart ,Total price:",totalPrice +","+"Type of total price:",typeof totalPrice);
+
+            orderedItems = cart.items.map((item) => {
+                const product = item.productId;
+                
+                return {
+                    product: product._id,
+                    name: product.productName, 
+                    image: product.image[0],
+                    quantity: item.quantity,
+                    price: item.price
+                };
+            });
+        }
 
         let discount = 0;
         let couponApplied = false;
         let couponId = null;
 
         if(appliedCouponCode){
+            console.log("Before coupon validation , Total price:",totalPrice +","+"Type of total price:",typeof totalPrice);
             const couponValidation = await Coupon.validateCoupon(appliedCouponCode,user._id,totalPrice);
             if(couponValidation.isValid){
                 discount = couponValidation.discountAmount;
@@ -1445,25 +1718,18 @@ const placeOrder = async (req,res) => {
         }
 
         const finalPrice = totalPrice - discount;
+        console.log("final price:",totalPrice +","+"Type of final price:",typeof finalPrice);
 
-        const orderedItems = cart.items.map((item) => {
-            const product = item.productId;
-            
-            return {
-                product: product._id,
-                name: product.productName, 
-                image: product.image[0],
-                quantity: item.quantity,
-                price: item.price
-            };
-        });
-
+        const wallet = await Wallet.findOne({userId:req.session.user._id});
         let paymentStatus = "Pending";
         let paymentDate = null;
         let transactionId = null;
         let orderStatus = "Pending";
 
         if (paymentMethod === "Cash On Delivery") {
+            if(finalPrice > 1000){
+                return res.status(400).json({success:false,message:"Cash On Delivery applicable for order amount below 1000"})
+            }
             paymentStatus = "Pending"; // Paid after delivery
         } else if (paymentMethod === "Razorpay") {
             if(isPaymentFailed){
@@ -1479,24 +1745,11 @@ const placeOrder = async (req,res) => {
                 transactionId = razorpayPaymentId;
             }
         } else if (paymentMethod === "Wallet") {
-            const wallet = await Wallet.findOne({userId:req.session.user._id});
             if(!wallet)return res.json({success:false,message:"Wallet not found"});
 
             if(wallet.balance < finalPrice){
                 return res.json({success:false,message:`Insufficient wallet balance:₹${wallet.balance}.Required:₹${finalPrice}`});
             }
-
-            wallet.balance -= finalPrice;
-            wallet.transactions.push({
-                type:"debit",
-                amount:finalPrice,
-                description:`Order payment.`,
-            });
-            await wallet.save();
-
-            paymentStatus = "Paid";
-            paymentDate = new Date();
-            transactionId = "WALLET-" + Date.now();
         }
 
         // Create order
@@ -1523,12 +1776,22 @@ const placeOrder = async (req,res) => {
             couponApplied: couponApplied,
             invoice: new Date(),
             paymentMethod,
-            paymentStatus,
-            transactionId,
-            paymentDate
+            paymentStatus:paymentMethod !== "Wallet" ? paymentStatus : "Paid",
+            transactionId:paymentMethod !== "Wallet" ? transactionId : "WALLET-" + Date.now(),
+            paymentDate:paymentMethod !== "Wallet" ? paymentDate : new Date()
         });
 
         await newOrder.save();
+
+        if(paymentMethod === "Wallet"){
+            wallet.balance -= finalPrice;
+            wallet.transactions.push({
+                type:"debit",
+                amount:finalPrice,
+                description:`Order payment of order ${newOrder.orderId}.`,
+            });
+            await wallet.save();
+        }
 
         // Mark coupon as used if applied
         if (couponApplied && couponId && paymentStatus !== "Failed") {
@@ -1545,13 +1808,15 @@ const placeOrder = async (req,res) => {
                 }
             );
         }
-
         
+        if(productId){
+            await Product.findByIdAndUpdate(productId,{$inc:{quantity:-quantity}},{new:true});
+        }else{
             // Decrease stock
-            for (const item of cart.items) {
+            for (const item of orderedItems) {
                 await Product.findByIdAndUpdate(
-                    item.productId._id,
-                    { $inc: { quantity: -item.quantity } },
+                    item.product,
+                    {$inc:{quantity:-item.quantity}},
                     { new: true }
                 );
             }
@@ -1561,6 +1826,7 @@ const placeOrder = async (req,res) => {
                 { userId: user._id },
                 { $set: { items: [] } }
             );
+        }
 
         // Clear selected address from session
         delete req.session.selectedAddress;
@@ -1727,18 +1993,69 @@ const orderSuccess = async(req,res) => {
 
 const loadContact = async function (req,res) {
     try {
-
         const user = req.session?.user;
+
+        let wishlistProductIds = [];
+        let cartCount = 0;
         if(user){
             const userData = await User.findById(req.session?.user?._id);
-            return res.render("contact",{user:userData});
+            const wishlist = await Wishlist.findOne({userId:user._id}).lean();
+            const cart = await Cart.findOne({userId:user._id}).lean();
+            if(wishlist && wishlist.products){
+                wishlistProductIds = wishlist.products.map(item => item.productId.toString());
+            }
+            if(cart && cart.items){
+                cartCount = cart.items.reduce((total,item) => total + item.quantity,0);
+            }
+
+            return res.render("contact",{user:userData,wishlistProductIds,cartCount});
         }else{
-            return res.render("home",{user:null});
+            return res.render("contact",{user:null,wishlistProductIds:[],cartCount:0});
         }
-        
     } catch (error) {
         console.error("contact page not found",error);
         return res.redirect("/");
+    }
+};
+
+const sendMessage = async (req,res) => {
+    try {
+        const {name,email,subject,message} = req.body;
+        if(!name||!email||!subject||!message){
+            return res.status(400).json({success:false,message:"All fields required"});
+        }
+
+        const transport = nodemailer.createTransport({
+            service:"gmail",
+            secure:false,
+            port:587,
+            requireTLS:true,
+            auth:{
+                user:process.env.NODEMAILER_EMAIL,
+                pass:process.env.NODEMAILER_PASSWORD
+            }
+        });
+
+        const sendOption = {
+            from:email,
+            to:process.env.NODEMAILER_EMAIL,
+            subject:`New message from ${name} - ${subject}`,
+            html:`
+                <h2>New Contact Message</h2>
+                <p><strong>From:</strong> ${name} (${email})</p>
+                <p><strong>Subject:</strong> ${subject}</p>
+                <p><strong>Message:</strong></p>
+                <p>${message}</p>
+            `,
+        };
+
+        await transport.sendMail(sendOption);
+
+        return res.status(200).json({success:true,message:"Message send successfull"});
+
+    } catch (error) {
+        console.log("something wrong while processing:",error);
+        return res.status(500).json({success:false,message:"Something wrong while processing"});
     }
 };
 
@@ -1777,4 +2094,5 @@ module.exports = {
     updateOrderPayment,
     orderSuccess,
     loadContact,
+    sendMessage,
 };  

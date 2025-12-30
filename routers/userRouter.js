@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const userControl = require("../controllers/user/userControl");
 const profileController = require("../controllers/user/profileController");
+const reviewController = require("../controllers/user/reviewController");
 const passport = require("passport");
 const {userAuth , adminAuth,resetVerification} = require("../middlewares/auth");
 const {uploadProfileImage} = require("../utils/multer");
@@ -18,6 +19,7 @@ router.get('/login',userControl.loadLogin);
 router.post('/login',userControl.login);
 router.get("/forgotPassword",profileController.loadForgot);
 router.post("/forgotPassword",profileController.forgotPasword);
+router.get("/forgotVerifyotp",profileController.loadForgotVerifyOtp);
 router.post("/forgotVerifyotp",profileController.verifyForgototp);
 router.post("/resendForgotOtp",profileController.forgotResendOtp);
 router.get("/resetPassword",profileController.getResetPassword);
@@ -26,13 +28,33 @@ router.get('/logout',userControl.logout);
 
 router.get("/auth/google",passport.authenticate('google',{scope:["profile","email"]}));
 router.get("/auth/google/callback",passport.authenticate("google",{failureRedirect:'/login'}),(req,res) => {
-    req.session.user = {_id:req.user._id};
-    res.redirect('/');
+    if(req.user){
+        req.session.user = {_id:req.user._id};
+        res.redirect("/");
+    }else{
+        res.redirect("/login");
+    }
 });
 
 router.get('/',userControl.loadHome);
 router.get("/shop",userControl.loadShop);
 router.get("/product/:id",userControl.loadProduct);
+
+// Review management
+router.get('/review/check/:productId/:orderId', userAuth, reviewController.checkReviewEligibility);
+router.post('/review/submit', userAuth, reviewController.submitReview);
+router.get('/review/product/:productId', reviewController.getProductReviews);
+router.post('/review/helpful/:reviewId', userAuth, reviewController.markReviewHelpful);
+router.get('/review/my-orders', userAuth, reviewController.getReviewableOrders);
+// Update user's own review
+router.put('/review/update/:reviewId', userAuth, reviewController.updateUserReview);
+// Delete user's own review
+router.delete('/review/delete/:reviewId', userAuth, reviewController.deleteUserReview);
+
+// contact management
+router.get("/contact",userControl.loadContact);
+router.post("/contact/send-message",userControl.sendMessage);
+
 router.use(userAuth);
 //wishlist management
 router.get("/wishlist",userControl.loadWishlist);
@@ -62,8 +84,6 @@ router.post("/checkout/verify-payment", userControl.verifyPayment);
 // retry payment
 router.post('/order/retry-payment',userControl.retryPayment);
 router.post('/order/update-payment',userControl.updateOrderPayment);
-
-router.get("/contact",userControl.loadContact);
 
 // profile management
 router.get("/profile",profileController.loadProfile);

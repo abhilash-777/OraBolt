@@ -111,7 +111,7 @@
 
             <% if(totalPages > 1){ %>
                 <div class="pagination-info">
-                    <%= ((currendPage-1)*5)+1 %> to <%= Math.min((currentPage*5,totalUsers)) %> of <%= totalUsers %> users
+                    <%= ((currentPage-1)*5)+1 %> to <%= Math.min((currentPage*5,totalUsers)) %> of <%= totalUsers %> users
                 </div>
                 <div class="pagination-container">
                     <div class="pagination">

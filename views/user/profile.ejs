@@ -525,7 +525,6 @@
             });
 
             if (passwordForm) {
-        
                 passwordForm.addEventListener("submit", async (e) => {
 
                     e.preventDefault();
@@ -548,7 +547,6 @@
                     if (!confirmChangePassword.isConfirmed)return
 
                     try {
-
                         const response = await fetch(`/manage-password`, {
                             method: "PUT",
                             headers: {
@@ -602,7 +600,6 @@
 
             document.querySelectorAll(".errorMsg").forEach(el => el.textContent = "");
             let isValid = true;
-
             const errors = {
                 currPassError: "",
                 newPassError: "",
@@ -630,7 +627,7 @@
             if (!confirmPassword) {
                 errors.confirmPassError = "Confirm password is required";
             } else if (confirmPassword !== newPassword) {
-                errors.confirmPassError = "Passwords don't match";
+                errors.confirmPassError = "Confirm password don't match";
             }
     
             Object.keys(errors).forEach(id => {

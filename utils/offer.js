@@ -74,7 +74,7 @@ async function applyOffersToProducts(products) {
 
 async function getEffectivePrice(product) {
 
-  let price = product.regularPrice;
+  let price = product.regularPrice > product.salePrice ? product.salePrice : product.regularPrice;
   let percentage = 0;
   let offerId = null;
 

@@ -130,6 +130,7 @@
 
         function validation(payload){
             let isValid = true;
+            document.querySelectorAll("small").forEach(elem => elem.textContent = "");
             const errors = {
                 nameError : "",
                 discountError : "",
@@ -138,18 +139,22 @@
                 endDateError : ""
             };
 
-            if(!payload.name || /^(?=.*[A-Za-z])[A-Za-z\s._]+$/.test(payload.name)){
+            if(!payload.name || !/^(?=.*[A-Za-z])[A-Za-z\s._]+$/.test(payload.name)){
                 errors.nameError = "Coupon name should start with alphabet charactors.";
             }else if(payload.name.length < 5 || payload.name.length > 10){
                 errors.nameError = "Coupon name length in between 5 to 10 charactors";
             }
-            if(!payload.offerPrice || payload.offerPrice < 0){
-                errors.discountError = "Offer price Should be a positive value";
+            if(!payload.offerPrice){
+                errors.discountError = "Offer price Should required";
+            }else if(payload.offerPrice <= 0){
+                errors.discountError = "Offer price Should be a positive value(offer price should greater than zero)."
             }else if(payload.offerPrice > 1000){
                 errors.discountError = "Offer should not exceed 1000 rupees.";
             }
-            if(!payload.minimumPrice || payload.minimumPrice < 0){
-                errors.minimumPriceError = "Minimum price Should be a positive value";
+            if(!payload.minimumPrice){
+                errors.minimumPriceError = "Minimum price Should required.";
+            }else if(payload.minimumPrice <= 0){
+                errors.minimumPriceError = "Minimum price Should be a positive value(zero not consider as minimum price)";
             }else if(payload.minimumPrice < 500){
                 errors.minimumPriceError = "Minimum price should above 500 rupees."
             }
