@@ -539,9 +539,27 @@ const loadProduct = async function (req,res) {
         if(!mongoose.Types.ObjectId.isValid(productId)){
             return res.render("page-404",{error:"Invalid Product Id"})
         }
-        const productData = await Product.findById(productId).lean();
+        const productData = await Product.findById(productId)
+        .populate({
+            path:"category",
+            select:"categoryOffer isListed categoryName"
+        })
+        .lean();
         if(!productData){
             return res.render("page-404",{error:"Product not found"});
+        }
+
+        let categoryUnlisted = false;
+        let unavailableMessage = null;
+
+        if(!productData.category || !productData.category.isListed){
+            categoryUnlisted = true;
+            unavailableMessage = `This product is currently unavailable because the "${productData.category?.categoryName || 'category'}" category has been temporarily disabled by the administrator.`;
+        }
+
+        if(productData.category.isListed === false){
+            categoryUnlisted = true;
+            unavailableMessage = "This product has been temporarily removed from our catalog by the administrator.";
         }
 
         const processedProducts = await applyOffersToProducts(productData);
@@ -629,7 +647,9 @@ const loadProduct = async function (req,res) {
             ratingData,
             recentReviews : recentReviews || [],
             wishlistProductIds,
-            cartCount
+            cartCount,
+            categoryUnlisted,
+            unavailableMessage
         });
         
     } catch (error) {
@@ -1575,7 +1595,6 @@ const applyCoupon = async (req, res) => {
             });
         }
 
-        // Ensure orderAmount is a number
         const numericOrderAmount = parseFloat(orderAmount);
 
         const validation = await Coupon.validateCoupon(couponCode, user._id, numericOrderAmount);
@@ -1586,6 +1605,14 @@ const applyCoupon = async (req, res) => {
                 message: validation.message
             });
         }
+
+        // Save coupon details
+        req.session.couponDetails = {
+            couponCode: validation.coupon.name,
+            couponDiscount: validation.discountAmount,
+            couponMinPrice: validation.coupon.minimumPrice,
+            finalAmount: validation.finalAmount
+        };
 
         res.json({
             success: true,
@@ -1725,17 +1752,27 @@ const placeOrder = async (req,res) => {
         let paymentDate = null;
         let transactionId = null;
         let orderStatus = "Pending";
+        let shouldDecreaseStock = false;
+        let shouldClearCart = false;
+        let shouldMarkCouponUsed = false;
 
         if (paymentMethod === "Cash On Delivery") {
             if(finalPrice > 1000){
                 return res.status(400).json({success:false,message:"Cash On Delivery applicable for order amount below 1000"})
             }
-            paymentStatus = "Pending"; // Paid after delivery
+            paymentStatus = "Pending";
+            orderStatus = "Pending";
+            shouldDecreaseStock = true; // COD orders confirm immediately
+            shouldClearCart = true;
+            shouldMarkCouponUsed = true;
         } else if (paymentMethod === "Razorpay") {
             if(isPaymentFailed){
                 paymentStatus = "Failed";
                 orderStatus = "Payment Pending";
                 transactionId = razorpayOrderId || "FAILED-" + Date.now();
+                shouldDecreaseStock = false; 
+                shouldClearCart = false; 
+                shouldMarkCouponUsed = false; 
             }else{
                 if(!razorpayPaymentId || !razorpayOrderId){
                     return res.json({success:false,message:"Payment datails missing for Razorpay"});
@@ -1743,6 +1780,10 @@ const placeOrder = async (req,res) => {
                 paymentStatus = "Paid";
                 paymentDate = new Date();
                 transactionId = razorpayPaymentId;
+                orderStatus = "Pending";
+                shouldDecreaseStock = true; // Decrease stock on successful payment
+                shouldClearCart = true;
+                shouldMarkCouponUsed = true;
             }
         } else if (paymentMethod === "Wallet") {
             if(!wallet)return res.json({success:false,message:"Wallet not found"});
@@ -1750,6 +1791,22 @@ const placeOrder = async (req,res) => {
             if(wallet.balance < finalPrice){
                 return res.json({success:false,message:`Insufficient wallet balance:₹${wallet.balance}.Required:₹${finalPrice}`});
             }
+
+            wallet.balance -= finalPrice;
+            wallet.transactions.push({
+                type:"debit",
+                amount:finalPrice,
+                description:`Order payment of order ${newOrder.orderId}.`,
+            });
+            await wallet.save();
+
+            paymentStatus = "Paid";
+            paymentDate = new Date();
+            transactionId = "WALLET-" + Date.now();
+            orderStatus = "Pending";
+            shouldDecreaseStock = true;
+            shouldClearCart = true;
+            shouldMarkCouponUsed = true;
         }
 
         // Create order
@@ -1773,7 +1830,10 @@ const placeOrder = async (req,res) => {
             },
             status: orderStatus, // must match your enum
             createdOn: new Date(),
-            couponApplied: couponApplied,
+            couponApplied: req.session.couponDetails ? true : false,
+            couponCode: req.session.couponDetails?.couponCode,
+            couponDiscount: req.session.couponDetails?.couponDiscount || 0,
+            couponMinPrice: req.session.couponDetails?.couponMinPrice || 0,
             invoice: new Date(),
             paymentMethod,
             paymentStatus:paymentMethod !== "Wallet" ? paymentStatus : "Paid",
@@ -1783,53 +1843,48 @@ const placeOrder = async (req,res) => {
 
         await newOrder.save();
 
-        if(paymentMethod === "Wallet"){
-            wallet.balance -= finalPrice;
-            wallet.transactions.push({
-                type:"debit",
-                amount:finalPrice,
-                description:`Order payment of order ${newOrder.orderId}.`,
-            });
-            await wallet.save();
+        // Only decrease stock if payment was successful
+        if (shouldDecreaseStock) {
+            if (productId) {
+                await Product.findByIdAndUpdate(productId, { $inc: { quantity: -quantity } }, { new: true });
+            } else {
+                for (const item of orderedItems) {
+                    await Product.findByIdAndUpdate(item.product, { $inc: { quantity: -item.quantity } }, { new: true });
+                }
+            }
         }
 
-        // Mark coupon as used if applied
-        if (couponApplied && couponId && paymentStatus !== "Failed") {
-            await Coupon.findByIdAndUpdate(
-                couponId,
-                {
-                    $push: {
-                        usedBy: {
-                            user: user._id,
-                            usedAt: new Date(),
-                            orderId: newOrder._id
-                        }
+        // Only clear cart if payment was successful
+        if (shouldClearCart && !productId) {
+            await Cart.findOneAndUpdate({ userId: user._id }, { $set: { items: [] } });
+        }
+
+        // Only mark coupon as used if payment was successful
+        if (shouldMarkCouponUsed && couponApplied && couponId) {
+            await Coupon.findByIdAndUpdate(couponId, {
+                $push: {
+                    usedBy: {
+                        user: user._id,
+                        usedAt: new Date(),
+                        orderId: newOrder._id
                     }
                 }
-            );
+            });
         }
         
-        if(productId){
-            await Product.findByIdAndUpdate(productId,{$inc:{quantity:-quantity}},{new:true});
-        }else{
-            // Decrease stock
-            for (const item of orderedItems) {
-                await Product.findByIdAndUpdate(
-                    item.product,
-                    {$inc:{quantity:-item.quantity}},
-                    { new: true }
-                );
-            }
-
-            // Clear cart
-            await Cart.findOneAndUpdate(
-                { userId: user._id },
-                { $set: { items: [] } }
-            );
-        }
-
         // Clear selected address from session
         delete req.session.selectedAddress;
+
+        // Return appropriate response
+        if (paymentStatus === "Failed") {
+            return res.json({
+                success: false,
+                paymentFailed: true,
+                orderId: newOrder.orderId,
+                amount: newOrder.finalPrice,
+                message: "Payment failed. Your order has been saved. Please complete the payment."
+            });
+        }
 
         return res.json({ 
             success: true, 
@@ -1848,7 +1903,7 @@ const placeOrder = async (req,res) => {
     }
 };
 
-// Add this function to handle payment retry
+// function to handle payment retry
 const retryPayment = async (req, res) => {
     try {
         const { orderId } = req.body;
@@ -1904,7 +1959,7 @@ const retryPayment = async (req, res) => {
     }
 };
 
-// Add this function to update order after successful retry
+// function to update order after successful retry
 const updateOrderPayment = async (req, res) => {
     try {
         const { orderId, razorpayPaymentId, razorpayOrderId } = req.body;
@@ -1920,6 +1975,14 @@ const updateOrderPayment = async (req, res) => {
             return res.json({ success: false, message: 'Order not found' });
         }
 
+        // Check if order is eligible for payment update
+        if (order.paymentStatus !== 'Failed' || order.status !== 'Payment Pending') {
+            return res.json({ 
+                success: false, 
+                message: 'This order is not eligible for payment update' 
+            });
+        }
+
         // Update order payment details
         order.paymentStatus = 'Paid';
         order.paymentDate = new Date();
@@ -1928,7 +1991,7 @@ const updateOrderPayment = async (req, res) => {
         
         await order.save();
 
-        // Now decrease stock and mark coupon as used
+        // decrease stock after successful payment
         for (const item of order.orderedItems) {
             await Product.findByIdAndUpdate(
                 item.product,
@@ -1943,20 +2006,33 @@ const updateOrderPayment = async (req, res) => {
             { $set: { items: [] } }
         );
 
-        // If coupon was applied, mark it as used
-        if (order.couponApplied && order.couponCode) {
-            await Coupon.findOneAndUpdate(
-                { code: order.couponCode },
-                {
-                    $push: {
-                        usedBy: {
-                            user: userId,
-                            usedAt: new Date(),
-                            orderId: order._id
+        // Mark coupon as used if applicable
+        if (order.couponApplied) {
+            const coupon = await Coupon.findOne({ 
+                usedBy: { 
+                    $elemMatch: { orderId: order._id } 
+                } 
+            });
+            
+            if (!coupon && order.discount > 0) {
+                // Find the coupon that was applied based on discount amount
+                const appliedCoupon = await Coupon.findOne({
+                    offerPrice: order.discount,
+                    isList: true
+                });
+                
+                if (appliedCoupon) {
+                    await Coupon.findByIdAndUpdate(appliedCoupon._id, {
+                        $push: {
+                            usedBy: {
+                                user: userId,
+                                usedAt: new Date(),
+                                orderId: order._id
+                            }
                         }
-                    }
+                    });
                 }
-            );
+            }
         }
 
         return res.json({

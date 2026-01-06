@@ -282,7 +282,7 @@
         }
 
         .btn-cancel:hover {
-            background: #c82333;
+            color: white;
         }
 
         .btn:disabled {

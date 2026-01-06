@@ -1211,7 +1211,7 @@ progress {
     -webkit-box-flex: 0;
         -ms-flex: 0 0 auto;
             flex: 0 0 auto;
-    width: 16.66667%;
+    width: 22.66667%;
   }
   .col-md-3 {
     -webkit-box-flex: 0;
@@ -1253,7 +1253,7 @@ progress {
     -webkit-box-flex: 0;
         -ms-flex: 0 0 auto;
             flex: 0 0 auto;
-    width: 75%;
+    width: 98%;
   }
   .col-md-10 {
     -webkit-box-flex: 0;
@@ -9207,7 +9207,7 @@ fieldset:disabled .btn {
     margin-left: 3rem !important;
   }
   .ms-sm-auto {
-    margin-left: auto !important;
+    margin-left: 4.5rem;
   }
   .p-sm-0 {
     padding: 0 !important;

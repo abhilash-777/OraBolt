@@ -8,30 +8,6 @@ const path = require("path");
 const sharp = require("sharp");
 const { default: mongoose } = require("mongoose");
 
-const loadProduct = async function (req,res) {
-
-    try {
-
-        const category = await Category.find({isListed:true});
-        const subcategory = await subCategory.find({isListed:true})
-        const brand = await Brand.find({isBlocked:false});
-        const successMessage = req.query.success;
-        const errorMessage = req.query.error;
-        
-        res.render("addProduct",{
-            category:category,
-            brand:brand,
-            subcategory:subcategory,
-            success:successMessage,
-            error:errorMessage
-        });
-        
-    } catch (error) {
-        return res.redirect("/admin/pageError");
-    }
-    
-};
-
 const validateProductData = (data) => {
     const requiredField = ["productName","description","category","brand","subcategory","color","regularPrice","salePrice","quantity"];
     return requiredField.every(field => data[field] && data[field].toString().trim() !== "");
@@ -85,9 +61,9 @@ const addProduct = async function (req,res) {
             images = await processImages(req.files,"productsImages");
         }
 
-        const CategoryDoc = await Category.findOne({name:product.category});
-        const subcategoryDoc = await subCategory.findOne({name:product.subcategory});
-        const brandDoc = await Brand.findOne({brandName:product.brand})
+        const CategoryDoc = await Category.findById(product.category);
+        const subcategoryDoc = await subCategory.findById(product.subcategory);
+        const brandDoc = await Brand.findById(product.brand)
         if(!CategoryDoc||!subcategoryDoc){
             return res.status(400).json({message:"Invalid category name or subcategory name"});
         }
@@ -181,6 +157,41 @@ const loadProductsList = async function (req,res) {
     }
 };
 
+const getProduct = async function (req, res) {
+    try {
+        const productId = req.params.id;
+        if (!mongoose.isValidObjectId(productId)) {
+            return res.status(400).json({ success: false, message: "Invalid product ID" });
+        }
+
+        const product = await Product.findById(productId).lean();
+
+        if (!product) {
+            return res.status(404).json({ success: false, message: "Product not found" });
+        }
+
+        // Send the product with ObjectId values as strings for the form
+        res.json({
+            success: true,
+            product: {
+                productName: product.productName,
+                description: product.description,
+                brand: product.brand.toString(),
+                category: product.category.toString(),
+                subcategory: product.subcategory.toString(),
+                color: product.color,
+                regularPrice: product.regularPrice,
+                salePrice: product.salePrice,
+                quantity: product.quantity,
+                image: product.image || []
+            }
+        });
+    } catch (error) {
+        console.error("Error fetching product:", error);
+        res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+
 const toggleList = async function (req,res) {
 
     try {
@@ -197,43 +208,17 @@ const toggleList = async function (req,res) {
     
 };
 
-const loadEditProduct = async (req,res) => {
-    try {
-        const productId = req.params.id;
-        if(!mongoose.isValidObjectId(productId)){
-            return res.redirect("/admin/pageError");
-        }
-        const product = await Product.findById(productId)
-        .populate("category")
-        .populate("subcategory")
-        .populate("brand");
-        const category = await Category.find({});
-        const brand = await Brand.find({});
-        const subcategory = await subCategory.find({});
-
-        if(!product){
-            return res.redirect("/admin/pageError");
-        }
-        res.render("editProduct",{product,category,brand,subcategory});
-    } catch (error) {
-        console.error("error to load edit product:",error);
-        return res.redirect("/admin/pageError");
-    }
-};
-
 const editProduct = async function (req,res) {
     try {
         const productId = req.params.id;
-        const {productName,description,brand,
-            color,quantity,regularPrice,
-            salePrice,category,subcategory,deleteImages} = req.body;
+        const {productName,description,brand,color,quantity,regularPrice,salePrice,category,subcategory,deleteImages} = req.body;
 
         const product = await Product.findById(productId);
         if(!product){
             return res.status(400).json({success:false,error:"Product not found"});
         }
 
-        const projectRoot = path.resolve("../../");
+        const projectRoot = path.resolve(__dirname,"../../");
         const del = deleteImages ? JSON.parse(deleteImages):[];
         if(Array.isArray(del) && del.length){
             product.image = product.image.filter(img => {
@@ -254,6 +239,13 @@ const editProduct = async function (req,res) {
             req.files.forEach(file => {
                 product.image.push(file.filename);
             });
+        }
+
+        const categoryDoc = await Category.findById(category);
+        const subcategoryDoc = await subCategory.findById(subcategory);
+        const brandDoc = await Brand.findById(brand);
+        if (!categoryDoc || !subcategoryDoc || !brandDoc) {
+            return res.status(400).json({ success: false, message: "Invalid category, subcategory, or brand ID" });
         }
 
         Object.assign(product,{
@@ -286,11 +278,10 @@ const deleteProduct = async (req,res) => {
 };
 
 module.exports = {
-    loadProduct,
     addProduct,
     loadProductsList,
+    getProduct,
     toggleList,
-    loadEditProduct,
     editProduct,
     deleteProduct
 }

@@ -65,25 +65,6 @@ const addCategory = async function (req,res) {
     } 
 };
 
-const loadEditCategory = async function (req,res) {
-
-    try {
-        const categoryId = req.params.id;
-        if(!mongoose.Types.ObjectId.isValid(categoryId)){
-            return res.redirect("/admin/pageError")
-        }
-        const category = await Category.findById(categoryId);
-        if(!category){
-            return res.status(400).json({error:"error Category not found"});
-        }
-        res.render("editCategory",{category});
-    } catch (error) {
-        console.error("error to load edit category page:",error);
-        return res.status(500).json({error:"Internal server error"});
-    }
-    
-};
-
 const editCategory = async function (req,res) {
 
     try {
@@ -165,7 +146,6 @@ const toggleList = async function (req,res) {
 module.exports = {
     categoryInfo,
     addCategory,
-    loadEditCategory,
     editCategory,
     deleteCategory,
     toggleList
