@@ -894,46 +894,46 @@
 
 			    const orderData = await orderResponse.json();
 
-			    if (orderData.success) {
-				    if (orderData.paymentFailed) {
-                        // Payment failed but order created
-                        Swal.fire({
-                            title: 'Payment Failed',
-                            html: `
-                                <div style="text-align: center; padding: 10px;">
-                                    <p style="font-size: 16px; margin: 10px 0;"><b>Order ID:</b> ${orderData.orderId}</p>
-                                    <p style="font-size: 16px; margin: 10px 0;"><b>Amount:</b> ₹${orderData.amount}</p>
-                                    <p style="color: #dc3545; margin-top: 15px;">
-                                        <i class="fas fa-exclamation-circle"></i> Your order was created but payment failed.
-                                    </p>
-                                    <p style="font-size: 14px; color: #666;">
-                                        You can retry payment from the orders page.
-                                    </p>
-                                </div>
-                            `,
-                            icon: 'warning',
-                            confirmButtonColor: '#ffc107'
-                        }).then(() => {
-                            window.location.href = `/order-success?orderId=${orderData.orderId}&paymentFailed=true`;
-                        });
-                    } else {
-                        // Successful order
-                        Swal.fire({
-                            title: 'Order Placed Successfully!',
-                            html: `
-                                <div style="text-align: center; padding: 10px;">
-                                    <p style="font-size: 16px; margin: 10px 0;"><b>Order ID:</b> ${orderData.orderId}</p>
-                                    <p style="font-size: 16px; margin: 10px 0;"><b>Total Amount:</b> ₹${orderData.amount}</p>
-                                    <p style="color: #28a745; margin-top: 15px;">
-                                        <i class="fas fa-check-circle"></i> Your order has been confirmed!
-                                    </p>
-                                </div>
-                            `,
-                            icon: 'success',
-                        }).then(() => {
-                            window.location.href = `/order-success?orderId=${orderData.orderId}`;
-                        });
-                    }
+				if (orderData.paymentFailed) {
+                    // Payment failed but order created
+                    Swal.fire({
+                        title: 'Payment Failed!',
+                        html: `
+                            <div style="text-align: center; padding: 10px;">
+                                <p style="font-size: 16px; margin: 10px 0;"><b>Order ID:</b> ${orderData.orderId}</p>
+                                <p style="font-size: 16px; margin: 10px 0;"><b>Amount:</b> ₹${orderData.amount}</p>
+                                <p style="color: #dc3545; margin-top: 15px;">
+                                    <i class="fas fa-exclamation-circle"></i> Your order was created but payment failed.
+                                </p>
+                                <p style="font-size: 14px; color: #666;">
+                                    You can retry payment from the orders page.
+                                </p>
+                            </div>
+                        `,
+                        icon: 'error',
+						showConfirmButton:true,
+                        confirmButtonColor: '#dc3545',
+						confirmButtonText:'Go to Orders'
+                    }).then(() => {
+                        window.location.href = "/orders";
+                    });
+			    } else if (orderData.success) {
+                    // Successful order
+                    Swal.fire({
+                        title: 'Order Placed Successfully.',
+                        html: `
+                            <div style="text-align: center; padding: 10px;">
+                                <p style="font-size: 16px; margin: 10px 0;"><b>Order ID:</b> ${orderData.orderId}</p>
+                                <p style="font-size: 16px; margin: 10px 0;"><b>Total Amount:</b> ₹${orderData.amount}</p>
+                                <p style="color: #28a745; margin-top: 15px;">
+                                    <i class="fas fa-check-circle"></i> Your order has been confirmed!
+                                </p>
+                            </div>
+                        `,
+                        icon: 'success',
+                    }).then(() => {
+                        window.location.href = `/order-success?orderId=${orderData.orderId}`;
+                    });
     		    } else {
 				    Swal.fire({
 				        icon: 'error',

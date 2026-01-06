@@ -785,136 +785,183 @@ const cancelAllOrder = async (req,res) => {
 const cancelSingleItem = async (req,res) => {
     try {
         const { orderId, itemId } = req.params;
-        if (!mongoose.isValidObjectId(orderId) || !mongoose.isValidObjectId(itemId)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Invalid order or item ID" 
-            });
-        }
+        const {forceContinue} = req.body;
 
         const order = await Orders.findById(orderId);
-        if (!order) {
-            return res.status(404).json({ success: false, message: "Order not found" });
-        }
+        if (!order) return res.status(404).json({ success: false, message: "Order not found" });
 
-        // Check if order status allows item cancellation
-        const validStatuses = ['Pending', 'Processing', 'Shipped'];
-        if (!validStatuses.includes(order.status)) {
-            return res.status(400).json({ 
-                success: false, 
-                message: `Cannot cancel item in order with status: ${order.status}` 
-            });
-        }
-
-        // Find the item to cancel
         const item = order.orderedItems.id(itemId);
-        if (!item) {
-            return res.status(404).json({ success: false, message: "Item not found in order" });
+        if (!item) return res.status(404).json({ success: false, message: "Item not found" });
+
+        // Calculate values
+        const itemPrice = item.price * item.quantity;
+        const originalSubtotal = order.orderedItems.reduce((sum, i) => sum + (i.price * i.quantity), 0);
+        const amountUserPaid = order.finalPrice;
+        
+        // Calculate remaining value if this item is cancelled
+        let remainingValue = 0;
+        order.orderedItems.forEach(i => {
+            if (i._id.toString() !== itemId.toString() && i.status !== 'Cancelled') {
+                remainingValue += (i.price * i.quantity);
+            }
+        });
+
+        // Check if coupon becomes invalid
+        if (order.couponApplied && order.couponMinPrice && remainingValue < order.couponMinPrice && !forceContinue) {
+            // Calculate what would happen if coupon is removed
+            const couponDiscount = order.couponDiscount;
+            const newPriceWithoutCoupon = remainingValue + (order.shippingCost || 0);
+            const amountUserShouldPay = newPriceWithoutCoupon;
+            const difference = amountUserShouldPay - amountUserPaid;
+            
+            if (difference > 0) {
+                return res.json({
+                    success: false,
+                    requiresConfirmation: true,
+                    message: `Warning: After cancelling this item, your order total (₹${remainingValue}) will be below the minimum required amount (₹${order.couponMinPrice}) for the applied coupon "${order.couponCode}".Cannot cancel the item`,
+                    couponDetails: {
+                        couponCode: order.couponCode,
+                        couponDiscount: couponDiscount,
+                        currentTotal: remainingValue,
+                        minRequired: order.couponMinPrice,
+                        newOrderTotal: newPriceWithoutCoupon,
+                        amountPaid: amountUserPaid,
+                        additionalPaymentRequired: difference,
+                        willRemoveCoupon: true
+                    }
+                });
+            }
         }
 
-        // Check if item is already cancelled
-        if (item.status === 'Cancelled') {
-            return res.status(400).json({ 
-                success: false, 
-                message: "Item is already cancelled" 
-            });
-        }
-
+        // Restore product stock
         const product = await Product.findById(item.product);
-        if(product){
+        if (product) {
             product.quantity += item.quantity;
             await product.save();
-        }else{
-            console.log("product quantity restoration failed!");
         }
 
-        const originalSubTotal = order.orderedItems.reduce((sum,i) => sum + (i.price * i.quantity),0);
-        console.log("Original sub total price before any discounts:",originalSubTotal);
-        const itemOriginalPrice = item.price * item.quantity;
-        console.log("Item original price:",itemOriginalPrice);
-        const itemProportion = itemOriginalPrice/originalSubTotal;
-        console.log("item proportion:",itemProportion);
-        const finalPriceWithoutShipping = order.finalPrice - (order.shippingCost || 0);
-        console.log("total discount amount (difference between original and final, excluding shipping):",finalPriceWithoutShipping);
-        const totalDiscount = originalSubTotal - finalPriceWithoutShipping;
-        console.log("total discount:",totalDiscount);
-        const itemDiscountShare = totalDiscount * itemProportion;
-        console.log("single item discount share:",itemDiscountShare);
-
-        const itemRefundAmount = Math.round((itemOriginalPrice - itemDiscountShare) *100) / 100;
-        console.log("item refund amount:",itemRefundAmount);
-
-        // Update item status
+        // Mark item as cancelled
         item.status = 'Cancelled';
+        const activeItems = order.orderedItems.filter(i => i.status !== 'Cancelled');
 
-        // Recalculate order totals
-        const activeItems = order.orderedItems.filter(item => item.status !== 'Cancelled');
-        order.finalPrice = Math.max(0,order.finalPrice - itemRefundAmount);
+        let refundAmount = 0;
+        let newFinalPrice = 0;
+        let additionalPaymentRequired = 0;
+        let couponRemoved = false;
         
-        // Add shipping cost if applicable
-        if (order.shippingCost) {
-            order.finalPrice += order.shippingCost;
+        if (order.couponApplied && order.couponMinPrice && remainingValue < order.couponMinPrice) {
+            // Coupon becomes invalid and user confirmed removal
+            
+            couponRemoved = true;
+            const couponDiscount = order.couponDiscount; 
+            
+            // Remove coupon
+            order.couponApplied = false;
+            order.couponDiscount = 0;
+            
+            // Calculate new price without coupon
+            newFinalPrice = remainingValue + (order.shippingCost || 0); 
+            
+            // Calculate what proportion of the ORIGINAL price each item represents
+            const itemProportion = itemPrice / originalSubtotal;
+            
+            // The coupon discount applied to ALL items proportionally
+            const itemShareOfCoupon = couponDiscount * itemProportion; 
+            
+            // How much user actually paid for this specific item
+            const amountPaidForThisItem = itemPrice - itemShareOfCoupon; 
+            
+            // should be refunded
+            refundAmount = amountPaidForThisItem;
+            
+            // Update final price
+            order.finalPrice = newFinalPrice;
+            
+            console.log("Coupon removal calculation:");
+            console.log("- Item price:", itemPrice);
+            console.log("- Item proportion:", itemProportion);
+            console.log("- Item share of coupon:", itemShareOfCoupon);
+            console.log("- Amount paid for this item:", amountPaidForThisItem);
+            console.log("- Refund amount:", refundAmount);
+            console.log("- New final price:", newFinalPrice);
+            console.log("- User paid:", amountUserPaid);
+            console.log("- User should pay:", newFinalPrice);
+            
+        } else {
+            // Normal cancellation (coupon remains valid or no coupon)
+            
+            // Calculate item's proportion of what was paid
+            const itemProportion = itemPrice / originalSubtotal;
+            refundAmount = Math.round(amountUserPaid * itemProportion * 100) / 100;
+            
+            newFinalPrice = Math.max(0, amountUserPaid - refundAmount);
+            
+            if (order.shippingCost) {
+                newFinalPrice += order.shippingCost;
+            }
+            
+            order.finalPrice = newFinalPrice;
         }
 
+        // Handle payment/refund
         if (order.paymentStatus === 'Paid') {
-            // If already some refund initiated, add to it
-            order.refundAmount = (order.refundAmount || 0) + itemRefundAmount;
+            if (refundAmount > 0) {
+                order.refundAmount = (order.refundAmount || 0) + refundAmount;
+                order.paymentStatus = activeItems.length === 0 ? 'Refunded' : 'Partial Refund Initiated';
+                order.refundDate = new Date();
+
+                let wallet = await Wallet.findOne({ userId: order.userId });
+                if (!wallet) {
+                    wallet = new Wallet({
+                        userId: order.userId,
+                        balance: refundAmount,
+                        transactions: [{
+                            type: "credit",
+                            amount: refundAmount,
+                            description: `Refund for cancelled item in order ${order.orderId}`,
+                            date: new Date()
+                        }]
+                    });
+                } else {
+                    wallet.balance += refundAmount;
+                    wallet.transactions.push({
+                        type: "credit",
+                        amount: refundAmount,
+                        description: `Refund for cancelled item in order ${order.orderId}`,
+                        date: new Date()
+                    });
+                }
+                await wallet.save();
+            }
             
-            // If all items cancelled, full refund
             if (activeItems.length === 0) {
-                order.paymentStatus = 'Refunded';
                 order.status = "Cancelled";
-                // const totalRefund = order.totalPrice; // Full original amount
-                // order.refundAmount = totalRefund;
-                order.finalPrice = 0;
-            } else {
-                order.paymentStatus = 'Partial Refund Initiated';
             }
-            
-            order.refundDate = new Date();
-            let wallet = await Wallet.findOne({userId:order.userId});
-            if(!wallet){
-                wallet = new Wallet({
-                    userId:order.userId,
-                    balance:itemRefundAmount,
-                    transactions:[{
-                        type:"credit",
-                        amount:itemRefundAmount,
-                        description:`Refund for cancelled item in order ${order.orderId||order._id}`,
-                        date:new Date()
-                    }]
-                });
-            }else{
-                wallet.balance += itemRefundAmount;
-                wallet.transactions.push({
-                    type:"credit",
-                    amount:itemRefundAmount,
-                    description:`Refund for cancelled item ${order.orderId||order._id}`,
-                    date:new Date()
-                });
-            }
-            await wallet.save();
-        }else if(order.paymentStatus === "Pending"){
-            if(activeItems.length === 0){
-                order.status = "Cancelled";
-                order.paymentStatus = "Cancelled";
-            }
+        } else if (order.paymentStatus === "Pending" && activeItems.length === 0) {
+            order.status = "Cancelled";
+            order.paymentStatus = "Cancelled";
         }
 
         await order.save();
 
+        let message = `Item cancelled successfully.`;
+        if (refundAmount > 0) {
+            message += ` ₹${refundAmount} refunded to your wallet.`;
+        }
+        if (couponRemoved) {
+            message += ` Coupon "${order.couponCode}" was removed.`;
+        }
+
         return res.json({ 
             success: true, 
-            message: order.paymentStatus === "Refunded" ||order.paymentStatus === "Partial Refund Initiated" ? 
-                "Item cancelled successfull.Refund amount added to your wallet.":'Item cancelled successfully',
+            message: message,
+            refundAmount: refundAmount,
             redirectUrl: `/orders/details/${orderId}`
         });
+
     } catch (error) {
-        console.error("Error while canceling an item in order:", error);
-        return res.status(500).json({ 
-            success: false, 
-            message: 'Failed to cancel item'
-        }); 
+        console.error("Error cancelling item:", error);
+        return res.status(500).json({ success: false, message: 'Failed to cancel item' });
     }
 };
 
@@ -1007,7 +1054,7 @@ const downloadInvoice = async (req, res) => {
 const returnItem = async (req,res) => {
     try {
         const { orderId, itemId } = req.params;
-        const {reason} = req.body;
+        const {reason,forceContinue} = req.body;
 
         // Validate ObjectIds
         if (!mongoose.isValidObjectId(orderId) || !mongoose.isValidObjectId(itemId)) {
@@ -1070,6 +1117,32 @@ const returnItem = async (req,res) => {
             });
         }
 
+        // Calculate remaining order value after return
+        let remainingOrderValue = 0;
+        order.orderedItems.forEach(i => {
+            if (i._id.toString() !== itemId.toString() && i.status !== 'Cancelled' && i.status !== 'Returned') {
+                remainingOrderValue += (i.price * i.quantity);
+            }
+        });
+
+        // Check coupon validity after return
+        if (order.couponApplied && order.couponMinPrice && !forceContinue) {
+            if (remainingOrderValue < order.couponMinPrice) {
+                return res.json({
+                    success: false,
+                    requiresConfirmation: true,
+                    message: `Warning: After returning this item, your order total (₹${remainingOrderValue}) will be below the minimum required amount (₹${order.couponMinPrice}) for the applied coupon "${order.couponCode}". This item cannot return`,
+                    couponDetails: {
+                        couponCode: order.couponCode,
+                        couponDiscount: order.couponDiscount,
+                        currentTotal: remainingOrderValue,
+                        minRequired: order.couponMinPrice,
+                        willRemoveCoupon: true
+                    }
+                });
+            }
+        }
+
         const previousRejection = item.returnRequest?.status === 'Return Rejected' ? {
             previousRejectionReason: item.returnRequest.rejectionReason,
             previousRejectionDate: item.returnRequest.resolvedOn
@@ -1082,7 +1155,8 @@ const returnItem = async (req,res) => {
             requestedOn: new Date(),
             resolvedOn: null,
             rejectionReason: null,
-            ...previousRejection
+            ...previousRejection,
+            couponWillBeRemoved: order.couponApplied && order.couponMinPrice && remainingOrderValue < order.couponMinPrice
         };
         item.status = 'Return Requested';
 

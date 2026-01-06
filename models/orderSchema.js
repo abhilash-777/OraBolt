@@ -115,6 +115,16 @@
             type : Boolean,
             default : false
         },
+        couponCode: {
+            type: String
+        },
+        couponDiscount: {
+            type: Number,
+            default: 0
+        },
+        couponMinPrice: {
+            type: Number  
+        },
         paymentMethod: {
             type: String,
             enum: ['Razorpay', 'Cash On Delivery', 'Wallet'],

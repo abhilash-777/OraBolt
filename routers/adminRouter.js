@@ -28,7 +28,6 @@ router.get('/', adminController.loadDash);
 //dashboard Managemanet
 router.get("/sales-report-page",adminController.loadSalesReportPage);
 router.get('/api/chart-data', adminController.getChartDataAPI);
-// NEW ROUTES - Add these three routes for best sellers
 router.get('/api/top-products', adminController.getTopProducts);
 router.get('/api/top-categories', adminController.getTopCategories);
 router.get('/api/top-brands', adminController.getTopBrands);
@@ -42,15 +41,13 @@ router.patch('/unBlockCustomer', customerController.unBlockCustomer);
 // category management
 router.get('/category', categoryController.categoryInfo);
 router.post('/category', categoryController.addCategory);
-router.get('/category/edit/:id',categoryController.loadEditCategory);
 router.patch('/category/edit/:id',categoryController.editCategory);
 router.delete('/category/:id',categoryController.deleteCategory);
 router.post('/category/toggleList',categoryController.toggleList);
 
 //sub category management
 router.get('/subCategory', subCategoryController.subCategoryInfo);
-router.post('/subCategory', subCategoryController.addSubCategory);
-router.get('/subCategory/edit/:id',subCategoryController.loadEditSubCategory);
+router.post('/subCategory/add', subCategoryController.addSubCategory);
 router.patch('/subCategory/edit/:id',subCategoryController.editSubCategory);
 router.delete('/subCategory/:id',subCategoryController.deleteSubCategory);
 router.post('/subCategory/toggleList',subCategoryController.toggleList);
@@ -78,11 +75,33 @@ router.use("/addProduct",(error,req,res,next) => {
     }
     next(error);
 });
-router.get('/addProduct',productController.loadProduct);
+router.use("/productLists/edit/:id", (error, req, res, next) => {
+    if (error instanceof multer.MulterError) {
+        if (error.code === "LIMIT_FILE_SIZE") {
+            return res.status(400).json({ 
+                success: false, 
+                message: "File too large. Max file size is 5MB per file." 
+            });
+        }
+        if (error.code === "LIMIT_FILE_COUNT") {
+            return res.status(400).json({ 
+                success: false, 
+                message: "Too many files. Max 10 files allowed" 
+            });
+        }
+    }
+    if (error.message.includes("Invalid file type")) {
+        return res.status(400).json({ 
+            success: false, 
+            message: "Invalid file type. Only JPEG, JPG or PNG are allowed" 
+        });
+    }
+    next(error);
+});
 router.post('/addProduct',uploadProduct.array("images",10),productController.addProduct);
 router.get("/productLists",productController.loadProductsList);
-router.get("/productLists/edit/:id",productController.loadEditProduct);
-router.post("/productLists/edit/:id",uploadProduct.array("croppedImages",10),productController.editProduct);
+router.get("/productLists/get/:id",productController.getProduct);
+router.post("/productLists/edit/:id",uploadProduct.array("images",10),productController.editProduct);
 router.delete("/productLists/remove/:id",productController.deleteProduct);
 router.post('/productLists/toggleList',productController.toggleList);
 

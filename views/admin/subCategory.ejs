@@ -1,6 +1,25 @@
 <%-include("../partials/admin/header.ejs")%>
 
     <style>
+        .actions{
+            display: flex;
+            align-items: flex-start;
+            justify-content: center;
+            margin: 10px 10px;
+        }
+        .create{
+            margin-left: 5px;
+            background-color: #ca9c06;
+            color: white;
+            border: 1px solid #ca9c06;
+            font-size: 10px;
+            font-weight: bolder;
+        }
+        .create:hover{
+            background-color: #f4d261;
+            color: black;
+            border: 1px solid #f4d261;
+        }
         .pagination-container {
             text-align: center;
             margin-top: 20px;
@@ -57,7 +76,7 @@
                 <h2 class="content-title card-title">Sub Categories </h2>
                 <p>Add, edit or delete a Sub Category</p>
             </div>
-            <div>
+            <div class="actions">
                 <form method="get" action="/admin/subCategory">
                     <input type="text" 
                     name="search" 
@@ -66,41 +85,14 @@
                     class="form-control bg-white">
                     <button type="submit" class="btn btn-primary mt-2">Search</button>
                 </form>
+                <button type="button" class="btn btn-success create" data-bs-toggle="modal" data-bs-target="#addSubCategoryModal">
+                    <i class="material-icons md-add"></i> Add SubCategory
+                </button>
             </div>
         </div>
         <div class="card">
             <div class="card-body">
                 <div class="row">
-                    <div class="col-md-3">
-                        <form method="post" action="/admin/subCategory" onsubmit="return handleFormSubmit(event)">
-                            <div class="mb-4">
-                                <label for="product_name" class="form-label">Name</label>
-                                <input type="text" placeholder="Enter Sub Category" name="name" class="form-control" id="name" />
-                                <div class="error-message" id="name-error" style="display:none;"></div>
-                            </div>
-
-                            <div class="mb-4">
-                                <label for="description" class="form-label">Description</label>
-                                <input type="text" placeholder="Enter Description" name="description" class="form-control"
-                                    id="description" />
-                                <div class="error-message" id="description-error" style="display:none;"></div>
-                            </div>
-                            <div class="mb-4">
-                                <select id="category" name="categoryId" class="form-select" >
-                                    <option value="">Select Category</option>
-                                    <% for(let i=0;i<categories.length;i++){ %>
-                                        <option value="<%= categories[i]._id %>">
-                                            <%= categories[i].name %>
-                                        </option>
-                                        <% } %>
-                                </select>
-                                <div id="category-error" class="error-message text-danger" style="display: none;"></div>
-                            </div>
-                            <div class="d-grid">
-                                <button class="btn btn-primary">Create SubCategory</button>
-                            </div>
-                        </form>
-                    </div>
                     <div class="col-md-9">
                         <div class="table-responsive">
                             <table class="table table-hover" id="productTable">
@@ -143,8 +135,10 @@
                                                         <i class="material-icons md-more_horiz"></i>
                                                     </a>
                                                     <div class="dropdown-menu">
-                                                        <a class="dropdown-item"
-                                                            href="/admin/subCategory/edit/<%= subCategory._id %>">Edit info</a>
+                                                        <a class="dropdown-item btn-edit" href="#"
+                                                        data-id="<%= subCategory._id %>" data-name="<%= subCategory.name %>"
+                                                        data-description="<%= subCategory.description %>"
+                                                        data-category-id="<%= subCategory.categoryId ? subCategory.categoryId._id:"" %>">Edit info</a>
                                                         <a class="dropdown-item text-danger btn-delete"
                                                             href="#" data-id="<%= subCategory._id %>">Delete</a>
                                                     </div>
@@ -155,10 +149,10 @@
                                 </tbody>
                             </table>
                         </div>
-                    </div> <!-- .col// -->
-                </div> <!-- .row // -->
-            </div> <!-- card body .// -->
-        </div> <!-- card .// -->
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <% if(totalPages > 1){ %>
             <div class="pagination-info">
@@ -203,21 +197,112 @@
             </div>
         <% } %>
 
+        <!-- Add SubCategory Modal -->
+        <div class="modal fade" id="addSubCategoryModal" tabindex="-1" aria-labelledby="addSubCategoryModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addSubCategoryModalLabel">Add New SubCategory</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addSubCategoryForm">
+                            <div class="mb-3">
+                                <label for="add_name" class="form-label">Name</label>
+                                <input type="text" placeholder="Enter Sub Category" name="name" class="form-control"
+                                    id="add_name" />
+                                <div class="error-message" id="add-name-error" style="display:none;"></div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="add_description" class="form-label">Description</label>
+                                <input type="text" placeholder="Enter Description" name="description" class="form-control"
+                                    id="add_description" />
+                                <div class="error-message" id="add-description-error" style="display:none;"></div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="add_category" class="form-label">Category</label>
+                                <select id="add_category" name="categoryId" class="form-select">
+                                    <option value="">Select Category</option>
+                                    <% categories.forEach(category=> { %>
+                                        <option value="<%= category._id %>">
+                                            <%= category.name %>
+                                        </option>
+                                        <% }) %>
+                                </select>
+                                <div class="error-message" id="add-category-error" style="display:none;"></div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="addSubCategoryBtn">Create SubCategory</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit SubCategory Modal -->
+        <div class="modal fade" id="editSubCategoryModal" tabindex="-1" aria-labelledby="editSubCategoryModalLabel"
+            aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editSubCategoryModalLabel">Edit SubCategory</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editSubCategoryForm">
+                            <input type="hidden" id="edit_subcategory_id">
+                            <div class="mb-3">
+                                <label for="edit_name" class="form-label">Name</label>
+                                <input type="text" placeholder="Enter Sub Category" name="name" class="form-control"
+                                    id="edit_name" />
+                                <div class="error-message" id="edit-name-error" style="display:none;"></div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit_description" class="form-label">Description</label>
+                                <input type="text" placeholder="Enter Description" name="description" class="form-control"
+                                    id="edit_description" />
+                                <div class="error-message" id="edit-description-error" style="display:none;"></div>
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit_category" class="form-label">Category</label>
+                                <select id="edit_category" name="categoryId" class="form-select">
+                                    <option value="">Select Category</option>
+                                    <% categories.forEach(category=> { %>
+                                        <option value="<%= category._id %>">
+                                            <%= category.name %>
+                                        </option>
+                                        <% }) %>
+                                </select>
+                                <div class="error-message" id="edit-category-error" style="display:none;"></div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" id="editSubCategoryBtn">Update SubCategory</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </section>
     
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
 
-        function handleFormSubmit(event) {
+        document.getElementById("addSubCategoryBtn").addEventListener("click",function(event) {
             event.preventDefault();
 
-            if (!validateForm())return;
+            if (!validateForm("add"))return;
 
-            const name = document.getElementsByName("name")[0].value.trim();
-            const description = document.getElementById("description").value.trim();
-            const categoryId = document.getElementsByName("categoryId")[0].value;
+            const name = document.getElementById("add_name").value.trim();
+            const description = document.getElementById("add_description").value.trim();
+            const categoryId = document.getElementById("add_category").value;
 
-            fetch('/admin/subCategory', {
+            fetch('/admin/subCategory/add', {
                 method: "POST",
                 headers: {
                     'Content-Type': 'application/json',
@@ -227,11 +312,13 @@
             .then((response) => response.json())
             .then((data) => {
                 if(data.success){
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('addSubCategoryModal'));
+                    modal.hide();
                     Swal.fire({
                         icon: "success",
                         title: "Done!",
                         text: "SubCategory added successfully",
-                        timer: 1000,
+                        timer: 1500,
                         showConfirmButton: false
                     })
                     .then(() => window.location.reload())
@@ -239,51 +326,112 @@
                     Swal.fire({
                         icon: "error",
                         title: "Oops",
-                        text: data.error || "An error occurred while adding the category",
+                        text: data.message || "An error occurred while adding the category",
                     });
                 }
             })
             .catch((err) => {
+                console.log("Somethig went wrong while processing");
                 Swal.fire({
                     icon: "error",
                     title: "Oops",
-                    text: err.error||"Somethig went wrong",
+                    text: err.error||"Somethig went wrong while processing",
                 });
             });
-        }
+        });
 
-        function validateForm() {
-            clearErrorMessage();
+        // Edit SubCategory - Open Modal
+        document.querySelectorAll('.btn-edit').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const subcategoryId = this.getAttribute('data-id');
+                const name = this.getAttribute('data-name');
+                const description = this.getAttribute('data-description');
+                const categoryId = this.getAttribute('data-category-id');
 
-            const name = document.getElementsByName("name")[0].value.trim();
-            const description = document.getElementById("description").value.trim();
-            const categoryId = document.getElementsByName("categoryId")[0].value;
+                document.getElementById('edit_subcategory_id').value = subcategoryId;
+                document.getElementById('edit_name').value = name;
+                document.getElementById('edit_description').value = description;
+                document.getElementById('edit_category').value = categoryId;
+
+                clearErrorMessage('edit');
+
+                const editModal = new bootstrap.Modal(document.getElementById('editSubCategoryModal'));
+                editModal.show();
+            });
+        });
+
+        document.getElementById("editSubCategoryBtn").addEventListener("click",function(event){
+            event.preventDefault();
+
+            if(!validateForm("edit"))return
+
+            const subCategoryId = document.getElementById("edit_subcategory_id").value;
+            const name = document.getElementById("edit_name").value.trim();
+            const description = document.getElementById("edit_description").value.trim();
+            const category = document.getElementById("edit_category").value;
+
+            fetch(`/admin/subCategory/edit/${subCategoryId}`,{
+                method:"PATCH",
+                headers:{
+                    'Content-Type':'application/json'
+                },
+                body:JSON.stringify({name,description,category})
+            })
+            .then((res) => res.json())
+            .then((data) => {
+                if(data.success){
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('editSubCategoryModal'));
+                    modal.hide();
+                    Swal.fire({
+                        icon:"success",
+                        title:"Added.",
+                        text:data.message||"Sub category created successfully.",
+                        showConfirmButton:false,
+                        timer:1500
+                    }).then(() => window.location.reload())
+                }else{
+                    Swal.fire("Failed!",data.message||"Falled to edit","error");
+                }
+            })
+            .catch((error) => {
+                console.error("Something wrong while proccessing:",error);
+                Swal.fire("Error!","Something wrong while proccessing","error");
+            })
+        });
+
+        function validateForm(type) {
+            clearErrorMessage(type);
+
+            const name = document.getElementById(`${type}_name`).value.trim();
+            const description = document.getElementById(`${type}_description`).value.trim();
+            const categoryId = document.getElementById(`${type}_category`).value;
             let isValid = true;
 
             if (name === ""||!/^[a-zA-Z\s]+$/.test(name)) {
-                displayErrorMessage("name-error", "subCategory name should contain alphabetic characters");
+                displayErrorMessage(`${type}-name-error`, "subCategory name should contain alphabetic characters");
                 isValid = false;
             }else if (name.length < 3) {
-                displayErrorMessage("name-error", "subCategory name atleast contain 3 characters");
+                displayErrorMessage(`${type}-name-error`, "subCategory name atleast contain 3 characters");
                 isValid = false;
             }else if (name.length > 20) {
-                displayErrorMessage("name-error", "subCategory name must be less than 20 characters");
+                displayErrorMessage(`${type}-name-error`, "subCategory name must be less than 20 characters");
                 isValid = false;
             }
 
             if (description === "") {
-                displayErrorMessage("description-error", "Please enter a description");
+                displayErrorMessage(`${type}-description-error`, "Please enter a description");
                 isValid = false;
             }else if (description.length < 5) {
-                displayErrorMessage("description-error", "subCategory description atleast contain 5 characters");
+                displayErrorMessage(`${type}-description-error`, "subCategory description atleast contain 5 characters");
                 isValid = false;
             }else if (description.length > 50) {
-                displayErrorMessage("description-error", "subCategory description must be less than 50 characters");
+                displayErrorMessage(`${type}-description-error`, "subCategory description must be less than 50 characters");
                 isValid = false;
             }
 
             if(categoryId === ""){
-                displayErrorMessage("category-error","Please select one category");
+                displayErrorMessage(`${type}-category-error`,"Please select one category");
                 isValid = false
             }
 
@@ -298,12 +446,18 @@
             }
         }
 
-        function clearErrorMessage() {
-            const errorElements = document.getElementsByClassName("error-message");
-            Array.from(errorElements).forEach((element) => {
-                element.innerText = "";
-                element.style.display = "none";
-            });
+        function clearErrorMessage(type) {
+            if(type){
+                document.getElementById(`${type}-name-error`).style.display = 'none';
+                document.getElementById(`${type}-description-error`).style.display = 'none';
+                document.getElementById(`${type}-category-error`).style.display = 'none';
+            }else{
+                const errorElements = document.getElementsByClassName("error-message");
+                Array.from(errorElements).forEach((element) => {
+                    element.innerText = "";
+                    element.style.display = "none";
+                });
+            }
         }
 
         document.addEventListener("DOMContentLoaded", () => {
@@ -332,7 +486,7 @@
                                         icon:"success",
                                         title:"Deleted.",
                                         text:"SubCategory deleted successfully.",
-                                        timer:1000,
+                                        timer:1500,
                                         showConfirmButton:false
                                     }).then(() => window.location.reload())
                                 }else{

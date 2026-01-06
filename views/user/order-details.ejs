@@ -1,6 +1,7 @@
 <%- include("../partials/user/header.ejs") %>
 
 <link rel="stylesheet" href="/css/orderDetail.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
 
 <div class="container order-Details">
     <!-- Order Header -->
@@ -10,14 +11,25 @@
                 <h1>Order Details</h1>
                 <div class="order-id">#<%= order.orderId %></div>
                 <div class="order-date">
-                    <i class="far fa-clock"></i>
-                    Ordered on <%= new Date(order.createdOn).toLocaleDateString('en-IN', { 
-                        day: 'numeric', 
-                        month: 'long', 
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                    }) %>
+                    <% if(order.status !== "Payment Pending" && order.paymentStatus !== "Failed"){ %>
+                        <i class="fa-regular fa-clock"></i>
+                        Ordered on <%= new Date(order.createdOn).toLocaleDateString('en-IN', { 
+                            day: 'numeric', 
+                            month: 'long', 
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }) %>
+                    <% } else { %>
+                        <i class="fa-regular fa-clock"></i>
+                        Order Created on <%= new Date(order.createdOn).toLocaleDateString('en-IN', { 
+                            day: 'numeric', 
+                            month: 'long', 
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }) %>
+                    <% } %>
                 </div>
             </div>
             <div class="header-actions">
@@ -28,12 +40,20 @@
                 <button class="btn btn-invoice" onclick="downloadInvoice()">
                     <i class="fas fa-file-invoice"></i> Download Invoice
                 </button>
-                <% if (order.status !== 'Cancelled' && order.status !== 'Delivered' && order.status !== 'Returned' && order.status !== 'Return Request') { %>
+                <% if (order.status !== 'Cancelled' && order.status !== 'Delivered' && order.status !== 'Returned' && order.status !== 'Return Request' && order.status !== 'Payment Pending') { %>
                     <button class="btn btn-cancel-order" onclick="cancelOrder('<%= order._id %>')">
                         <i class="fas fa-times-circle"></i> Cancel Order
                     </button>
                 <% } %>
             </div>
+        </div>
+        <div class="meta-item">
+            <% if(order.status === 'Payment Pending'){ %>
+                <span style="color: red;">* This order not placed because the payment is failed , you want continue this order please complete payment procedure first.</span>
+                <button class="btn btn-primary" onclick="retryPayment('<%= order.orderId%>')">
+                    <i class="fa-sharp fa-solid fa-rotate-right"></i>Retry Payment
+                </button>
+            <% } %>
         </div>
 
         <div class="order-meta">
@@ -116,6 +136,10 @@
                                 <td><%= item.quantity %></td>
                                 <td class="product-price">₹<%= (item.price * item.quantity).toLocaleString('en-IN') %></td>
                                 <td>
+                                    <% 
+                                        const lockStatus = ["Cancelled",'Returned'];
+                                        const isStatusLocked = lockStatus.includes(item.status);
+                                    %>
                                     <% if (item.status==='Delivered' || item.status === 'Return Rejected') { %>
                                         <!-- Show Return button for delivered items -->
                                         <% if (!item.returnRequest || item.returnRequest.status==='None' || item.returnRequest.status==='Return Rejected' ){ %>
@@ -134,13 +158,17 @@
                                         <% } %>
                                     <% } else if (item.status !=='Cancelled' && item.status !=='Return Requested' && item.status
                                             !=='Return Approved' && item.status !== 'Returned' ) { %>
-                                        <!-- Show Cancel button for non-delivered, non-cancelled items -->
-                                        <button class="btn btn-cancel" onclick="cancelItem('<%= order._id %>', '<%= item._id %>')">
-                                            <i class="fas fa-times"></i> Cancel
-                                        </button>
+                                            <% if(order.paymentStatus !== 'Failed'){ %>
+                                                <!-- Show Cancel button for non-delivered, non-cancelled items -->
+                                                <button class="btn btn-cancel" onclick="cancelItem('<%= order._id %>', '<%= item._id %>')">
+                                                    <i class="fas fa-times"></i> Cancel
+                                                </button>
+                                            <% } %>
                                     <% } else { %>
-                                        <!-- Item is cancelled or returned -->
-                                        <button class="btn btn-cancel" disabled style="opacity: 0.5;">N/A</button>
+                                        <% if(!isStatusLocked){ %>
+                                            <!-- Item is cancelled or returned -->
+                                            <button class="btn btn-cancel" disabled style="opacity: 0.5;">Processing...</button>
+                                        <% }%>
                                     <% } %>
                                 </td>
                             </tr>
@@ -248,12 +276,12 @@
                         <span class="price-label">Subtotal:</span>
                         <span class="price-value">₹<%= (order.totalPrice || order.finalPrice).toLocaleString('en-IN') %></span>
                     </div>
-                    <% if (order.discount && order.discount > 0) { %>
+                    <!-- <% if (order.discount && order.discount > 0) { %>
                         <div class="price-row">
                             <span class="price-label">Discount:</span>
                             <span class="price-value" style="color: #28a745;">-₹<%= order.discount.toLocaleString('en-IN') %></span>
                         </div>
-                    <% } %>
+                    <% } %> -->
                     <% if (order.couponDiscount && order.couponDiscount > 0) { %>
                         <div class="price-row">
                             <span class="price-label">Coupon Discount:</span>
@@ -279,6 +307,7 @@
         </div>
     </div>
 
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         let currentOrderId = null;
@@ -367,13 +396,73 @@
                 }
 
                 const data = await response.json();
-                if (data.success) {
+
+                // Handle coupon warning
+                if (data.requiresConfirmation) {
+                    const confirmResult = await Swal.fire({
+                        icon: 'warning',
+                        title: 'Coupon Will Be Removed',
+                        html: `
+                            <div style="text-align: left; padding: 10px;">
+                                <p style="margin-bottom: 15px;">${data.message}</p>
+                                <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">
+                                    <p style="margin: 5px 0;"><strong>Coupon Code:</strong> ${data.couponDetails.couponCode}</p>
+                                    <p style="margin: 5px 0;"><strong>Coupon Discount:</strong> ₹${data.couponDetails.couponDiscount}</p>
+                                    <p style="margin: 5px 0;"><strong>Minimum Required:</strong> ₹${data.couponDetails.minRequired}</p>
+                                    <p style="margin: 5px 0;"><strong>Order Total After Cancel:</strong> ₹${data.couponDetails.currentTotal}</p>
+                                </div>
+                                    <p style="margin-top: 15px; color: #856404;"><strong>Do you want to continue with the cancellation?</strong></p>
+                            </div>
+                        `,
+                        showCancelButton: true,
+                        showConfirmButton:data.couponDetails.currentTotal > data.couponDetails.minRequired ? true : false,
+                        confirmButtonColor: '#d33',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, Continue',
+                        cancelButtonText: 'No, Keep Item',
+                        width: '600px'
+                    });
+
+                    if (!confirmResult.isConfirmed) {
+                        return;
+                    }
+
+                    // User confirmed, proceed with cancellation
+                    const confirmedResponse = await fetch(`/orders/cancel-items/${orderId}/${itemId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({ forceContinue: true })
+                    });
+
+                    const confirmedData = await confirmedResponse.json();
+                
+                    if (confirmedData.success) {
+                        Swal.fire({
+                            icon: "success",
+                            title: "Done.",
+                            text: confirmedData.message,
+                            showConfirmButton: false,
+                            timer: 2000
+                        }).then(() => {
+                            window.location.href = confirmedData.redirectUrl || `/orders/details/${orderId}`;
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: "error",
+                            title: "Error!",
+                            text: confirmedData.message || "Failed to cancel the item",
+                        });
+                    }
+                } else if (data.success) {
                     Swal.fire({
                         icon: "success",
                         title: "Done.",
-                        text: "Item cancelled successfully",
+                        text: data.message,
                         showConfirmButton: false,
-                        timer: 1000
+                        timer: 1500
                     }).then(() => {
                         window.location.href = data.redirectUrl || `/orders/details/${orderId}`;
                     });
@@ -438,6 +527,162 @@
             }
         });
 
+        async function retryPayment(orderId) {
+        try {
+            Swal.fire({
+                title: 'Initializing Payment...',
+                text: 'Please wait',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Step 1: Create new Razorpay order for retry
+            const response = await fetch('/order/retry-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ orderId })
+            });
+
+            const data = await response.json();
+
+            if (!data.success) {
+                return Swal.fire({
+                    icon: 'error',
+                    title: 'Failed',
+                    text: data.message || 'Failed to initiate payment'
+                });
+            }
+
+            Swal.close();
+
+            // Step 2: Configure Razorpay options
+            const options = {
+                key: data.key,
+                amount: data.amount,
+                currency: data.currency,
+                name: 'OraBolt',
+                description: `Payment for Order #${orderId}`,
+                order_id: data.orderId,
+                handler: async function (razorpayResponse) {
+                    await verifyRetryPayment(razorpayResponse, orderId);
+                },
+                modal: {
+                    ondismiss: function() {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Payment Cancelled',
+                            text: 'You can retry payment anytime from the orders page',
+                            confirmButtonColor: '#ffc107'
+                        });
+                    }
+                },
+                theme: {
+                    color: '#ffc107'
+                }
+            };
+
+            const rzp = new Razorpay(options);
+
+            rzp.on('payment.failed', function (response) {
+                console.error('Payment failed:', response.error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Payment Failed',
+                    html: `<p><b>${response.error.description}</b></p><p style="color: #666; font-size: 14px;">You can retry payment anytime.</p>`,
+                    confirmButtonColor: '#d33'
+                });
+            });
+
+            rzp.open();
+
+        } catch (error) {
+            console.error('Error retrying payment:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: error.message || 'Failed to retry payment'
+            });
+        }
+        }
+
+        async function verifyRetryPayment(razorpayResponse, orderId) {
+            try {
+                Swal.fire({
+                    title: 'Verifying Payment...',
+                    text: 'Please wait',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                const verifyResponse = await fetch('/checkout/verify-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        razorpay_order_id: razorpayResponse.razorpay_order_id,
+                        razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+                        razorpay_signature: razorpayResponse.razorpay_signature
+                    })
+                });
+
+                const verifyData = await verifyResponse.json();
+
+                if (!verifyData.success) {
+                    return Swal.fire({
+                        icon: 'error',
+                        title: 'Verification Failed',
+                        text: 'Payment verification failed. Please contact support.'
+                    });
+                }
+
+                const updateResponse = await fetch('/order/update-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        orderId: orderId,
+                        razorpayPaymentId: razorpayResponse.razorpay_payment_id,
+                        razorpayOrderId: razorpayResponse.razorpay_order_id
+                    })
+                });
+
+                const updateData = await updateResponse.json();
+
+                if (updateData.success) {
+                    Swal.fire({
+                        title: 'Payment Successful!',
+                        html: `
+                            <div style="text-align: center; padding: 10px;">
+                                <p style="font-size: 16px; margin: 10px 0;"><b>Order ID:</b> ${orderId}</p>
+                                <p style="color: #28a745; margin-top: 15px;">
+                                    <i class="fas fa-check-circle"></i> Payment completed successfully!
+                                </p>
+                            </div>
+                        `,
+                        icon: 'success',
+                    }).then(() => {
+                        window.location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Failed',
+                        text: updateData.message || 'Failed to update order'
+                    });
+                }
+
+            } catch (error) {
+                console.error('Error verifying retry payment:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message || 'Payment verification failed'
+                });
+            }
+        }
+
         // Handle return form submission
         document.getElementById('returnForm').addEventListener('submit', async function(e) {
             e.preventDefault();
@@ -480,7 +725,69 @@
 
                 const data = await response.json();
 
-                if (data.success) {
+                // Handle coupon warning
+                if (data.requiresConfirmation) {
+                    closeReturnModal();
+            
+                    const confirmResult = await Swal.fire({
+                        icon: 'warning',
+                        title: 'Coupon Will Be Removed',
+                        html: `
+                            <div style="text-align: left; padding: 10px;">
+                                <p style="margin-bottom: 15px;">${data.message}</p>
+                                <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">
+                                    <p style="margin: 5px 0;"><strong>Coupon Code:</strong> ${data.couponDetails.couponCode}</p>
+                                    <p style="margin: 5px 0;"><strong>Coupon Discount:</strong> ₹${data.couponDetails.couponDiscount}</p>
+                                    <p style="margin: 5px 0;"><strong>Minimum Required:</strong> ₹${data.couponDetails.minRequired}</p>
+                                    <p style="margin: 5px 0;"><strong>Order Total After Return:</strong> ₹${data.couponDetails.currentTotal}</p>
+                                </div>
+                                <p style="margin-top: 15px; color: #856404;"><strong>Do you want to continue with the return request?</strong></p>
+                            </div>
+                        `,
+                        showCancelButton: true,
+                        showConfirmButton:data.couponDetails.currentTotal > data.couponDetails.minRequired ? true :false,
+                        confirmButtonColor: '#ffc107',
+                        cancelButtonColor: '#6c757d',
+                        confirmButtonText: 'Yes, Continue',
+                        cancelButtonText: 'No, Cancel',
+                        width: '600px'
+                    });
+
+                    if (!confirmResult.isConfirmed) {
+                        showReturnModal(currentOrderId, currentItemId);
+                        return;
+                    }
+
+                    // User confirmed, proceed with return
+                    const confirmedResponse = await fetch(`/orders/return-item/${currentOrderId}/${currentItemId}`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'include',
+                        body: JSON.stringify({ reason, forceContinue: true })
+                    });
+
+                    const confirmedData = await confirmedResponse.json();
+            
+                    if (confirmedData.success) {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Request Submitted!',
+                            text: confirmedData.message,
+                            showConfirmButton: false,
+                            timer: 2000
+                        }).then(() => {
+                            window.location.href = confirmedData.redirectUrl || `/orders/details/${currentOrderId}`;
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error!',
+                            text: confirmedData.message,
+                        });
+                    }
+                } else if (data.success) {
                     closeReturnModal();
                     Swal.fire({
                         icon: 'success',
@@ -495,7 +802,7 @@
                     Swal.fire({
                         icon: 'error',
                         title: 'Error!',
-                        text: data.message || 'Failed to submit return request',
+                        text: data.message,
                     });
                 }
             } catch (error) {

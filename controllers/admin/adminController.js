@@ -51,13 +51,13 @@ const pageError = async function (req, res) {
 const loadDash = async function (req, res) {
     try {
         const productsCount = await Product.countDocuments({isBlocked:false});
-        const ordersCount = await Order.countDocuments();
+        const ordersCount = await Order.countDocuments({status:{$ne:"Payment Pending"}});
         const categoryCount = await Category.countDocuments({isListed:true});
 
         const revenueData = await Order.aggregate([
             {
                 $match: { 
-                    status: {$nin:["Cancelled","Returned"]},
+                    status: {$nin:["Cancelled","Returned","Payment Pending"]},
                     paymentStatus: {$in:["Paid","Pending","Partial Refund Initiated"]}
                 }
             },
@@ -74,7 +74,7 @@ const loadDash = async function (req, res) {
         const discountData = await Order.aggregate([
             {
                 $match: { 
-                    status: {$nin:["Cancelled","Returned"]},
+                    status: {$nin:["Cancelled","Returned","Payment Pending"]},
                     paymentStatus: {$in:["Paid","Pending"]}
                 }
             },
@@ -173,7 +173,7 @@ const getSalesData = async (period) => {
                         $gte: startDate,
                         $lte: endDate
                     },
-                    status: { $nin: ["Cancelled", "Returned"] },
+                    status: { $nin: ["Cancelled", "Returned","Payment Pending"] },
                     paymentStatus: { $in: ["Paid", "Pending","Partial Refund Initiated"] }
                 }
             },
@@ -268,7 +268,7 @@ const getTopProducts = async (req, res) => {
                         $gte: dateRange.startDate,
                         $lte: dateRange.endDate
                     },
-                    status: { $nin: ["Cancelled", "Returned"] },
+                    status: { $nin: ["Cancelled", "Returned","Payment Pending"] },
                     paymentStatus: { $in: ["Paid", "Pending","Partial Refund Initiated"] }
                 }
             },
@@ -330,7 +330,7 @@ const getTopCategories = async (req, res) => {
                         $gte: dateRange.startDate,
                         $lte: dateRange.endDate
                     },
-                    status: { $nin: ["Cancelled", "Returned"] },
+                    status: { $nin: ["Cancelled", "Returned","Payment Pending"] },
                     paymentStatus: { $in: ["Paid", "Pending","Partial Refund Initiated"] }
                 }
             },
@@ -400,7 +400,7 @@ const getTopBrands = async (req, res) => {
                         $gte: dateRange.startDate,
                         $lte: dateRange.endDate
                     },
-                    status: { $nin: ["Cancelled", "Returned"] },
+                    status: { $nin: ["Cancelled", "Returned","Payment Pending"] },
                     paymentStatus: { $in: ["Paid", "Pending","Partial Refund Initiated"] }
                 }
             },
@@ -459,15 +459,97 @@ const getTopBrands = async (req, res) => {
     }
 };
 
-// sales Report Generation
+// calculate sales data from orders
+const calculateSalesData = (orders) => {
+    let totalOrders = 0;
+    let totalSales = 0;
+    let totalDiscount = 0;
+    let totalAmount = 0;
+    let totalRefunded = 0;
+
+    orders.forEach(order => {
+        // Only count orders that are not cancelled/returned for sales metrics
+        if (order.status !== 'Cancelled' && order.status !== 'Returned') {
+            totalOrders++;
+            totalSales += order.finalPrice || 0;
+            totalDiscount += order.discount || 0;
+            totalAmount += order.totalPrice || 0;
+        }
+        
+        // Calculate refunded amount
+        // order.refundAmount if it exists
+        if (order.refundAmount && order.refundAmount > 0) {
+            totalRefunded += order.refundAmount;
+            console.log(`Order ${order.orderId}: Refund from order.refundAmount = ₹${order.refundAmount}`);
+        } 
+        // Calculate from fully cancelled/returned orders
+        else if (order.status === 'Cancelled' || order.status === 'Returned') {
+            // Only count if payment was made (not COD or Pending)
+            if (order.paymentStatus === 'Refunded' || 
+                order.paymentStatus === 'Refund Initiated' ||
+                order.paymentStatus === 'Partial Refund Initiated' ||
+                order.paymentStatus === 'Paid') {
+                totalRefunded += order.finalPrice || 0;
+                console.log(`Order ${order.orderId}: Full order refund = ₹${order.finalPrice}`);
+            }
+        }
+        // Calculate item-level refunds for partial returns
+        else if (order.orderedItems && order.orderedItems.length > 0) {
+            let itemRefunds = 0;
+            order.orderedItems.forEach(item => {
+                if (item.status === 'Cancelled' || item.status === 'Returned') {
+                    const itemTotal = (item.price || 0) * (item.quantity || 1);
+                    itemRefunds += itemTotal;
+                }
+            });
+            
+            if (itemRefunds > 0 && (order.paymentStatus === 'Paid' || 
+                                     order.paymentStatus === 'Partial Refund Initiated' ||
+                                     order.paymentStatus === 'Refund Initiated')) {
+                totalRefunded += itemRefunds;
+                console.log(`Order ${order.orderId}: Item-level refunds = ₹${itemRefunds}`);
+            }
+        }
+    });
+
+    const averageOrderValue = totalOrders > 0 ? totalSales / totalOrders : 0;
+
+    console.log(`Total Refunded Amount: ₹${totalRefunded.toFixed(2)}`);
+
+    return {
+        totalOrders,
+        totalSales: totalSales.toFixed(2),
+        totalDiscount: totalDiscount.toFixed(2),
+        totalAmount: totalAmount.toFixed(2),
+        totalRefunded: totalRefunded.toFixed(2),
+        averageOrderValue: averageOrderValue.toFixed(2)
+    };
+};
+
+// Helper function to check if item has offer (price is less than regular price)
+const hasItemOffer = (item) => {
+    return false; 
+};
+
+// Helper function to get product status from order
+const getProductStatus = (item, order) => {
+    // Check item status
+    if (item.status) {
+        return item.status;
+    }
+    
+    // Fallback to order status
+    return order.status;
+};
+
+// Update the generateSalesReport to populate product details
 const generateSalesReport = async (req, res) => {
     try {
         const { period, startDate, endDate, reportType = 'view' } = req.query;
         
         let start, end = new Date();
-        end.setHours(23, 59, 59, 999); // Set to end of day
+        end.setHours(23, 59, 59, 999);
         
-        // Set date range based on filter
         switch (period) {
             case 'daily':
                 start = new Date();
@@ -504,7 +586,7 @@ const generateSalesReport = async (req, res) => {
                 $gte: start,
                 $lte: end
             },
-            status: { $nin: ['Cancelled',"Returned"] }, 
+            status: { $nin: ['Cancelled',"Returned","Payment Pending"] }, 
             paymentStatus: { $in: ['Paid', 'Pending',"Failed","Partial Refund Initiated"] } 
         };
 
@@ -516,7 +598,6 @@ const generateSalesReport = async (req, res) => {
         // Calculate report data
         const reportData = calculateSalesData(orders);
         
-        // Add date info to report data
         reportData.period = period;
         reportData.startDate = start;
         reportData.endDate = end;
@@ -542,36 +623,10 @@ const generateSalesReport = async (req, res) => {
     }
 };
 
-// calculate sales data from orders
-const calculateSalesData = (orders) => {
-    let totalSales = 0;
-    let totalOrders = orders.length;
-    let totalDiscount = 0;
-    let totalAmount = 0;
-
-    orders.forEach(order => {
-        const orderAmount = order.totalPrice || 0;
-        const orderDiscount = order.discount || 0;
-        const finalPrice = order.finalPrice || 0;
-        
-        totalAmount += orderAmount;
-        totalDiscount += orderDiscount;
-        totalSales += finalPrice; // Use finalPrice as it's after discount
-    });
-
-    return {
-        totalSales: Math.round(totalSales * 100) / 100,
-        totalOrders,
-        totalDiscount: Math.round(totalDiscount * 100) / 100,
-        totalAmount: Math.round(totalAmount * 100) / 100,
-        averageOrderValue: totalOrders > 0 ? Math.round((totalSales / totalOrders) * 100) / 100 : 0
-    };
-};
-
-// generate PDF Report
+// Generate PDF Report with Item Details
 const generatePDFReport = async (reportData, res) => {
     try {
-        const doc = new PDFDocument();
+        const doc = new PDFDocument({ margin: 50, size: 'A4' });
         const filename = `sales-report-${Date.now()}.pdf`;
         
         res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -579,46 +634,177 @@ const generatePDFReport = async (reportData, res) => {
         
         doc.pipe(res);
 
-        // Add content to PDF
-        doc.fontSize(20).text('Sales Report', { align: 'center' });
-        doc.moveDown();
-        doc.fontSize(12).text(`Period: ${reportData.period}`);
-        doc.text(`Date Range: ${reportData.startDate.toDateString()} - ${reportData.endDate.toDateString()}`);
-        doc.moveDown();
+        // Title - Centered and bold
+        doc.fontSize(24).font('Helvetica-Bold').text('Sales Report', { align: 'center' });
+        doc.moveDown(1.5);
+        
+        // Period info - Centered
+        const periodInfo = [
+            `Period: ${reportData.period.charAt(0).toUpperCase() + reportData.period.slice(1)}`,
+            `Date Range: ${reportData.startDate.toDateString()} - ${reportData.endDate.toDateString()}`
+        ];
+        doc.fontSize(11).font('Helvetica').text(periodInfo.join(' | '), { align: 'center' });
+        doc.moveDown(1.5);
         
         // Summary section
-        doc.fontSize(14).text('Summary', { underline: true });
-        doc.moveDown();
-        doc.text(`Total Orders: ${reportData.totalOrders}`);
-        doc.text(`Total Sales: ₹${reportData.totalSales}`);
-        doc.text(`Total Discount: ₹${reportData.totalDiscount}`);
-        doc.text(`Total Amount (Before Discount): ₹${reportData.totalAmount}`);
-        doc.text(`Average Order Value: ₹${reportData.averageOrderValue}`);
-        doc.moveDown();
+        doc.fontSize(16).font('Helvetica-Bold').text('Summary', 50, doc.y);
+        doc.moveDown(0.5);
+        
+        doc.fontSize(12).font('Helvetica');
+        const summaryItems = [
+            `Total Orders: ${reportData.totalOrders || 0}`,
+            `Total Sales(Final): ${formatCurrency(reportData.totalSales)}`,
+            `Total Discount: ${formatCurrency(reportData.totalDiscount)}`,
+            `Total Amount (Before Discount): ${formatCurrency(reportData.totalAmount)}`,
+            `Total Refunded: ${formatCurrency(reportData.totalRefunded || 0)}`,
+            `Average Order Value: ${formatCurrency(reportData.averageOrderValue)}`
+        ];
+        
+        let summaryY = doc.y + 10;
+        summaryItems.forEach((item, index) => {
+            doc.text(`• ${item}`, 60, summaryY + (index * 18));
+        });
+        doc.moveDown(2.5);
 
-        // Orders detail section
+        // Orders detail section with items
         if (reportData.orders && reportData.orders.length > 0) {
-            doc.fontSize(14).text('Order Details', { underline: true });
-            doc.moveDown();
+            doc.fontSize(16).font('Helvetica-Bold').text('Order Details', 50, doc.y);
+            doc.moveDown(1);
             
-            reportData.orders.forEach((order, index) => {
-                const orderId = order.orderId;
-                const customerName = order.userId?.name || 'N/A';
-                const totalPrice = order.totalPrice || 0;
-                const discount = order.discount || 0;
-                const finalPrice = order.finalPrice || 0;
-                const status = order.status;
-                const paymentStatus = order.paymentStatus;
+            reportData.orders.forEach((order, orderIndex) => {
+                // Check if we need a new page
+                if (doc.y > doc.page.height - 200) {
+                    doc.addPage();
+                }
                 
-                doc.text(`${index + 1}. Order #${orderId}`);
-                doc.text(`   Customer: ${customerName}`);
-                doc.text(`   Amount: ₹${totalPrice} | Discount: ₹${discount} | Final: ₹${finalPrice}`);
-                doc.text(`   Status: ${status} | Payment: ${paymentStatus}`);
-                if (index < reportData.orders.length - 1) doc.moveDown(0.5);
+                // Order Header Box
+                const orderHeaderY = doc.y;
+                doc.fillColor('#4a90e2')
+                   .rect(50, orderHeaderY, 495, 25)
+                   .fill();
+                
+                doc.fillColor('white').fontSize(11).font('Helvetica-Bold');
+                doc.text(`#${order.orderId}`, 60, orderHeaderY + 7, { continued: true })
+                   .text(`  |  ${new Date(order.createdOn).toLocaleDateString('en-IN')}`, { continued: true })
+                   .text(`  |  ${order.userId?.name || 'N/A'}`, { continued: true })
+                   .text(`  |  ${order.status}`, { align: 'left' });
+                
+                doc.moveDown(0.5);
+                
+                // Order Summary
+                doc.fillColor('black').fontSize(10).font('Helvetica');
+                const orderSummaryY = doc.y;
+                doc.text(`Total: ${formatCurrency(order.totalPrice)}`, 60, orderSummaryY, { continued: true })
+                   .text(`  |  Discount: ${formatCurrency(order.discount)}`, { continued: true })
+                   .text(`  |  Final: ${formatCurrency(order.finalPrice)}`, { continued: true })
+                   .text(`  |  Payment: ${order.paymentStatus}`, { align: 'left' });
+                
+                doc.moveDown(0.8);
+                
+                // Items Table Header
+                const itemTableY = doc.y;
+                doc.fillColor('#e8f4f8')
+                   .rect(60, itemTableY, 485, 18)
+                   .fill();
+                
+                doc.fillColor('#333').fontSize(9).font('Helvetica-Bold');
+                doc.text('Item Name', 65, itemTableY + 5, { width: 200, continued: false });
+                doc.text('Qty', 270, itemTableY + 5, { width: 30, continued: false });
+                doc.text('Price', 305, itemTableY + 5, { width: 70, align: 'right', continued: false });
+                doc.text('Total', 380, itemTableY + 5, { width: 70, align: 'right', continued: false });
+                doc.text('Status', 455, itemTableY + 5, { width: 85, continued: false });
+                
+                doc.moveDown(0.3);
+                
+                // Items
+                if (order.orderedItems && order.orderedItems.length > 0) {
+                    doc.fontSize(8).font('Helvetica');
+                    
+                    order.orderedItems.forEach((item, itemIndex) => {
+                        // Check if we need a new page
+                        if (doc.y > doc.page.height - 100) {
+                            doc.addPage();
+                        }
+                        
+                        const itemY = doc.y + 5;
+                        const itemName = item.name || 'N/A';
+                        const truncatedName = itemName.length > 40 ? itemName.substring(0, 40) + '...' : itemName;
+                        const itemPrice = item.price || 0;
+                        const itemTotal = itemPrice * (item.quantity || 1);
+                        const productStatus = getProductStatus(item, order);
+                        const hasOffer = hasItemOffer(item);
+                        
+                        // Alternating background
+                        if (itemIndex % 2 === 0) {
+                            doc.fillColor('#f9f9f9')
+                               .rect(60, itemY - 3, 485, 16)
+                               .fill();
+                        }
+                        
+                        doc.fillColor('black');
+                        doc.text(truncatedName, 65, itemY, { width: 200, continued: false });
+                        doc.text((item.quantity || 1).toString(), 270, itemY, { width: 30, continued: false });
+                        
+                        // Show price with offer indicator if applicable
+                        if (hasOffer) {
+                            doc.fillColor('#d32f2f');
+                            doc.text(formatCurrency(itemPrice) + ' *', 305, itemY, { width: 70, align: 'right', continued: false });
+                        } else {
+                            doc.fillColor('black');
+                            doc.text(formatCurrency(itemPrice), 305, itemY, { width: 70, align: 'right', continued: false });
+                        }
+                        
+                        doc.fillColor('black');
+                        doc.text(formatCurrency(itemTotal), 380, itemY, { width: 70, align: 'right', continued: false });
+                        
+                        // Color code status
+                        if (productStatus === 'Cancelled' || productStatus === 'Returned') {
+                            doc.fillColor('#d32f2f');
+                        } else if (productStatus === 'Delivered') {
+                            doc.fillColor('#388e3c');
+                        } else {
+                            doc.fillColor('#f57c00');
+                        }
+                        doc.text(productStatus, 455, itemY, { width: 85, continued: false });
+                        doc.fillColor('black');
+                        
+                        doc.moveDown(0.4);
+                    });
+                    
+                    // Add note about offers
+                    const hasAnyOffer = order.orderedItems.some(item => hasItemOffer(item));
+                    if (hasAnyOffer) {
+                        doc.fontSize(7).fillColor('#666')
+                           .text('* Offer price applied', 65, doc.y + 5);
+                        doc.fillColor('black');
+                    }
+                }
+                
+                // Separator line between orders
+                doc.moveDown(0.5);
+                doc.strokeColor('#ddd')
+                   .lineWidth(1)
+                   .moveTo(50, doc.y)
+                   .lineTo(545, doc.y)
+                   .stroke();
+                doc.moveDown(1);
             });
         } else {
-            doc.text('No orders found for the selected period.');
+            doc.fontSize(12).text('No orders found for the selected period.', { align: 'center' });
+            doc.moveDown(1);
         }
+        
+        // Add footer to all pages
+        const range = doc.bufferedPageRange();
+        for (let i = 0; i < range.count; i++) {
+            doc.switchToPage(range.start + i);
+            doc.fontSize(10).font('Helvetica-Oblique').fillColor('black').text(
+                `Generated on ${new Date().toLocaleDateString('en-IN')} | Page ${i + 1} of ${range.count}`, 
+                50, doc.page.height - 30, 
+                { align: 'center', width: 495 }
+            );
+        }
+        
         doc.end();
     } catch (error) {
         console.error("PDF generation error:", error);
@@ -626,7 +812,7 @@ const generatePDFReport = async (reportData, res) => {
     }
 };
 
-// generate Excel Report
+// Generate Excel Report with Item Details
 const generateExcelReport = async (reportData, res) => {
     try {
         const workbook = new ExcelJS.Workbook();
@@ -641,62 +827,128 @@ const generateExcelReport = async (reportData, res) => {
         worksheet.addRow(['Total Sales (Final)', `₹${reportData.totalSales}`]);
         worksheet.addRow(['Total Discount', `₹${reportData.totalDiscount}`]);
         worksheet.addRow(['Total Amount (Before Discount)', `₹${reportData.totalAmount}`]);
+        worksheet.addRow(['Total Refunded', `₹${reportData.totalRefunded || 0}`]);
         worksheet.addRow(['Average Order Value', `₹${reportData.averageOrderValue}`]);
         worksheet.addRow([]);
-        worksheet.addRow(['ORDER DETAILS']);
+        worksheet.addRow(['ORDER DETAILS WITH ITEMS']);
         worksheet.addRow([]);
 
-        // Add headers for order data
-        worksheet.columns = [
-            { header: 'Order ID', key: 'orderId', width: 15 },
-            { header: 'Date', key: 'date', width: 12 },
-            { header: 'Customer', key: 'customer', width: 20 },
-            { header: 'Total Amount', key: 'totalAmount', width: 15 },
-            { header: 'Discount', key: 'discount', width: 12 },
-            { header: 'Final Amount', key: 'finalAmount', width: 15 },
-            { header: 'Status', key: 'status', width: 15 },
-            { header: 'Payment Status', key: 'paymentStatus', width: 15 },
-            { header: 'Payment Method', key: 'paymentMethod', width: 15 }
-        ];
+        // Add headers for order and item data
+        const headerRow = worksheet.addRow([
+            'Order ID', 
+            'Date', 
+            'Customer', 
+            'Order Total', 
+            'Order Discount', 
+            'Order Final', 
+            'Order Status', 
+            'Payment Status',
+            'Item Name',
+            'Item Qty',
+            'Item Price',
+            'Item Total',
+            'Offer Applied',
+            'Item Status'
+        ]);
 
-        worksheet.addRow(['Order ID', 'Date', 'Customer', 'Total Amount', 'Discount', 'Final Amount', 'Status', 'Payment Status', 'Payment Method']);
+        // Style the header row
+        headerRow.font = { bold: true };
+        headerRow.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FF4A90E2' }
+        };
+        headerRow.font = { color: { argb: 'FFFFFFFF' }, bold: true };
 
-        // Add order data
+        // Add order and item data
         if (reportData.orders && reportData.orders.length > 0) {
             reportData.orders.forEach(order => {
                 const orderId = order.orderId;
+                const orderDate = order.createdOn.toDateString();
                 const customerName = order.userId?.name || 'N/A';
                 const totalPrice = order.totalPrice || 0;
                 const discount = order.discount || 0;
                 const finalPrice = order.finalPrice || 0;
                 const status = order.status;
                 const paymentStatus = order.paymentStatus;
-                const paymentMethod = order.paymentMethod || 'N/A';
                 
-                worksheet.addRow({
-                    orderId: orderId,
-                    date: order.createdOn.toDateString(),
-                    customer: customerName,
-                    totalAmount: `₹${totalPrice}`,
-                    discount: `₹${discount}`,
-                    finalAmount: `₹${finalPrice}`,
-                    status: status,
-                    paymentStatus: paymentStatus,
-                    paymentMethod: paymentMethod
-                });
+                if (order.orderedItems && order.orderedItems.length > 0) {
+                    order.orderedItems.forEach((item, index) => {
+                        const itemName = item.name || 'N/A';
+                        const itemQty = item.quantity || 1;
+                        const itemPrice = item.price || 0;
+                        const itemTotal = itemPrice * itemQty;
+                        const hasOffer = hasItemOffer(item);
+                        const productStatus = getProductStatus(item, order);
+                        
+                        const row = worksheet.addRow([
+                            index === 0 ? orderId : '',
+                            index === 0 ? orderDate : '',
+                            index === 0 ? customerName : '',
+                            index === 0 ? `₹${totalPrice}` : '',
+                            index === 0 ? `₹${discount}` : '',
+                            index === 0 ? `₹${finalPrice}` : '',
+                            index === 0 ? status : '',
+                            index === 0 ? paymentStatus : '',
+                            itemName,
+                            itemQty,
+                            `₹${itemPrice.toFixed(2)}`,
+                            `₹${itemTotal.toFixed(2)}`,
+                            hasOffer ? 'Yes' : 'No',
+                            productStatus
+                        ]);
+                        
+                        // Color code item status
+                        const statusCell = row.getCell(14);
+                        if (productStatus === 'Cancelled' || productStatus === 'Returned') {
+                            statusCell.font = { color: { argb: 'FFD32F2F' }, bold: true };
+                        } else if (productStatus === 'Delivered') {
+                            statusCell.font = { color: { argb: 'FF388E3C' }, bold: true };
+                        } else {
+                            statusCell.font = { color: { argb: 'FFF57C00' } };
+                        }
+                        
+                        // Highlight offer applied
+                        if (hasOffer) {
+                            row.getCell(11).font = { color: { argb: 'FFD32F2F' }, bold: true };
+                            row.getCell(13).font = { color: { argb: 'FFD32F2F' }, bold: true };
+                        }
+                    });
+                } else {
+                    // Order with no items
+                    worksheet.addRow([
+                        orderId,
+                        orderDate,
+                        customerName,
+                        `₹${totalPrice}`,
+                        `₹${discount}`,
+                        `₹${finalPrice}`,
+                        status,
+                        paymentStatus,
+                        'No items',
+                        '',
+                        '',
+                        '',
+                        '',
+                        ''
+                    ]);
+                }
             });
         } else {
             worksheet.addRow(['No orders found for the selected period.']);
         }
 
-        // Style the header row
-        const headerRow = worksheet.getRow(14); // Adjust based on your row count
-        headerRow.font = { bold: true };
-        headerRow.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFE6E6FA' }
-        };
+        // Auto-fit columns
+        worksheet.columns.forEach(column => {
+            let maxLength = 0;
+            column.eachCell({ includeEmpty: true }, cell => {
+                const columnLength = cell.value ? cell.value.toString().length : 10;
+                if (columnLength > maxLength) {
+                    maxLength = columnLength;
+                }
+            });
+            column.width = maxLength < 10 ? 10 : maxLength + 2;
+        });
 
         // Set response headers
         const filename = `sales-report-${Date.now()}.xlsx`;
@@ -710,6 +962,11 @@ const generateExcelReport = async (reportData, res) => {
         res.status(500).json({ success: false, message: "Error generating Excel file" });
     }
 };
+
+// Format currency helper
+function formatCurrency(amount) {
+    return `₹${parseFloat(amount || 0).toFixed(2)}`;
+}
 
 const logout = async function (req, res) {
 

@@ -504,32 +504,52 @@
 						<div class="w-100"></div>
 						<div class="input-group col-md-6 d-flex mb-3">
 							<span class="input-group-btn mr-2">
-								<button type="button" class="quantity-left-minus btn" data-type="minus" data-field="">
+								<button type="button" class="quantity-left-minus btn" data-type="minus" data-field=""
+                                <% if(product.quantity <= 0 || categoryUnlisted) { %>disabled<% } %>>
 									<i class="ion-ios-remove"></i>
 								</button>
 							</span>
 							<input type="text" id="quantity" name="quantity" class="quantity form-control input-number"
-								value="1" min="1" max="100">
+								value="1" min="1" max="<% product.quantity > 0 ? product.quantity : 0 %>" 
+                                <% if(product.quantity <= 0 || categoryUnlisted) { %>readonly disabled<% } %>>
 							<span class="input-group-btn ml-2">
-								<button type="button" class="quantity-right-plus btn" data-type="plus" data-field="">
+								<button type="button" class="quantity-right-plus btn" data-type="plus" data-field=""
+                                <% if(product.quantity <= 0 || categoryUnlisted) { %>disabled<% } %>>
 									<i class="ion-ios-add"></i>
 								</button>
 							</span>
 						</div>
 						<div class="w-100"></div>
+                        <% if(categoryUnlisted) { %>
+                            <div class="col-md-12 mb-3">
+                                <div class="alert alert-warning" role="alert" 
+                                style="border-left: 4px solid #ff9800; background-color: #fff3cd; padding: 15px; margin-top: 5px; border-radius: 5px;">
+                                    <strong><i class="ion-ios-alert" style="font-size: 15px; margin-right: 5px;"></i> Product Unavailable</strong>
+                                    <p style="margin: 10px 0 0 0; color: #856404;"><%= unavailableMessage %></p>
+                                </div>
+                            </div>
+                        <% } %>
 						<% if(product.quantity <= 0){ %>
                             <div class="col-md-12">
 							    <p style="color: #ff0202;">Stock : Out Of Stock %></p>
+                                <a href="/shop" class="btn btn-primary py-3 px-5">Back to Shop Page</a>
 						    </div>
                         <% }else{ %>
+                            <div class="col-md-12">
+							    <p style="color: #000;"><%= product.isListed ? product.status :"Unavailable" %></p>
+						    </div>
                             <div class="col-md-12">
 							    <p style="color: #000;">Stock : <%= product.quantity %></p>
 						    </div>
                             <% if(user){ %>
-                                <p>
-                                    <a href="#" class=" add-to-cart btn btn-black py-3 px-5 mr-2" data-id="<%= product._id %>">Add to Cart</a>
-						            <a href="/checkout?productId=<%= product._id %>&qty=1" class="btn btn-primary py-3 px-5">Buy now</a>
-                                </p>
+                                <% if(categoryUnlisted === true){ %>
+                                    <a href="/" class="btn btn-primary py-3 px-5">Back to Home Page</a>
+                                <% } else { %>
+                                    <p>
+                                        <a href="#" class=" add-to-cart btn btn-black py-3 px-5 mr-2" data-id="<%= product._id %>">Add to Cart</a>
+						                <a href="/checkout?productId=<%= product._id %>&qty=1" class="btn btn-primary py-3 px-5">Buy now</a>
+                                    </p>
+                                <% } %>
                             <% } else { %>
                                 <p>
                                     <a href="/login" class="btn btn-black py-3 px-5 mr-2">Add to Cart</a>
@@ -970,9 +990,12 @@
                     switchImage(currentImageIndex + 1);
                 }
             });
-            
-            const MAX_QTY = 5;
+
+            const stockQuantity = <%- product.quantity || 0 %>;
+            const maxOrderQuantity = <%- product.quantity < 5 ? product.quantity : 5 %>;
             const quantityInput = document.getElementById('quantity');
+            const MAX_ALLOWED = Math.min(stockQuantity,maxOrderQuantity);
+
             document.querySelector('.quantity-left-minus')?.addEventListener('click', function() {
                 const currentValue = parseInt(quantityInput.value);
                 if (currentValue > 1) {
@@ -989,22 +1012,30 @@
 
             document.querySelector('.quantity-right-plus')?.addEventListener('click', function() { 
                 const currentValue = parseInt(quantityInput.value);
-                if (currentValue < MAX_QTY) {
+                if (currentValue < MAX_ALLOWED) {
                     quantityInput.value = currentValue + 1;
                 }else{
-                    Swal.fire({
-                        icon:"warning",
-                        title:"Max limit reached!",
-                        text:"you can add upto 5 unit in this product",
-                        showConfirmButton:true
-                    })
+                    let message = '';
+            if (currentValue >= maxOrderQuantity && currentValue >= stockQuantity) {
+                message = `Maximum limit reached! You can only order ${maxOrderQuantity} units per order and only ${stockQuantity} units are in stock.`;
+            } else if (currentValue >= maxOrderQuantity) {
+                message = `Maximum order limit reached! You can only order up to ${maxOrderQuantity} units per order.`;
+            } else if (currentValue >= stockQuantity) {
+                message = `Stock limit reached! Only ${stockQuantity} units are available in stock.`;
+            }
+            
+            Swal.fire({
+                icon: "warning",
+                title: "Limit Reached!",
+                text: message,
+                showConfirmButton: true
+            });
                 }
             });
 
-            // Improved Image Zoom: In-place zoom towards cursor on hover (desktop)
             // On mouseleave, reset to normal
             mainImage.addEventListener('mousemove', (e) => {
-                if (window.innerWidth <= 768) return; // Disable hover zoom on mobile
+                if (window.innerWidth <= 768) return;
                 const rect = mainImage.getBoundingClientRect();
                 const x = ((e.clientX - rect.left) / rect.width) * 100;
                 const y = ((e.clientY - rect.top) / rect.height) * 100;
@@ -1052,7 +1083,6 @@
                 mainImage.style.transformOrigin = 'center center';
             }
 
-            // Optional: Keyboard zoom toggle (Escape to reset)
             document.addEventListener('keydown', (e) => {
                 if (e.key === 'Escape') {
                     resetZoom();
@@ -1064,11 +1094,11 @@
                     e.preventDefault();
                     const productId = btn.dataset.id.trim();
                     const quantity = parseInt(quantityInput.value) || 1;
-                    if (quantity > MAX_QTY) {
+                    if (quantity > MAX_ALLOWED) {
                         Swal.fire({
                             icon: "warning",
                             title: "Quantity limit exceeded!",
-                            text: `You can only add up to ${MAX_QTY} units.`,
+                            text: `You can only add up to ${MAX_ALLOWED} units.`,
                             showConfirmButton: true
                         });
                         return;

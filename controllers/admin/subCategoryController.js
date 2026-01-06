@@ -41,8 +41,11 @@ const subCategoryInfo = async function (req,res) {
 
 const addSubCategory = async function (req,res) {
     
-    const {name,description,offer,categoryId} = req.body;
+    const {name,description,categoryId} = req.body;
     try {
+        if(!name||!description||!categoryId){
+            return res.status(400).json({success:false,message:"All fields are required"});
+        }
         const trimmedName = name.trim()
 
         const existSubCategory = await subCategory.findOne({name:{$regex:new RegExp(`^${trimmedName}$`,'i')}});
@@ -65,63 +68,44 @@ const addSubCategory = async function (req,res) {
     }  
 };
 
-const loadEditSubCategory = async function (req,res) {
-    try {
-        const subCategoryId = req.params.id;
-        if(!mongoose.Types.ObjectId.isValid(subCategoryId)){
-            return res.redirect("/admin/pageError")
-        }
-        const subcategory = await subCategory.findById(subCategoryId).populate("categoryId");
-        if(!subcategory){
-            return res.status(404).json({error:"error sub category not found"});
-        }
-        const categories = await Category.find({isListed:true});
-        res.render("editSubCategory",{subcategory,categories});
-        
-    } catch (error) {
-        console.log("somthing wrong while processing:",error);
-        return res.redirect("/admin/pageError");
-    }  
-};
-
 const editSubCategory = async function (req,res) {
     try {
-        const {name,description,categoryId} = req.body;
+        const {name,description,category} = req.body;
         const subcategoryId = req.params.id;
         if(!mongoose.Types.ObjectId.isValid(subcategoryId)){
             return res.redirect("/admin/pageError")
         }
 
-        if(!name||!description ||!categoryId){
-            return res.status(400).json({success:false,error:"All fields are required"});
+        if(!name||!description ||!category){
+            return res.status(400).json({success:false,message:"All fields are required"});
         }
 
         const trimmedName = name.trim();
         const trimmedDescription = description.trim();
         if(!trimmedName||!trimmedDescription){
-            return res.status(400).json({success:false,error:"Field cannot be empty after trimming"});
+            return res.status(400).json({success:false,message:"Field cannot be empty after trimming"});
         }
 
         const existSubCategory = await subCategory.findOne({name:{$regex:new RegExp(`^${trimmedName}$`,'i')},_id:{$ne:subcategoryId}});
         if(existSubCategory){
-            return res.status(400).json({success:false,error:"This SubCategory already exists!"});
+            return res.status(400).json({success:false,message:"This SubCategory already exists!"});
         }
 
         const updatedSubcategory = await subCategory.findByIdAndUpdate(subcategoryId,
-            {name:trimmedName,description:trimmedDescription,categoryId},
+            {name:trimmedName,description:trimmedDescription,category},
             {new:true,runValidators:true}
         );
         if(!updatedSubcategory){
-            return res.status(404).json({success:false,error:"SubCategory not found"});
+            return res.status(404).json({success:false,message:"SubCategory not found"});
         }
 
         return res.status(200).json({success:true,message:"Updated successfully."});
     } catch (error) {
         if(error.code === 11000){
-            return res.status(400).json({success:false,error:"SubCategory name already exists!"});
+            return res.status(400).json({success:false,message:"SubCategory name already exists!"});
         }else{
             console.error("Edit category error:",error);
-            return res.status(500).json({success:false,error:"Internal server error"});
+            return res.status(500).json({success:false,message:"Internal server error"});
         }
     }
 };
@@ -165,7 +149,6 @@ const toggleList = async function (req,res) {
 module.exports = {
     subCategoryInfo,
     addSubCategory,
-    loadEditSubCategory,
     editSubCategory,
     deleteSubCategory,
     toggleList,

@@ -118,8 +118,14 @@ const updateOrderStatus = async (req, res) => {
     const order = await Order.findById(orderId);
     if (!order) return res.json({success:false,message:"Order not found"});
 
+    const lockedStatus = ["Delivered","Cancelled","Returned"];
+
     order.status = status;
-    order.orderedItems.forEach(item => item.status = status);
+    order.orderedItems.forEach((item) => {
+      if(!lockedStatus.includes(item.status)){
+        item.status = status
+      }
+    });
     await order.save();
 
     return res.status(200).json({success:true,message:"Order status updated.",redirectUrl:`/admin/order-details/${orderId}`});
@@ -144,7 +150,14 @@ const updateItemStatus = async (req, res) => {
       if (!order) return res.json({success:false,message:"Order not found"});
 
       const item = order.orderedItems.id(itemId);
-      if (!item) return res.json({success:false,message:"Item not found"});;
+      if (!item) return res.json({success:false,message:"Item not found"});
+
+      const lockedStatuses = ["Delivered","Cancelled","Returned"];
+
+      // Prevent updating locked statuses
+      if (lockedStatuses.includes(item.status)) {
+        return res.json({success: false,message: `Cannot update status. Item is already ${item.status}.`});
+      }
 
       const oldStatus = item.status;
       if(status === 'Returned' && oldStatus !== 'Returned'){
@@ -161,6 +174,16 @@ const updateItemStatus = async (req, res) => {
         }
       }
 
+      // Handle Cancelled status - restore stock
+      if (status === 'Cancelled' && oldStatus !== 'Cancelled') {
+        const product = await Product.findById(item.product);
+        if (product) {
+          product.quantity += item.quantity;
+          await product.save();
+          console.log(`Restored ${item.quantity} units to product ${product.productName} after cancellation`);
+        }
+      }
+
       item.status = status;
 
       const activeItems = order.orderedItems.filter(i => 
@@ -174,7 +197,15 @@ const updateItemStatus = async (req, res) => {
         }else if(allCancelled){
           order.status = "Cancelled";
         }else{
-          order.status = "Returned";
+          // Mixed cancelled and returned
+          const returnedCount = order.orderedItems.filter(i => i.status === 'Returned').length;
+          const cancelledCount = order.orderedItems.filter(i => i.status === 'Cancelled').length;
+
+          if (returnedCount > cancelledCount) {
+            order.status = "Returned";
+          } else {
+            order.status = "Partial Return";
+          }
         }
       }else{
         const statusPriority = {
@@ -269,7 +300,7 @@ const handleReturnDecision = async (req, res) => {
       
       const itemOriginalPrice = item.price * item.quantity;
       
-       // Add safety check for division by zero
+      // Add safety check for division by zero
       if (!originalSubTotal || originalSubTotal === 0) {
         return res.status(400).json({
           success: false,

@@ -224,11 +224,12 @@
                                                     <button class="btn btn-warning btn-sm" onclick="retryPayment('<%= order.orderId %>')">
                                                         <i class="fas fa-redo"></i> Retry Payment
                                                     </button>
-                                                <% } else { %>
-                                                    <a href="/orders/details/<%= order._id %>" class="btn-view-details">
-                                                        <i class="fas fa-eye"></i> <span>View</span>
-                                                    </a>
                                                 <% } %>
+                                            </td>
+                                            <td data-label="Action" class="order-actions">
+                                                <a href="/orders/details/<%= order._id %>" class="btn-view-details">
+                                                    <i class="fas fa-eye"></i> <span>View</span>
+                                                </a>
                                             </td>
                                         </tr>
                                     <% }); %>
