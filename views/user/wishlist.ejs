@@ -15,14 +15,6 @@
     }
 </style>
 
-<!-- <div class="hero-wrap hero-bread d-flex align-items-center justify-content-center text-center" 
-    style="background: linear-gradient(rgba(0,0,0,0.5),rgba(0,0,0,0.5)), url('/images/bg_6.jpg') center/cover no-repeat; height: 45vh;">
-    <div class="container">
-        <h1 class="text-white fw-bold display-4 mb-2">Wishlist</h1>
-        <p class="text-light"><a href="/" class="text-warning fw-bold">Home</a> / <span>Wishlist</span></p>
-    </div>
-</div> -->
-
 <section class="ftco-section ftco-cart">
     <div class="container">
         <div class="row">
@@ -42,62 +34,75 @@
                         <tbody>
                             <% if (wishlistItems.length > 0) { %>
                                 <% wishlistItems.forEach(item => { %>
-                                    <tr class="text-center <%= item.productId.isOutOfStock ? 'text-muted' : '' %>">
-                                        <td class="product-remove">
-                                            <a href="#" class="btn-delete" data-id="<%= item.productId._id %>">
-                                                <span class="ion-ios-close"></span>
-                                            </a>
-                                        </td>
-                                        <td class="image-prod">
-                                            <img src="/uploads/productsImages/<%= item.productId.image[0] %>" 
-                                                 width="80" height="80" alt="<%= item.productId.productName %>">
-                                        </td>
-                                        <td class="product-name">
-                                            <a href="/product/<%= item.productId._id %>" style="color: black;">
-                                                <%= item.productId.productName %>
-                                            </a><br>
-                                            <% if (item.productId.status === "Available") { %>
-                                                <small class="text-success">In Stock</small>
-                                            <% } else { %>
-                                                <small class="text-warning">Out of Stock</small>
-                                            <% } %>
-                                        </td>
-                                        <td class="price">
-                                            <% if (item.hasOffer) { %>
-                                                <span style="text-decoration: line-through; color: #999; font-size: 14px; margin-right: 8px;">
-                                                    &#8377;<%= item.regularPrice %>
-                                                </span>
-                                                <span style="color: #000; font-weight: bold; font-size: 16px;">
-                                                    &#8377;<%= item.effectivePrice.toFixed(0) %>
-                                                </span>
-                                                <br>
-                                                <small style="color: #28a745; font-size: 12px;">
-                                                    Save &#8377;<%= item.savings %> (<%= item.appliedOfferPercentage %>% off)
-                                                </small>
-                                            <% } else { %>
-                                                &#8377;<%= item.regularPrice %>
-                                            <% } %>
-                                        </td>
-                                        <td class="stock-status">
-                                            <% if (item.productId.status === "Available" && item.productId?.quantity > 0) { %>
-                                                <span class="badge badge-success">Available</span>
-                                            <% } else { %>
-                                                <span class="badge badge-warning">Out of Stock</span>
-                                            <% } %>
-                                        </td>
-                                        <td class="actions">
-                                            <% if (item.productId.status === "Available" && item.productId?.quantity > 0) { %>
-                                                <a href="/wishlist/add-to-cart/<%= item.productId._id %>" 
-                                                   class="btn btn-success btn-sm mb-1 d-block">
-                                                    <i class="ion-ios-cart"></i> Add to Cart
+                                    <% if(item.isDeleted === false){ %>
+                                        <tr class="text-center <%= item.productId.isOutOfStock ? 'text-muted' : '' %>">
+                                            <td class="product-remove">
+                                                <a href="#" class="btn-delete" data-id="<%= item.productId._id %>">
+                                                    <span class="ion-ios-close"></span>
                                                 </a>
-                                            <% } else { %>
-                                                <button class="btn btn-secondary btn-sm mb-1 d-block" disabled>
-                                                    <i class="ion-ios-close"></i> Out of Stock
-                                                </button>
-                                            <% } %>
-                                        </td>
-                                    </tr>
+                                            </td>
+                                            <td class="image-prod">
+                                                <img src="/uploads/productsImages/<%= item.productId.image[0] %>" 
+                                                     width="80" height="80" alt="<%= item.productId.productName %>">
+                                            </td>
+                                            <td class="product-name">
+                                                <a href="/product/<%= item.productId._id %>" style="color: black;">
+                                                    <%= item.productId.productName %>
+                                                </a><br>
+                                                <% if (item.productId.status === "Available") { %>
+                                                    <small class="text-success">In Stock</small>
+                                                <% } else { %>
+                                                    <small class="text-warning">Out of Stock</small>
+                                                <% } %>
+                                            </td>
+                                            <td class="price">
+                                                <% if (item.hasOffer) { %>
+                                                    <span style="text-decoration: line-through; color: #999; font-size: 14px; margin-right: 8px;">
+                                                        &#8377;<%= item.regularPrice %>
+                                                    </span>
+                                                    <span style="color: #000; font-weight: bold; font-size: 16px;">
+                                                        &#8377;<%= item.effectivePrice.toFixed(0) %>
+                                                    </span>
+                                                    <br>
+                                                    <small style="color: #28a745; font-size: 12px;">
+                                                        Save &#8377;<%= item.savings %> (<%= item.appliedOfferPercentage %>% off)
+                                                    </small>
+                                                <% } else { %>
+                                                    &#8377;<%= item.regularPrice %>
+                                                <% } %>
+                                            </td>
+                                            <td class="stock-status">
+                                                <% if (item.productId.status === "Available" && item.productId?.quantity > 0) { %>
+                                                    <span class="badge badge-success">Available</span>
+                                                <% } else { %>
+                                                    <span class="badge badge-warning">Out of Stock</span>
+                                                <% } %>
+                                            </td>
+                                            <td class="actions">
+                                                <% if (item.productId.status === "Available" && item.productId?.quantity > 0) { %>
+                                                    <a href="/wishlist/add-to-cart/<%= item.productId._id %>" 
+                                                       class="btn btn-success btn-sm mb-1 d-block">
+                                                        <i class="ion-ios-cart"></i> Add to Cart
+                                                    </a>
+                                                <% } else { %>
+                                                    <button class="btn btn-secondary btn-sm mb-1 d-block" disabled>
+                                                        <i class="ion-ios-close"></i> Out of Stock
+                                                    </button>
+                                                <% } %>
+                                            </td>
+                                        </tr>
+                                    <% } else { %>
+                                        <tr>
+                                            <td colspan="6" class="text-center py-5">
+                                                <div>
+                                                    <i class="icon-heart display-1 text-muted mb-3 d-block"></i>
+                                                    <h5 class="mb-3">Your wishlist is empty</h5>
+                                                    <p class="text-muted">Start adding your favorite products!</p>
+                                                    <a href="/shop" class="btn btn-primary px-4 py-2">Start Shopping</a>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <% } %>
                                 <% }) %>
                             <% } else { %>
                                 <tr>

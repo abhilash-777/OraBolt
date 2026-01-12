@@ -26,8 +26,11 @@ const loadOffers = async (req,res) => {
                 {isActive:true,endDate:{$lt:now}}
             ]
         });
+
+        const categories = await Category.find({isDeleted:false,isListed:true});
+        const products = await Product.find({isDeleted:false,isBlocked:false});
         
-        const offers = await Offer.find()
+        const offers = await Offer.find({isDeleted:false})
         .populate("category","name")
         .populate("product","productName")
         .sort({createdAt:-1})
@@ -39,22 +42,9 @@ const loadOffers = async (req,res) => {
         
         const totalOffers = await Offer.countDocuments();
         const totalPages = Math.ceil(totalOffers/limit);
-        res.render("offers",{offers,activeCount,inactiveCount,currentPage:page,totalPages,totalOffers,limit});
+        res.render("offers",{offers,activeCount,inactiveCount,currentPage:page,totalPages,totalOffers,limit,categories,products});
     } catch (error) {
         console.log("something wrong while loading:",error);
-        return res.redirect("/admin/pageError");
-    }
-};
-
-const loadAddOffer = async (req,res) => {
-    try {
-        const admin = req.session?.admin;
-        if(!admin)return res.redirect("/admin/login");
-        const categories = await Category.find({isListed:true});
-        const products = await Product.find({isBlocked:false});
-        res.render("add-offer",{categories,products});
-    } catch (error) {
-        console.log("error while loading add offer page:",error);
         return res.redirect("/admin/pageError");
     }
 };
@@ -64,29 +54,29 @@ const addOffer = async (req,res) => {
         const admin = req.session?.admin;
         if(!admin)return res.redirect("/admin/login");
 
-        const {offerName,offerType,offerValue,offerAppliedTo,categories,products,startDate,endDate} = req.body;
+        const {offerName,offerType,offerValue,offerAppliedTo,category,product,startDate,endDate} = req.body;
         if(!offerName||!offerType||!offerValue||!offerAppliedTo||!startDate||!endDate){
             return res.status(404).json({success:false,message:"All fields required"});
         }
 
         // Validate categories or products based on offerAppliedTo
-        if (offerAppliedTo === "category" && (!categories || !Array.isArray(categories) || categories.length === 0)) {
+        if (offerAppliedTo === "category" && (!category || !Array.isArray(category) || category.length === 0)) {
             return res.status(400).json({ success: false, message: "At least one category is required" });
         }
-        if (offerAppliedTo === "product" && (!products || !Array.isArray(products) || products.length === 0)) {
+        if (offerAppliedTo === "product" && (!product || !Array.isArray(product) || product.length === 0)) {
             return res.status(400).json({ success: false, message: "At least one product is required" });
         }
 
         // Validate ObjectIds for categories or products
         if (offerAppliedTo === "category") {
-            const validCategories = await Category.find({ _id: { $in: categories } });
-            if (validCategories.length !== categories.length) {
+            const validCategories = await Category.find({ _id: { $in: category } });
+            if (validCategories.length !== category.length) {
                 return res.status(400).json({ success: false, message: "One or more category IDs are invalid" });
             }
         }
         if (offerAppliedTo === "product") {
-            const validProducts = await Product.find({ _id: { $in: products } });
-            if (validProducts.length !== products.length) {
+            const validProducts = await Product.find({ _id: { $in: product } });
+            if (validProducts.length !== product.length) {
                 return res.status(400).json({ success: false, message: "One or more product IDs are invalid" });
             }
         }
@@ -95,7 +85,7 @@ const addOffer = async (req,res) => {
         if (offerAppliedTo === "category") {
             const existingOffers = await Offer.find({
                 offerAppliedTo: "category",
-                category: { $in: categories },
+                category: { $in: category },
                 isActive: true,
                 endDate: { $gte: new Date() } // Only consider active offers that haven't expired
             }).populate("category", "name");
@@ -113,7 +103,7 @@ const addOffer = async (req,res) => {
         if (offerAppliedTo === "product") {
             const existingOffers = await Offer.find({
                 offerAppliedTo: "product",
-                product: { $in: products },
+                product: { $in: product },
                 isActive: true,
                 endDate: { $gte: new Date() } // Only consider active offers that haven't expired
             }).populate("product", "productName");
@@ -139,8 +129,8 @@ const addOffer = async (req,res) => {
             offerType,
             percentage:offerValue,
             offerAppliedTo,
-            category:offerAppliedTo === "category"?categories:[],
-            product:offerAppliedTo === "product"?products:[],
+            category:offerAppliedTo === "category"?category:[],
+            product:offerAppliedTo === "product"?product:[],
             startDate,
             endDate
         });
@@ -151,27 +141,6 @@ const addOffer = async (req,res) => {
     } catch (error) {
         console.log("Something wrong while adding an offer:",error);
         return res.json({success:false,message:"Something wrong while adding an offer"});
-    }
-};
-
-const loadEditOffer = async (req,res) => {
-    try {
-        const admin = req.session?.admin;
-        if(!admin)return res.redirect("/admin/login");
- 
-        const {offerId} = req.query;
-        if(!offerId)return res.status(404).json({success:false,message:"Offer Id is missing"});
-
-        const offer = await Offer.findById(offerId);
-        if(!offer)return res.status(404).json({success:false,message:"Offer not found"});
-
-        const categories = await Category.find({isListed:true});
-        const products = await Product.find({isBlocked:false});
-
-        res.render("edit-offer",{offer,categories,products});
-    } catch (error) {
-        console.log("error while loading edit offer page:",error);
-        return res.redirect("/admin/pageError");
     }
 };
 
@@ -297,7 +266,14 @@ const deleteOffer = async (req,res) => {
         const offerId = req.params?.id;
         if(!offerId)return res.json({success:false,message:"Order Id is missing"});
 
-        await Offer.findByIdAndDelete(offerId);
+        const offer = await Offer.findById(offerId);
+        if(!offer){
+            return res.status(400).json({success:false,message:"Offer not found"});
+        }
+        
+        offer.isDeleted = true;
+        offer.save();
+        
         return res.status(200).json({success:true,message:"Offer deleted successfully."})
     } catch (error) {
         console.log("error while deleting an offer:",error);
@@ -335,9 +311,7 @@ const statusChange = async (req, res) => {
 
 module.exports = {
     loadOffers,
-    loadAddOffer,
     addOffer,
-    loadEditOffer,
     editOffer,
     deleteOffer,
     statusChange,

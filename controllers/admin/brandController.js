@@ -2,15 +2,14 @@ const Brand = require("../../models/brandSchema");
 const Product = require("../../models/productSchema");
 
 const loadBrandPage = async function (req,res) {
-
     try {
-
         const page = parseInt(req.query.page) || 1;
         const limit = 4;
         const skip = (page-1)*limit;
 
         const search = req.query.search||"";
         const filter = {
+            isDeleted:false,
             brandName:{$regex:search,$options:'i'}
         }
 
@@ -29,11 +28,9 @@ const loadBrandPage = async function (req,res) {
             totalBrand:totalBrand,
             search
         })
-
     } catch (error) {
         res.redirect("/admin/pageError");
     }
-    
 };
 
 const addBrand = async function (req,res) {
@@ -81,34 +78,22 @@ const addBrand = async function (req,res) {
     
 };
 
-const blockBrand = async function (req,res) {
+const toggleList = async (req,res) => {
+    try{
+        const {brandId,isBlocked} = req.body;
+        if(!brandId)return res.status(400).json({success:false,message:"Brand ID is missing."});
 
-    try {
-        const {id} = req.query;
-        if(!id){
-            return res.status(400).json({error:"BrandId missing"});
-        }
-        await Brand.updateOne({_id:id},{$set:{isBlocked:true}});
-        res.redirect("/admin/brand");        
-    } catch (error) {
-        return res.status(400).json({error:"error block brand"});
+        const brand = await Brand.findById(brandId);
+        if(!brand)return res.status(400).json({success:false,message:"Brand not found."});
+
+        brand.isBlocked = isBlocked;
+        brand.save();
+
+        return res.status(200).json({success:true,message:"Status updated"});
+    }catch(error){
+        console.log("Something wrong while processing:",error);
+        return res.status(500).json({success:false,message:"Something wrong while processing"})
     }
-    
-};
-
-const unBlockBrand = async function (req,res) {
-
-    try {
-        const {id} = req.query;
-        if(!id){
-            return res.status(400).json({error:"BrandId missing"});
-        }
-        await Brand.updateOne({_id:id},{$set:{isBlocked:false}});
-        res.redirect("/admin/brand");
-    } catch (error) {
-        return res.status(400).json({error:"error unblock brand"});
-    }
-    
 };
 
 const deleteBrand = async function (req,res) {
@@ -119,7 +104,8 @@ const deleteBrand = async function (req,res) {
         if(!brand){
             return res.status(404).json({success:false,error:"brandId not found"});
         }
-        await Brand.findByIdAndDelete(brandId);
+        brand.isDeleted = true;
+        brand.save();
         return res.status(200).json({success:true});
     } catch (error) {
         return res.status(400).json({error:"error delete brand"});
@@ -131,7 +117,6 @@ const deleteBrand = async function (req,res) {
 module.exports = {
     loadBrandPage,
     addBrand,
-    blockBrand,
-    unBlockBrand,
+    toggleList,
     deleteBrand
 }

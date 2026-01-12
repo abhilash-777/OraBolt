@@ -14,9 +14,32 @@
 
     <!--Favicon -->
     <link rel="shortcut icon" type="image/x-icon" href="assets/imgs/theme/favicon-96x96.png">
-    
+    <!-- Boxicons cdn -->
+    <link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
     <!-- Main CSS -->
     <link href="assets/css/main.css" rel="stylesheet" type="text/css" >
+
+    <style>
+        .password-wrapper {
+            position: relative;
+        }
+        .toggle-password {
+           position: absolute;
+           top: 50%;
+           right: 14px;
+           transform: translateY(-50%);
+           cursor: pointer;
+           font-size: 1.2rem;
+            color: #777;
+        }
+        .toggle-password:hover {
+            color: #ca9c06;
+        }
+        /* Space for icon */
+        .password-wrapper .form-control {
+            padding-right: 45px;
+        }
+    </style>
 
 </head>
 
@@ -42,10 +65,11 @@
                             <input class="form-control" id="email" name="email" placeholder="Username or email" type="text">
                             <small id="emailError" style="color: red;"></small>
                         </div> 
-                        <div class="mb-3">
-                            <input class="form-control" id="password" name="password" placeholder="Password" type="password">
-                            <small id="passwordError" style=" color: red;"></small>
-                        </div> 
+                        <div class="mb-3 password-wrapper">
+                            <input class="form-control" id="password" name="password" placeholder="Password" type="password" />
+                            <i class='bx bx-show toggle-password' id="togglePassword"></i>
+                            <small id="passwordError" style="color: red;"></small>
+                        </div>
                         
                         <div class="mb-4">
                             <button type="submit" class="btn btn-primary w-100"> Login </button>
@@ -81,6 +105,16 @@
 
             emailError.textContent = "";
             passwordError.textContent = "";
+
+            const togglePassword = document.getElementById("togglePassword");
+
+            togglePassword.addEventListener("click",function(){
+                const isPassword = passwordInput.type === "password";
+
+                passwordInput.type = isPassword ? "text" : "password";
+                this.classList.toggle("box-show",isPassword);
+                this.classList.toggle("box-hide",!isPassword);
+            });
 
             emaiInput.addEventListener("blur",(e) => {
                 const email = e.target.value.trim();

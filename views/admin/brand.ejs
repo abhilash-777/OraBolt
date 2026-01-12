@@ -79,7 +79,7 @@
                             <label for="product_name" class="form-label">Brand Image</label>
                             <div class="input-upload">
                                 <img src="" alt="" />
-                                <input class="form-control border" id="image" name="image" type="file" />
+                                <input class="form-control border" id="image" name="image" type="file" accept="image/png, image/jpeg, image/jpg" />
                                 <small id="imageError" class="error-message"></small>
                             </div>
                             <div class="d-grid">
@@ -118,12 +118,12 @@
                                         </td>
                                         <td class="text-start">
                                             <% if(brand.isBlocked === true){ %>
-                                            <button class="btn btn-success" style="width: 60px">
-                                                <a href="/admin/brand/unBlockBrand?id=<%=brand._id%>" class="text-white" style=" font-size: 9px;">Unblock</a>
+                                            <button class="btn btn-success statusBtn" data-id="<%=brand._id%>" data-status="unblock" style="width: 60px">
+                                                <a href="#" class="text-white" style=" font-size: 9px;">Unblock</a>
                                             </button>
                                             <% } else { %>
-                                            <button class="btn btn-danger" style="width: 60px">
-                                                <a href="/admin/brand/blockBrand?id=<%=brand._id%>" class="text-white" style=" font-size: 9px;">Block</a>
+                                            <button class="btn btn-danger statusBtn" data-id="<%=brand._id%>" data-status="block" style="width: 60px">
+                                                <a href="#" class="text-white" style=" font-size: 9px;">Block</a>
                                             </button>
                                             <% } %>
                                             <button class="btn btn-danger" style="font-size: 9px; width: 55px;" onclick="return confirmAndDelete('<%= brand._id %>')">
@@ -193,23 +193,35 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         document.getElementById("brandForm").addEventListener("submit",(event) => {
-
             let isValid = true
             const name = document.getElementById("name").value.trim();
             const image = document.getElementById("image").files[0];
+            let nameError = document.getElementById("nameError");
+            let imageError = document.getElementById("imageError");
 
-            document.getElementById("nameError").textContent = "";
-            document.getElementById("imageError").textContent = "";
+            const allowedTypes = ["image/png", "image/jpeg", "image/jpg"];
+            const maxSizeInBytes = 2 * 1024 * 1024; // 2 MB
+
+            nameError.textContent = "";
+            imageError.textContent = "";
 
             if(!name || name.length < 3 || name.length > 20){
-                document.getElementById("nameError").textContent = "Brand Name should required , atleast 3-20 characters.";
+                nameError.textContent = "Brand Name should required , atleast 3-20 characters.";
                 isValid = false
             }else if(!/^[a-zA-Z\s]+$/.test(name)){
-                document.getElementById("nameError").textContent = "Brand name must in alphabetic characters.";
+                nameError.textContent = "Brand name must in alphabetic characters.";
                 isValid = false;
             }
             if(!image){
-                document.getElementById("imageError").textContent = "Brand image should required. Please upload a image";
+                imageError.textContent = "Brand image should required. Please upload a image";
+                isValid = false;
+            }else if(!allowedTypes.includes(image.type)){
+                imageError.textContent = "Brand image file should be JPG,JPEG or PNG";
+                isValid = false;
+                image.value = "";
+            }else if (image.size > maxSizeInBytes) {
+                imageError.textContent = 'File size must be less than 2 MB.';
+                image.value = '';
                 isValid = false;
             }
             if(!isValid){
@@ -218,33 +230,52 @@
 
         });
 
-        document.addEventListener("DOMContentLoaded",() => {
-            const nameInput = document.getElementById("name");
-            const imageInput = document.getElementById("image");
-            if(nameInput){
-                nameInput.addEventListener("blur",function(){
-                    const name = this.value.trim();
-                    if(!name){
-                        document.getElementById("nameError").textContent = "Brand name is required";
-                    }else if(name.length < 3 || name.length > 20){
-                        document.getElementById("nameError").textContent = "Brand name should contain atleast 3-20 characters"
-                    }else if(!/^[a-zA-Z\s]+$/.test(name)){
-                        document.getElementById("nameError").textContent = "name should be alphabetic characters"
+        document.querySelectorAll(".statusBtn").forEach((btn) => {
+            btn.addEventListener("click",async function(){
+                let isBlocked = false;
+                const brandId = this.dataset.id;
+                const status = this.dataset.status;
+                if(status === 'block'){
+                    isBlocked = true
+                }
+                try {
+
+                    const confirmResult = await Swal.fire({
+                        icon:'warning',
+                        title:'Are you sure?',
+                        text:"This action should change status of the brand.",
+                        showCancelButton:true,
+                        confirmButtonColor:"#d33",
+                        cancelButtonColor:"#3085d6",
+                        confirmButtonText:"Yes. update it"
+                    });
+                    if(!confirmResult.isConfirmed)return
+
+                    const response = await fetch("/admin/brand/toggleList",{
+                        method:"PATCH",
+                        headers:{
+                            'Content-Type':'application/json'
+                        },
+                        body:JSON.stringify({brandId,isBlocked})
+                    });
+    
+                    const data = await response.json();
+                    if(data.success){
+                        Swal.fire({
+                            icon:'success',
+                            title:"Updated.",
+                            text:data.message,
+                            showConfirmButton:false,
+                            timer:2000
+                        }).then(() => window.location.reload())
                     }else{
-                        document.getElementById("nameError").textContent = "";
+                        Swal.fire("Error!",data.message||"Failed to change status.","error");
                     }
-                });
-            }
-            if(imageInput){
-                imageInput.addEventListener("blur",function(){
-                    const image = this.files[0];
-                    if(!image){
-                        document.getElementById("imageError").textContent = "image is required.please upload a image";
-                    }else{
-                        document.getElementById("imageError").textContent = "";
-                    }
-                });
-            }
+                } catch (error) {
+                    console.log("Something went wrong",error);
+                    Swal.fire('Oops!','Something wrong while processing','error');
+                }
+            });
         });
 
         async function confirmAndDelete(id) {
@@ -260,7 +291,7 @@
             }).then(result => {
                 if(result.isConfirmed){
                     fetch(`/admin/brand/${id}`,{
-                        method:"DELETE"
+                        method:"PATCH"
                     }).then(res => res.json())
                     .then(data => {
                         if(data.success){

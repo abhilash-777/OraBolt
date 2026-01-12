@@ -4,7 +4,6 @@ const Category = require("../../models/categorySchema");
 
 const categoryInfo = async function (req,res) {
     try {
-
         const page = parseInt(req.query.page) || 1;
         const limit = 4;
         const skip = (page-1) * limit;
@@ -14,11 +13,14 @@ const categoryInfo = async function (req,res) {
         let filter = {};
         if (searchQuery) {
             filter = {
+                isDeleted:false,
                 $or: [
                     { name: { $regex: searchQuery, $options: "i" } },
                     { description: { $regex: searchQuery, $options: "i" } }
                 ]
             };
+        }else{
+            filter = {isDeleted:false}
         }
 
         const categoryData = await Category.find(filter)
@@ -26,7 +28,7 @@ const categoryInfo = async function (req,res) {
         .limit(limit)
         .sort({createdAt:-1});
 
-        const totalCategory = await Category.countDocuments();
+        const totalCategory = await Category.countDocuments({isDeleted:false});
         const totalPage = Math.ceil(totalCategory/limit);
 
         res.render("category",{
@@ -35,8 +37,7 @@ const categoryInfo = async function (req,res) {
             totalPages:totalPage,
             totalCategories:totalCategory,
             searchQuery
-        })
-        
+        }) 
     } catch (error) {
         console.error("Category info error",error);
         res.redirect("/admin/pageError");
@@ -119,7 +120,9 @@ const deleteCategory = async function (req,res) {
         if(!category){
             return res.status(400).json({success:false,message:"Category not found"});
         }
-        await Category.findByIdAndDelete(categoryId);
+        category.isDeleted = true;
+        category.save();
+        
         return res.status(200).json({success:true});
     } catch (error) {
         console.error("delete category error:",error);
@@ -129,17 +132,16 @@ const deleteCategory = async function (req,res) {
 
 const toggleList = async function (req,res) {
     try {
-
         const {categoryId,isListed} = req.body;
         if(!categoryId){
             return res.status(400).status({success:false,error:"Missing Category Id"});
         }
         await Category.findByIdAndUpdate(categoryId,{isListed:isListed});
-        res.status(200).json({success:true,message:`Category ${isListed ? 'Listed':'UnListed'}`});
+        return res.status(200).json({success:true,message:`Category ${isListed ? 'Listed':'UnListed'}`});
         
     } catch (error) {
         console.error("error toggle listing",error);
-        res.status(500).json({success:false,message:"Server error"});
+        return res.status(500).json({success:false,message:"Server error"});
     }  
 };
 

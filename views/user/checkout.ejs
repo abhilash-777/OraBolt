@@ -702,8 +702,10 @@
 			});
 
 			// Get order amount from page
-			const finalAmountText = document.querySelector('.d-flex.justify-content-between.mb-3')?.textContent;
+			const finalAmountText = document.getElementById("finalAmount")?.textContent || "";
+			console.log("Final amount text:",finalAmountText);
 			const finalAmount = parseFloat(finalAmountText?.replace(/[^0-9.]/g, '') || '<%= finalPrice %>');
+			console.log("final amount:",finalAmount);
 
 			if (!finalAmount || finalAmount <= 0) {
                 return Swal.fire({ icon: 'error', title: 'Invalid Amount', text: 'Cannot process payment.' });
@@ -719,8 +721,9 @@
 			const data = await response.json();
 
 			if (!data.success) {
-				console.log("Failed to create payment order.")
-				Swal.fire({
+				console.log("Failed to create payment order.");
+				Swal.close();
+				return Swal.fire({
 					icon:'error',
 					title:"Failed!",
 					text:"Failed to create payment order."
@@ -773,6 +776,7 @@
 
 		} catch (error) {
 			console.error('Error initiating Razorpay:', error);
+			Swal.close();
 			Swal.fire({
 				icon: 'error',
 				title: 'Payment Error',
@@ -799,6 +803,7 @@
                 });
 	    	} catch (error) {
 		    	console.error('Error handling payment failure:', error);
+				Swal.close();
                 Swal.fire({
                     icon: 'error',
                     title: 'Error',
@@ -835,7 +840,7 @@
 
 			    if (!verifyData.success) {
 				    console.log("Payment verification failed.")
-					await handlePaymentFailure(razorpayResponse.razorpay_order_id,"Payment verification failed");
+					return await handlePaymentFailure(razorpayResponse.razorpay_order_id,"Payment verification failed");
 			    }
 
 			    // Step 2: Place order after successful verification
@@ -847,6 +852,7 @@
 
 		    } catch (error) {
 			    console.error('Error verifying payment:', error);
+				Swal.close();
 			    Swal.fire({
 				    icon: 'error',
 				    title: 'Verification Failed',
@@ -894,9 +900,11 @@
 
 			    const orderData = await orderResponse.json();
 
+				Swal.close();
+
 				if (orderData.paymentFailed) {
                     // Payment failed but order created
-                    Swal.fire({
+                    return Swal.fire({
                         title: 'Payment Failed!',
                         html: `
                             <div style="text-align: center; padding: 10px;">
@@ -919,7 +927,7 @@
                     });
 			    } else if (orderData.success) {
                     // Successful order
-                    Swal.fire({
+                    return Swal.fire({
                         title: 'Order Placed Successfully.',
                         html: `
                             <div style="text-align: center; padding: 10px;">
@@ -935,7 +943,7 @@
                         window.location.href = `/order-success?orderId=${orderData.orderId}`;
                     });
     		    } else {
-				    Swal.fire({
+				    return Swal.fire({
 				        icon: 'error',
 				        title: 'Failed',
 				        text: orderData.message || 'Failed to place order.'
@@ -944,6 +952,7 @@
 
 		    } catch (error) {
 			    console.error('Error placing order:', error);
+				Swal.close();
 			    Swal.fire({
 			    	icon: 'error',
 			    	title: 'Order Failed',

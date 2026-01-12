@@ -316,7 +316,7 @@
                     modal.hide();
                     Swal.fire({
                         icon: "success",
-                        title: "Done!",
+                        title: "Created.",
                         text: "SubCategory added successfully",
                         timer: 1500,
                         showConfirmButton: false
@@ -325,8 +325,8 @@
                 }else{
                     Swal.fire({
                         icon: "error",
-                        title: "Oops",
-                        text: data.message || "An error occurred while adding the category",
+                        title: "Failed!",
+                        text: data.message || "Failed to add new category category",
                     });
                 }
             })
@@ -361,7 +361,7 @@
             });
         });
 
-        document.getElementById("editSubCategoryBtn").addEventListener("click",function(event){
+        document.getElementById("editSubCategoryBtn").addEventListener("click",async function(event){
             event.preventDefault();
 
             if(!validateForm("edit"))return
@@ -371,8 +371,19 @@
             const description = document.getElementById("edit_description").value.trim();
             const category = document.getElementById("edit_category").value;
 
+            const confirmResult = await Swal.fire({
+                icon:"warning",
+                title:"Are you sure?",
+                text:"This cannot be undone!",
+                showCancelButton:true,
+                confirmButtonColor:"#d33",
+                cancelButtonColor:"#3085d6",
+                confirmButtonText:"Yes! Update it."
+            });
+            if(!confirmResult.isConfirmed)return
+
             fetch(`/admin/subCategory/edit/${subCategoryId}`,{
-                method:"PATCH",
+                method:"POST",
                 headers:{
                     'Content-Type':'application/json'
                 },
@@ -385,8 +396,8 @@
                     modal.hide();
                     Swal.fire({
                         icon:"success",
-                        title:"Added.",
-                        text:data.message||"Sub category created successfully.",
+                        title:"Updated.",
+                        text:data.message||"Sub category updated successfully.",
                         showConfirmButton:false,
                         timer:1500
                     }).then(() => window.location.reload())
@@ -511,8 +522,19 @@
                         const isListed = button.classList.contains("btn-list");
 
                         try {   
+                            const confirmResult = await Swal.fire({
+                                icon:"warning",
+                                title:"Are you sure to update!",
+                                text:"This cannot be undone!",
+                                showCancelButton:true,
+                                confirmButtonColor:"#d33",
+                                cancelButtonColor:"#3085d6",
+                                confirmButtonText:"Yes! update it."
+                            });
+                            if(!confirmResult.isConfirmed)return
+
                             const response = await fetch("/admin/SubCategory/toggleList", {
-                                method: "POST",
+                                method: "PATCH",
                                 headers: {
                                     'Content-Type': 'application/json',
                                 },

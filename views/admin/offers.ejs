@@ -9,9 +9,9 @@
         <div class="offers-container">
             <div class="header-content">
                 <h1><i class="fas fa-tags"></i> Offer Management System</h1>
-                <a href="/admin/offers/add" class="btn btn-success">
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#offerModal" onclick="openCreateModal()">
                     <i class="fas fa-plus"></i> Add New Offer
-                </a>
+                </button>
             </div>
         </div>
     </header>
@@ -78,12 +78,21 @@
                                     <!-- ACTIONS COLUMN – disable Stop button for Expired offers -->
                                     <td>
                                         <div class="action-buttons">
-                                            <button type="button" class="action-btn edit-btn" title="Edit Offer">
-                                                <a href="/admin/offers/edit?offerId=<%= offer._id %>"><i class="fas fa-pen" style="color: white;"></i></a>
+                                            <button type="button" class="action-btn edit-btn edit-offer-btn" title="Edit Offer"
+                                                data-id="<%= offer._id %>"
+                                                data-name="<%= offer.name %>"
+                                                data-type="<%= offer.offerType %>"
+                                                data-value="<%= offer.percentage %>"
+                                                data-applied="<%= offer.offerAppliedTo %>"
+                                                data-category="<%= offer.category ? JSON.stringify(offer.category.map(c => c._id || c)) : '[]' %>"
+                                                data-product="<%= offer.product ? JSON.stringify(offer.product.map(p => p._id || p)) : '[]' %>"
+                                                data-start="<%= new Date(offer.startDate).toISOString().split('T')[0] %>"
+                                                data-end="<%= new Date(offer.endDate).toISOString().split('T')[0] %>">
+                                                <i class="fas fa-pen"></i>
                                             </button>
                                     
                                             <% if(offer.displayStatus !=='Expired' ) { %>
-                                                <button type="button" class="action-btn stop-btn" data-id="<%= offer._id %>" title="Stop Offer">
+                                                <button type="button" class="action-btn stop-btn" data-id="<%= offer._id %>" title="Toggle Status">
                                                     <i class="fas fa-stop-circle"></i>
                                                 </button>
                                             <% } else { %>
@@ -172,8 +181,365 @@
         </div>
     <% } %>
 
+    <!-- Offer Modal (Create/Edit) -->
+    <div class="modal fade" id="offerModal" tabindex="-1" aria-labelledby="offerModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="offerModalLabel">
+                        <i class="fas fa-plus-circle"></i> Add New Offer
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="offerForm">
+                        <input type="hidden" id="offerId" name="id">
+                        
+                        <div class="form-group mb-3">
+                            <label for="offerName" class="form-label">Offer Name *</label>
+                            <input type="text" class="form-control" id="offerName" name="offerName" placeholder="Enter offer name">
+                            <small id="nameError" class="text-danger"></small>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="offerType" class="form-label">Offer Type *</label>
+                            <select class="form-select" id="offerType" name="offerType">
+                                <option value="">Select offer type</option>
+                                <option value="percentage">Percentage</option>
+                            </select>
+                            <small id="typeError" class="text-danger"></small>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="offerValue" class="form-label">Offer Value (%) *</label>
+                            <input type="number" class="form-control" id="offerValue" name="offerValue" placeholder="Enter percentage (1-100)" min="1" max="100">
+                            <small id="valueError" class="text-danger"></small>
+                        </div>
+                        
+                        <div class="form-group mb-3">
+                            <label for="offerAppliedTo" class="form-label">Offer Applied To *</label>
+                            <select class="form-select" id="offerAppliedTo" name="offerAppliedTo">
+                                <option value="">Select where to apply offer</option>
+                                <option value="category">Category</option>
+                                <option value="product">Product</option>
+                            </select>
+                            <small id="appliedToError" class="text-danger"></small>
+                        </div>
+                        
+                        <div class="form-group mb-3" id="categoryField" style="display:none;">
+                            <label >Select Category *</label>
+                            <select id="category" name="category" multiple size="5">
+                                <% categories.forEach(cat => { %>
+                                    <option value="<%= cat._id %>"><%= cat.name %></option>
+                                <% }) %>
+                            </select>
+                            <small class="form-text text-muted">Hold Ctrl (Cmd on Mac) to select multiple categories</small>
+                            <small id="categoryError" class="text-danger"></small>
+                        </div>
+                        
+                        <div class="form-group mb-3" id="productField" style="display:none;">
+                            <label>Select Product *</label>
+                            <select id="product" name="product" multiple size="5">
+                                <% products.forEach(prod => { %>
+                                    <option value="<%= prod._id %>"><%= prod.productName %></option>
+                                <% }) %>
+                            </select>
+                            <small class="form-text text-muted">Hold Ctrl (Cmd on Mac) to select multiple products</small>
+                            <small id="productError" class="text-danger"></small>
+                        </div>
+                        
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="startDate" class="form-label">Start Date *</label>
+                                    <input type="date" class="form-control" id="startDate" name="startDate">
+                                    <small id="startDateError" class="text-danger"></small>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6">
+                                <div class="form-group mb-3">
+                                    <label for="endDate" class="form-label">End Date *</label>
+                                    <input type="date" class="form-control" id="endDate" name="endDate">
+                                    <small id="endDateError" class="text-danger"></small>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                        <i class="fas fa-times"></i> Cancel
+                    </button>
+                    <button type="button" class="btn btn-success" id="saveOfferBtn">
+                        <i class="fas fa-check"></i> Save Offer
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
+
+        let isEditMode = false;
+
+        // Open create modal
+        function openCreateModal() {
+            isEditMode = false;
+            document.getElementById('offerModalLabel').innerHTML = '<i class="fas fa-plus-circle"></i> Add New Offer';
+            document.getElementById('offerForm').reset();
+            document.getElementById('offerId').value = '';
+            document.querySelectorAll('small').forEach(el => el.textContent = '');
+            
+            // Reset select fields
+            document.getElementById('categoryField').style.display = 'none';
+            document.getElementById('productField').style.display = 'none';
+            
+            // Set minimum dates
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('startDate').min = today;
+            document.getElementById('startDate').disabled = false;
+            document.getElementById('startDate').style.backgroundColor = '';
+            document.getElementById('startDate').style.cursor = '';
+            document.getElementById('endDate').min = today;
+        }
+
+        // Open edit modal
+        document.querySelectorAll('.edit-offer-btn').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                isEditMode = true;
+                document.getElementById('offerModalLabel').innerHTML = '<i class="fas fa-edit"></i> Edit Offer';
+                document.querySelectorAll('small').forEach(el => el.textContent = '');
+                
+                // Populate form
+                document.getElementById('offerId').value = this.dataset.id;
+                document.getElementById('offerName').value = this.dataset.name;
+                document.getElementById('offerType').value = this.dataset.type;
+                document.getElementById('offerValue').value = this.dataset.value;
+                document.getElementById('offerAppliedTo').value = this.dataset.applied;
+                document.getElementById('startDate').value = this.dataset.start;
+                document.getElementById('endDate').value = this.dataset.end;
+                
+                // Show/hide category or product field
+                const appliedTo = this.dataset.applied;
+                document.getElementById('categoryField').style.display = appliedTo === 'category' ? 'block' : 'none';
+                document.getElementById('productField').style.display = appliedTo === 'product' ? 'block' : 'none';
+                
+                // Set selected categories/products
+                try {
+                    if (appliedTo === 'category') {
+                        const categories = JSON.parse(this.dataset.category);
+                        const categorySelect = document.getElementById('category');
+                        Array.from(categorySelect.options).forEach(option => {
+                            option.selected = categories.includes(option.value);
+                        });
+                    } else if (appliedTo === 'product') {
+                        const products = JSON.parse(this.dataset.product);
+                        const productSelect = document.getElementById('product');
+                        Array.from(productSelect.options).forEach(option => {
+                            option.selected = products.includes(option.value);
+                        });
+                    }
+                } catch (e) {
+                    console.error('Error parsing data:', e);
+                }
+                
+                // Disable start date in edit mode
+                const startDateInput = document.getElementById('startDate');
+                startDateInput.disabled = true;
+                startDateInput.style.backgroundColor = '#e9ecef';
+                startDateInput.style.cursor = 'not-allowed';
+                
+                // Set end date minimum
+                document.getElementById('endDate').min = this.dataset.start;
+                
+                // Show modal
+                const modal = new bootstrap.Modal(document.getElementById('offerModal'));
+                modal.show();
+            });
+        });
+
+        // Toggle category/product fields
+        document.getElementById('offerAppliedTo').addEventListener('change', function() {
+            document.getElementById('categoryField').style.display = this.value === 'category' ? 'block' : 'none';
+            document.getElementById('productField').style.display = this.value === 'product' ? 'block' : 'none';
+        });
+
+        // Date validation
+        const startDateInput = document.getElementById('startDate');
+        const endDateInput = document.getElementById('endDate');
+        
+        startDateInput.addEventListener('change', function() {
+            const start = this.value;
+            if (start) {
+                endDateInput.min = start;
+                if (endDateInput.value && endDateInput.value < start) {
+                    endDateInput.value = '';
+                }
+            }
+        });
+
+        endDateInput.addEventListener('change', function() {
+            const startDate = startDateInput.value;
+            const endDate = this.value;
+            const errorEl = document.getElementById('endDateError');
+            
+            if (startDate && new Date(endDate) < new Date(startDate)) {
+                errorEl.textContent = 'End date cannot be before start date';
+                this.value = '';
+            } else {
+                errorEl.textContent = '';
+            }
+        });
+
+        // Form validation
+        function validateForm(formData) {
+            let isValid = true;
+            document.querySelectorAll('small.text-danger').forEach(el => el.textContent = '');
+            
+            const errors = {};
+
+            if (!formData.offerName || !/^(?=.*[A-Za-z])[A-Za-z0-9\s._]+$/.test(formData.offerName.trim())) {
+                errors.nameError = "Offer name should contain at least one character";
+                isValid = false;
+            }
+
+            if (!formData.offerType) {
+                errors.typeError = "Please select offer type";
+                isValid = false;
+            }
+
+            if (!formData.offerValue || !formData.offerValue.trim()) {
+                errors.valueError = "Offer value is required";
+                isValid = false;
+            } else {
+                const value = Number(formData.offerValue.trim());
+                if (value < 1 || value > 100) {
+                    errors.valueError = "Offer value should be between 1 and 100";
+                    isValid = false;
+                }
+            }
+
+            if (!formData.offerAppliedTo) {
+                errors.appliedToError = "Please select where to apply offer";
+                isValid = false;
+            } else {
+                if (formData.offerAppliedTo === "category") {
+                    if (!Array.isArray(formData.category) || formData.category.length === 0) {
+                        errors.categoryError = "Please select at least one category";
+                        isValid = false;
+                    }
+                }
+                if (formData.offerAppliedTo === "product") {
+                    if (!Array.isArray(formData.product) || formData.product.length === 0) {
+                        errors.productError = "Please select at least one product";
+                        isValid = false;
+                    }
+                }
+            }
+
+            if(!isEditMode){
+                if (!formData.startDate) {
+                    errors.startDateError = "Please select a start date";
+                    isValid = false;
+                }
+            }
+            if (!formData.endDate) {
+                errors.endDateError = "Please select an end date";
+                isValid = false;
+            }
+            if (formData.startDate && formData.endDate) {
+                const start = new Date(formData.startDate);
+                const end = new Date(formData.endDate);
+                if (end < start) {
+                    errors.endDateError = "End date cannot be before start date";
+                    isValid = false;
+                }
+            }
+
+            Object.keys(errors).forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = errors[id];
+            });
+
+            return isValid;
+        }
+
+        // Save offer (create or update)
+        document.getElementById('saveOfferBtn').addEventListener('click', async () => {
+            const form = document.getElementById('offerForm');
+            const formData = new FormData(form);
+            const payload = {};
+
+            // Convert FormData to object and handle multiple select fields
+            for (const [key, value] of formData.entries()) {
+                if (key === "category" || key === "product") {
+                    if (!payload[key]) {
+                        payload[key] = formData.getAll(key).filter(val => val !== "");
+                    }
+                } else {
+                    payload[key] = value;
+                }
+            }
+
+            if (!validateForm(payload)) return;
+
+            const offerId = document.getElementById('offerId').value;
+            const url = isEditMode ? '/admin/offers/edit' : '/admin/offers/add';
+            const method = isEditMode ? 'PUT' : 'POST';
+
+            if (isEditMode) {
+                const confirmResult = await Swal.fire({
+                    icon: "warning",
+                    title: "Are you sure?",
+                    text: "Your entire data will change corresponding to the input data",
+                    showCancelButton: true,
+                    cancelButtonColor: "#d33",
+                    confirmButtonColor: "#3085d6",
+                    confirmButtonText: "Yes, update it"
+                });
+                if (!confirmResult.isConfirmed) return;
+            }
+
+            try {
+                const response = await fetch(url, {
+                    method: method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+                console.log("server returned data:",data);
+                
+                if (data.success) {
+                    const modal = bootstrap.Modal.getInstance(document.getElementById('offerModal'));
+                    modal.hide();
+                    
+                    Swal.fire({
+                        icon: "success",
+                        title: isEditMode ? "Updated" : "Added",
+                        text: data.message || `Offer ${isEditMode ? 'updated' : 'added'} successfully`,
+                        showConfirmButton: false,
+                        timer: 1500
+                    }).then(() => window.location.reload());
+                } else {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Failed!",
+                        text: data.message || `Failed to ${isEditMode ? 'update' : 'add'} offer`
+                    });
+                }
+            } catch (error) {
+                console.error("Error:", error);
+                Swal.fire({
+                    icon: "error",
+                    title: "Oops!",
+                    text: "Something went wrong while processing"
+                });
+            }
+        });
 
         const pauseBtn = document.querySelectorAll(".stop-btn");
         const deleteBtn = document.querySelectorAll (".delete-btn");
@@ -201,7 +567,7 @@
                         Swal.fire({icon:"success",title:"Changed.",text:data.message,showConfirmButton:false,timer:1500});
                         window.location.reload();
                     }else{
-                        Swal.fire({icon:"error",title:"Failed!",text:"Failed to change offer status"});
+                        Swal.fire({icon:"error",title:"Failed!",text:data.message||"Failed to change offer status"});
                     }
                 } catch (error) {
                     console.log("something wrong while processing:",error);
@@ -210,7 +576,7 @@
             });
         });
         
-        deleteBtn.forEach(btn => {
+        deleteBtn.forEach(btn => {s
             btn.addEventListener("click",async (e) => {
                 e.preventDefault();
                 const offerId = btn.dataset.id;
@@ -226,7 +592,7 @@
                 if(!confirmResult.isConfirmed)return
                 try {
                     const response = await fetch(`/admin/offers/remove/${offerId}`,{
-                        method:"DELETE",
+                        method:"PATCH",
                     });
                     const data = await response.json();
                     if(data.success){

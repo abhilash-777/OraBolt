@@ -4,7 +4,6 @@ const mongoose = require("mongoose");
 
 const subCategoryInfo = async function (req,res) {
     try {
-
         const page = parseInt(req.query.page)||1;
         const limit = 5;
         const skip = (page-1) * limit;
@@ -12,6 +11,7 @@ const subCategoryInfo = async function (req,res) {
         const search = req.query.search || "";
 
         const filter = {
+            isDeleted:false,
             name: { $regex: search, $options: "i" }
         };
 
@@ -23,7 +23,7 @@ const subCategoryInfo = async function (req,res) {
         const totalSubCategories = await subCategory.countDocuments(filter);
         const totalPage = Math.ceil(totalSubCategories/limit);
 
-        const categories = await Category.find({isListed:true});
+        const categories = await Category.find({isDeleted:false,isListed:true});
 
         return res.render("subCategory",{
             cat:subCategoryData,
@@ -51,7 +51,7 @@ const addSubCategory = async function (req,res) {
         const existSubCategory = await subCategory.findOne({name:{$regex:new RegExp(`^${trimmedName}$`,'i')}});
 
         if(existSubCategory){
-            return res.json({success:false,error:"This subcategory already exists"});
+            return res.json({success:false,message:"This subcategory already exists"});
         }else{
             const newSubCategory = new subCategory({
                 name,
@@ -121,7 +121,9 @@ const deleteSubCategory = async function (req,res) {
             return res.status(404).json({success:false,error:"SubCategory not found!"});
         }
 
-        await subCategory.findByIdAndDelete(subCategoryId);
+        subcategory.isDeleted = true;
+        subcategory.save();
+        
         return res.status(200).json({success:true,message:"SubCategory deleted successfully."});
 
     } catch (error) {

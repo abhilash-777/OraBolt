@@ -1125,24 +1125,6 @@ const returnItem = async (req,res) => {
             }
         });
 
-        // Check coupon validity after return
-        if (order.couponApplied && order.couponMinPrice && !forceContinue) {
-            if (remainingOrderValue < order.couponMinPrice) {
-                return res.json({
-                    success: false,
-                    requiresConfirmation: true,
-                    message: `Warning: After returning this item, your order total (₹${remainingOrderValue}) will be below the minimum required amount (₹${order.couponMinPrice}) for the applied coupon "${order.couponCode}". This item cannot return`,
-                    couponDetails: {
-                        couponCode: order.couponCode,
-                        couponDiscount: order.couponDiscount,
-                        currentTotal: remainingOrderValue,
-                        minRequired: order.couponMinPrice,
-                        willRemoveCoupon: true
-                    }
-                });
-            }
-        }
-
         const previousRejection = item.returnRequest?.status === 'Return Rejected' ? {
             previousRejectionReason: item.returnRequest.rejectionReason,
             previousRejectionDate: item.returnRequest.resolvedOn

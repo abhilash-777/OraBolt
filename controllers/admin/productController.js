@@ -96,16 +96,15 @@ const addProduct = async function (req,res) {
 
 const loadProductsList = async function (req,res) {
     try {
-
-        const brand = await Brand.find();
-        const category = await Category.find({isListed:true});
-        const subcategory = await subCategory.find({isListed:true});
+        const brand = await Brand.find({isDeleted:false,isBlocked:false});
+        const category = await Category.find({isDeleted:false,isListed:true});
+        const subcategory = await subCategory.find({isDeleted:false,isListed:true});
 
         const page = parseInt(req.query.page)||1;
         const limit = 6;
         const skip = (page-1)*limit;
 
-        const filter = {};
+        const filter = {isDeleted:false};
 
         if(req.query.category && req.query.category !== ""){
             filter.category = req.query.category;
@@ -269,7 +268,14 @@ const deleteProduct = async (req,res) => {
         const productId = req.params?.id;
         if(!productId)return res.json({success:false,message:"Product id is missing"});
 
-        await Product.findByIdAndDelete(productId);
+        const product = await Product.findById(productId);
+        if(!product){
+            return res.status(400).json({success:false,message:"Product not found"});
+        }
+
+        product.isDeleted = true;
+        product.save();
+        
         return res.json({success:true,message:"Product deleted successfull.",redirectUrl:"/admin/productLists"});
     } catch (error) {
         console.log("something went wrong while removing product.");

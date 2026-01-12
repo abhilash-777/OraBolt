@@ -338,7 +338,7 @@
             });
         });
 
-        document.getElementById("editCategoryBtn").addEventListener("click",function(event){
+        document.getElementById("editCategoryBtn").addEventListener("click",async function(event){
             event.preventDefault();
             if(!validateForm("edit"))return
 
@@ -346,8 +346,19 @@
             const name = document.getElementById("edit_name").value.trim();
             const description = document.getElementById("edit_description").value.trim();
 
+            const confirmResult = await Swal.fire({
+                title: "Are you sure?",
+                text: "This action cannot be undone!",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Yes, Update it!"
+            });
+            if(!confirmResult.isConfirmed)return
+
             fetch(`/admin/category/edit/${categoryId}`,{
-                method:"PATCH",
+                method:"POST",
                 headers:{
                     "Content-Type":"application/json"
                 },
@@ -482,16 +493,23 @@
                         const isListed = button.classList.contains("btn-list");
 
                         try {   
+                            const confirmResult = await Swal.fire({
+                                title: "Are you sure?",
+                                text: "This action cannot be undone!",
+                                icon: "warning",
+                                showCancelButton: true,
+                                confirmButtonColor: "#d33",
+                                cancelButtonColor: "#3085d6",
+                                confirmButtonText: "Yes, Update it!"
+                            });
+                            if(!confirmResult.isConfirmed)return
 
-                            const response = await fetch("/admin/category/toggleList", {
-                                method: "POST",
-                                headers: {
-                                    'Content-Type': 'application/json',
+                            const response = await fetch("/admin/category/toggleList",{
+                                method:"PATCH",
+                                headers:{
+                                    'Content-Type':'application/json'
                                 },
-                                body: JSON.stringify({
-                                    categoryId,
-                                    isListed: isListed
-                                }),
+                                body:JSON.stringify({categoryId,isListed})
                             });
 
                             const result = await response.json();
@@ -502,7 +520,8 @@
 
                                 button.textContent = isListed ? "unList" : "List";
                                 button.classList = isListed ? "btn-unlist" : "btn-list"
-                                location.reload();
+                                Swal.fire("Updated.",result.message||"Status updated successfully.","success")
+                                .then(() => window.location.reload())
                             } else {
                                 Swal.fire({icon:'error',title:"Failed!",text:"Failed to update listing status"});
                             }
@@ -511,7 +530,6 @@
                             console.error("error listing toggle error", error);
                             Swal.fire({icon:'error',title:"Oops!",text:"Server error while updating listing"});
                         }
-
                     });
                 });
             }
