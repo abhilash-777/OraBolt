@@ -3312,8 +3312,8 @@ fieldset:disabled .btn {
 
 .btn-check:focus + .btn-success, .btn-success:focus {
   color: #000;
-  background-color: #26c03a;
-  border-color: #1abc2e;
+  background-color: #ca9c06;
+  border-color: #ca9c06;
   -webkit-box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 0 4px rgba(0, 154, 20, 0.5);
           box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 1px 1px rgba(0, 0, 0, 0.075), 0 0 0 4px rgba(0, 154, 20, 0.5);
 }

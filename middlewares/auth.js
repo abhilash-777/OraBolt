@@ -43,9 +43,24 @@ const userAuth = async (req, res, next) => {
 };
 
 const adminAuth = (req, res, next) => {
-    if(req.session && req.session.admin){
+    if (req.session && req.session.admin) {
         return next();
-    }else{
+    } else {
+        // Check if this is an AJAX/API request
+        const isAjax = req.xhr || 
+                       req.headers['x-requested-with'] === 'XMLHttpRequest' ||
+                       req.headers.accept?.includes('application/json') ||
+                       req.headers['content-type']?.includes('application/json');
+        
+        if (isAjax) {
+            // return JSON instead of redirecting
+            return res.status(401).json({ 
+                success: false, 
+                message: "Unauthorized. Please login again."
+            });
+        }
+        
+        // regular page requests, redirect to login
         return res.redirect("/admin/login");
     }
 };

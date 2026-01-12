@@ -69,7 +69,7 @@
             </div>
             <div class="meta-item">
                 <span class="meta-label">Total Amount:</span>
-                <span class="meta-value" style="color: #28a745; font-size: 18px;">₹<%= order.finalPrice.toLocaleString('en-IN') %></span>
+                <span class="meta-value" style="color: #28a745; font-size: 18px;">₹<%= order.totalPrice.toLocaleString('en-IN') %></span>
             </div>
         </div>
     </div>
@@ -276,12 +276,6 @@
                         <span class="price-label">Subtotal:</span>
                         <span class="price-value">₹<%= (order.totalPrice || order.finalPrice).toLocaleString('en-IN') %></span>
                     </div>
-                    <!-- <% if (order.discount && order.discount > 0) { %>
-                        <div class="price-row">
-                            <span class="price-label">Discount:</span>
-                            <span class="price-value" style="color: #28a745;">-₹<%= order.discount.toLocaleString('en-IN') %></span>
-                        </div>
-                    <% } %> -->
                     <% if (order.couponDiscount && order.couponDiscount > 0) { %>
                         <div class="price-row">
                             <span class="price-label">Coupon Discount:</span>
@@ -725,69 +719,7 @@
 
                 const data = await response.json();
 
-                // Handle coupon warning
-                if (data.requiresConfirmation) {
-                    closeReturnModal();
-            
-                    const confirmResult = await Swal.fire({
-                        icon: 'warning',
-                        title: 'Coupon Will Be Removed',
-                        html: `
-                            <div style="text-align: left; padding: 10px;">
-                                <p style="margin-bottom: 15px;">${data.message}</p>
-                                <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">
-                                    <p style="margin: 5px 0;"><strong>Coupon Code:</strong> ${data.couponDetails.couponCode}</p>
-                                    <p style="margin: 5px 0;"><strong>Coupon Discount:</strong> ₹${data.couponDetails.couponDiscount}</p>
-                                    <p style="margin: 5px 0;"><strong>Minimum Required:</strong> ₹${data.couponDetails.minRequired}</p>
-                                    <p style="margin: 5px 0;"><strong>Order Total After Return:</strong> ₹${data.couponDetails.currentTotal}</p>
-                                </div>
-                                <p style="margin-top: 15px; color: #856404;"><strong>Do you want to continue with the return request?</strong></p>
-                            </div>
-                        `,
-                        showCancelButton: true,
-                        showConfirmButton:data.couponDetails.currentTotal > data.couponDetails.minRequired ? true :false,
-                        confirmButtonColor: '#ffc107',
-                        cancelButtonColor: '#6c757d',
-                        confirmButtonText: 'Yes, Continue',
-                        cancelButtonText: 'No, Cancel',
-                        width: '600px'
-                    });
-
-                    if (!confirmResult.isConfirmed) {
-                        showReturnModal(currentOrderId, currentItemId);
-                        return;
-                    }
-
-                    // User confirmed, proceed with return
-                    const confirmedResponse = await fetch(`/orders/return-item/${currentOrderId}/${currentItemId}`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        credentials: 'include',
-                        body: JSON.stringify({ reason, forceContinue: true })
-                    });
-
-                    const confirmedData = await confirmedResponse.json();
-            
-                    if (confirmedData.success) {
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Request Submitted!',
-                            text: confirmedData.message,
-                            showConfirmButton: false,
-                            timer: 2000
-                        }).then(() => {
-                            window.location.href = confirmedData.redirectUrl || `/orders/details/${currentOrderId}`;
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error!',
-                            text: confirmedData.message,
-                        });
-                    }
-                } else if (data.success) {
+                if (data.success) {
                     closeReturnModal();
                     Swal.fire({
                         icon: 'success',

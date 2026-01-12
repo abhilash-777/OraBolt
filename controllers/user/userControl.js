@@ -313,11 +313,61 @@ const pageNotFound = async function (req, res) {
     }
 };
 
+const getValidWishlistProducts = async (userId) => {
+    try {
+        const wishlist = await Wishlist.findOne({ userId })
+            .populate({
+                path: "products.productId",
+                populate: {
+                    path: "category",
+                    select: "categoryOffer isListed categoryName"
+                },
+                select: "productName image regularPrice salePrice productOffer quantity status category isDeleted isBlocked"
+            });
+
+        if (!wishlist || !wishlist.products) {
+            return { products: [], productIds: [] };
+        }
+
+        // Find products that are null, deleted, or blocked
+        const invalidProductIds = wishlist.products
+            .filter(p => {
+                return p.productId === null || 
+                       p.productId?.isDeleted === true || 
+                       p.productId?.isBlocked === true;
+            })
+            .map(p => p._id);
+
+        // Remove invalid products from wishlist
+        if (invalidProductIds.length > 0) {
+            await Wishlist.updateOne(
+                { _id: wishlist._id },
+                { $pull: { products: { _id: { $in: invalidProductIds } } } }
+            );
+            console.log(`Removed ${invalidProductIds.length} invalid products from wishlist`);
+        }
+
+        // Get valid products only
+        const validProducts = wishlist.products.filter(p => {
+            return p.productId !== null && 
+                   p.productId?.isDeleted !== true && 
+                   p.productId?.isBlocked !== true;
+        });
+
+        const validProductIds = validProducts.map(p => p.productId._id.toString());
+
+        return { products: validProducts, productIds: validProductIds };
+    } catch (error) {
+        console.log("Error getting valid wishlist products:", error);
+        return { products: [], productIds: [] };
+    }
+};
+
 const loadHome = async function (req, res) {
     try {
         const user = req.session.user;
 
-        const productsData = await Product.find({isBlocked:false})
+        const productsData = await Product.find({isBlocked:false,isDeleted:false})
         .populate("category")
         .sort({createdAt:-1})
         .lean();
@@ -329,11 +379,10 @@ const loadHome = async function (req, res) {
         let cartCount = 0;
         if (user) {
             const userData = await User.findById(req.session.user._id);
-            const wishlist = await Wishlist.findOne({userId:user._id}).lean();
+            const {productIds} = await getValidWishlistProducts(user._id);
             const cart = await Cart.findOne({userId:user._id}).lean();
-            if(wishlist && wishlist.products){
-                wishlistProductIds = wishlist.products.map(p => p.productId.toString());
-            }
+
+            wishlistProductIds = productIds;
             if(cart && cart.items){
                 cartCount = cart.items.reduce((total,i) => total + i.quantity,0);
             }
@@ -663,34 +712,25 @@ const loadWishlist = async (req,res) => {
         const user = req.session?.user;
         const userData = await User.findById(user._id);
         if(!userData){
-            console.log("User Data not found");
             return res.redirect("/pageNotFound");
         }
 
         let wishlistProductIds = [];
         let cartCount = 0;
         if(user){
-            const wishlist = await Wishlist.findOne({userId:user._id})
-            .populate({
-                path:"products.productId",
-                populate:{
-                    path:"category",
-                    select:"categoryOffer isListed categoryName"
-                },
-                select:"productName image regularPrice salePrice productOffer quantity status category"
-            });
+            const {products:validWishlistProducts,productIds:validProductIds} = await getValidWishlistProducts(user._id);
             const cart = await Cart.findOne({userId:user._id}).lean();
+
+            wishlistProductIds = validProductIds;
+
             if(cart && cart.items){
                 cartCount = cart.items.reduce((total,item) => total + item.quantity,0);
             }
-            if(wishlist && wishlist.products){
-                wishlistProductIds = wishlist.products.map(p => p.productId.toString());
-            }
 
             let products = [];
-            if(wishlist && wishlist.products){
+            if(validWishlistProducts.length > 0){
                 // Recalculate prices dynamically for each wishlist item
-                products = await Promise.all(wishlist.products.map(async (item) => {
+                products = await Promise.all(validWishlistProducts  .map(async (item) => {
                     const product = item.productId;
                     
                     if(!product || product.isBlocked || product.status !== "Available"){
@@ -724,29 +764,32 @@ const loadWishlist = async (req,res) => {
                 }));
 
                 // Update wishlist with new prices in background
-                const bulkOps = products.map((item) => ({
-                    updateOne: {
-                        filter: { 
-                            _id: wishlist._id, 
-                            'products.productId': item.productId._id 
-                        },
-                        update: {
-                            $set: {
-                                'products.$.effectivePrice': item.effectivePrice,
-                                'products.$.regularPrice': item.regularPrice,
-                                'products.$.appliedOfferPercentage': item.appliedOfferPercentage,
-                                'products.$.appliedOfferId': item.appliedOfferId,
-                                'products.$.savings': item.savings,
-                                'products.$.hasOffer': item.hasOffer
+                const wishlist = await Wishlist.findOne({userId:user._id});
+                if(wishlist){  
+                    const bulkOps = products.map((item) => ({
+                        updateOne: {
+                            filter: { 
+                                _id: wishlist._id, 
+                                'products.productId': item.productId._id 
+                            },
+                            update: {
+                                $set: {
+                                    'products.$.effectivePrice': item.effectivePrice,
+                                    'products.$.regularPrice': item.regularPrice,
+                                    'products.$.appliedOfferPercentage': item.appliedOfferPercentage,
+                                    'products.$.appliedOfferId': item.appliedOfferId,
+                                    'products.$.savings': item.savings,
+                                    'products.$.hasOffer': item.hasOffer
+                                }
                             }
                         }
-                    }
-                }));
+                    }));
 
-                if(bulkOps.length > 0){
-                    await Wishlist.bulkWrite(bulkOps).catch(err => 
-                        console.log("Error updating wishlist prices:", err)
-                    );
+                    if(bulkOps.length > 0){
+                        await Wishlist.bulkWrite(bulkOps).catch(err => 
+                            console.log("Error updating wishlist prices:", err)
+                        );
+                    }
                 }
             }
 
@@ -860,7 +903,7 @@ const addToCartFromWishlist = async (req,res) => {
         const {productId} = req.params;
         if(!productId)return res.json({success:false,message:"ProductId is missing"});
 
-        const product = await Product.findById(productId).populate("category").lean();
+        const product = await Product.findOne({_id:productId,isBlocked:false,isDeleted:false}).populate("category").lean();
         if(!product||product.status !== "Available"){
             return res.json({success:false,message:"Product is not available"});
         }
@@ -1694,6 +1737,7 @@ const placeOrder = async (req,res) => {
     
             for (const item of cart.items) {
                 const product = item.productId;
+                const actualProduct = await Product.findById(product._id);
                 
                 if (!product || product.isBlocked||product.status !== "Available") {
                     return res.json({ 
@@ -1701,9 +1745,9 @@ const placeOrder = async (req,res) => {
                     });
                 }
     
-                if (product.quantity < item.quantity) {
+                if (actualProduct.quantity < item.quantity) {
                     return res.json({ 
-                        message: `Insufficient stock for ${product.productName}. Only ${product.quantity} available.` 
+                        message: `Insufficient stock for ${product.productName}. Only ${actualProduct.quantity} stock is available.` 
                     });
                 }
             }
@@ -1742,8 +1786,10 @@ const placeOrder = async (req,res) => {
                 console.log('Coupon validation failed:', couponValidation.message);
                 return res.json({success:false,message:couponValidation.message})
             }
+            console.log("after coupon validation , discount:",discount +","+"coupon discount:",couponValidation.discountAmount);
         }
 
+        console.log("discount price before final price calculation:",discount);
         const finalPrice = totalPrice - discount;
         console.log("final price:",totalPrice +","+"Type of final price:",typeof finalPrice);
 
@@ -1809,12 +1855,13 @@ const placeOrder = async (req,res) => {
             shouldMarkCouponUsed = true;
         }
 
+        console.log("discount amount before order creating(coupon discount amount):",discount);
         // Create order
         const newOrder = new Order({
             userId:req.session.user._id,
             orderedItems: orderedItems,
             totalPrice,
-            discount,
+            discount:discount,
             finalPrice,
             address: {
                 addressType:address.addressType,

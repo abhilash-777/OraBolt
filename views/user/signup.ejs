@@ -142,6 +142,26 @@
             margin-right: 5px;
         }
 
+        .password-wrapper {
+            position: relative;
+        }
+        .password-wrapper input {
+            padding-right: 44px; /* space for eye icon */
+        }
+        .toggle-password {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            color: #888;
+            cursor: pointer;
+            transition: color 0.2s ease;
+        }
+        .toggle-password:hover {
+            color: #333;
+        }
+
         .form-footer{
             display: flex;
         }
@@ -338,7 +358,10 @@
                         <label for="password" class="form-label">
                             <i class='bx bx-lock-alt'></i>Password
                         </label>
-                        <input type="password" class="form-control" id="password" name="password" placeholder="Create a password">
+                        <div class="password-wrapper">
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Create a password" />
+                            <i class='bx bx-hide toggle-password' data-target="password"></i>
+                        </div>
                         <div class="password-strength">
                             <div class="password-strength-bar" id="passwordStrengthBar"></div>
                         </div>
@@ -352,7 +375,12 @@
                         <label for="confirmPassword" class="form-label">
                             <i class='bx bx-lock'></i>Confirm Password
                         </label>
-                        <input type="password" class="form-control" id="confirmPassword" name="confirmPassword" placeholder="Confirm your password">
+                
+                        <div class="password-wrapper">
+                            <input type="password" class="form-control" id="confirmPassword" name="confirmPassword"
+                                placeholder="Confirm your password" />
+                            <i class='bx bx-hide toggle-password' data-target="confirmPassword"></i>
+                        </div>
                         <div class="error-message" id="confirmPasswordError">
                             <i class='bx bx-error-circle'></i>Please confirm your password
                         </div>
@@ -384,6 +412,22 @@
     </div>
 
     <script>
+        document.querySelectorAll(".toggle-password").forEach((icon) => {
+            icon.addEventListener("click",function(){
+                const input = document.getElementById(icon.dataset.target);
+
+                if(input.type === "password"){
+                    input.type = 'text';
+                    icon.classList.remove("box-hide");
+                    icon.classList.add("box-show");
+                }else{
+                    input.type = 'password';
+                    icon.classList.remove("box-show");
+                    icon.classList.add("box-hide");
+                }
+            });
+        });
+
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('signupForm');
             const nameInput = document.getElementById('name');
@@ -403,6 +447,8 @@
             // Password strength elements
             const passwordStrengthBar = document.getElementById('passwordStrengthBar');
             const passwordStrengthText = document.getElementById('passwordStrengthText');
+
+            const togglePassword = document.getElementById("togglePassword");
             
             // Validation functions
             function validateName() {

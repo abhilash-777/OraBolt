@@ -41,23 +41,22 @@ router.patch('/unBlockCustomer', customerController.unBlockCustomer);
 // category management
 router.get('/category', categoryController.categoryInfo);
 router.post('/category', categoryController.addCategory);
-router.patch('/category/edit/:id',categoryController.editCategory);
+router.post('/category/edit/:id',categoryController.editCategory);
 router.delete('/category/:id',categoryController.deleteCategory);
-router.post('/category/toggleList',categoryController.toggleList);
+router.patch('/category/toggleList',categoryController.toggleList);
 
 //sub category management
 router.get('/subCategory', subCategoryController.subCategoryInfo);
 router.post('/subCategory/add', subCategoryController.addSubCategory);
-router.patch('/subCategory/edit/:id',subCategoryController.editSubCategory);
+router.post('/subCategory/edit/:id',subCategoryController.editSubCategory);
 router.delete('/subCategory/:id',subCategoryController.deleteSubCategory);
-router.post('/subCategory/toggleList',subCategoryController.toggleList);
+router.patch('/subCategory/toggleList',subCategoryController.toggleList);
 
 //brand management
 router.get('/brand',brandController.loadBrandPage);
 router.post('/brand',uploadBrand.single("image"),brandController.addBrand);
-router.get('/brand/blockBrand',brandController.blockBrand);
-router.get('/brand/unBlockBrand',brandController.unBlockBrand);
-router.delete('/brand/:id',brandController.deleteBrand);
+router.patch("/brand/toggleList",brandController.toggleList);
+router.patch('/brand/:id',brandController.deleteBrand);
 
 
 //product management
@@ -102,8 +101,8 @@ router.post('/addProduct',uploadProduct.array("images",10),productController.add
 router.get("/productLists",productController.loadProductsList);
 router.get("/productLists/get/:id",productController.getProduct);
 router.post("/productLists/edit/:id",uploadProduct.array("images",10),productController.editProduct);
-router.delete("/productLists/remove/:id",productController.deleteProduct);
-router.post('/productLists/toggleList',productController.toggleList);
+router.patch("/productLists/remove/:id",productController.deleteProduct);
+router.patch('/productLists/toggleList',productController.toggleList);
 
 //order Management
 router.get("/order-list", orderController.loadOrderList);
@@ -118,20 +117,16 @@ router.post("/order/item-return/:orderId/:itemId", orderController.handleReturnD
 
 //offer management
 router.get("/offers",offerController.loadOffers);
-router.get("/offers/add",offerController.loadAddOffer);
 router.post("/offers/add",offerController.addOffer);
-router.get("/offers/edit",offerController.loadEditOffer);
 router.put("/offers/edit",offerController.editOffer);
-router.delete("/offers/remove/:id",offerController.deleteOffer);
+router.patch("/offers/remove/:id",offerController.deleteOffer);
 router.patch("/offers/toggle/:id",offerController.statusChange);
 
 //coupon management
 router.get("/coupons", couponController.getAllCoupons);
-router.get("/coupons/create", couponController.getCreateCoupon);
 router.post("/coupons/create", couponController.createCoupon);
-router.get("/edit-coupon/:id",couponController.loadEditCoupon);
 router.put('/edit-coupon/:id',couponController.editCoupon);
-router.delete("/coupons/delete/:id", couponController.deleteCoupon);
+router.patch("/coupons/delete/:id", couponController.deleteCoupon);
 router.patch("/coupons/toggle-status/:id", couponController.toggleCouponStatus);
 
 module.exports = router;

@@ -50,7 +50,11 @@ const couponSchema = new Schema({
     usageLimit: {
         type: Number,
         default: null // null means no limit
-    }
+    },
+    isDeleted:{
+        type:Boolean,
+        default:false
+    },
 }, {
     timestamps: true
 });

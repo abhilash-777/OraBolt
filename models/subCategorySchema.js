@@ -21,6 +21,10 @@ const subCategorySchema = new Schema({
         ref:"Category",
         required:true
     },
+    isDeleted:{
+        type:Boolean,
+        default:false
+    },
     createdAt : {
         type : Date,
         default : Date.now

@@ -119,10 +119,10 @@
         const menuItems = document.querySelectorAll('.menu-item');
 
         menuItems.forEach(item => {
-            item.classList.remove('active'); // Remove active class from all items
+            item.classList.remove('active');
             const link = item.querySelector('.menu-link');
             if (link.getAttribute('href') === currentPath) {
-                item.classList.add('active'); // Add active class to matching item
+                item.classList.add('active');
             }
         });
     });

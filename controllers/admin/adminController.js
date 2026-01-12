@@ -7,7 +7,6 @@ const bcrypt = require("bcrypt");
 const PDFDocument = require("pdfkit");
 const ExcelJS = require("exceljs");
 
-
 const loadLogin = (req, res) => {
     if (req.session.admin) {
         return res.redirect('/admin');
@@ -50,9 +49,9 @@ const pageError = async function (req, res) {
 
 const loadDash = async function (req, res) {
     try {
-        const productsCount = await Product.countDocuments({isBlocked:false});
+        const productsCount = await Product.countDocuments({isBlocked:false,isDeleted:false});
         const ordersCount = await Order.countDocuments({status:{$ne:"Payment Pending"}});
-        const categoryCount = await Category.countDocuments({isListed:true});
+        const categoryCount = await Category.countDocuments({isListed:true,isDeleted:false});
 
         const revenueData = await Order.aggregate([
             {
