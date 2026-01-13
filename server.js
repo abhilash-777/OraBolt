@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const database = require("./config/db");
@@ -10,10 +11,8 @@ const methodOverride = require("method-override");
 const Category = require('./models/categorySchema');
 const multer = require("multer");
 
-require("dotenv").config();
 
 const app = express();
-
 
 app.use((req,res,next) => {
     res.setHeader("Cache-Control","no-store","no-cache","must-revalidate","proxy-revalidate");
