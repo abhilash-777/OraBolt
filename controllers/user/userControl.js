@@ -366,6 +366,7 @@ const getValidWishlistProducts = async (userId) => {
 const loadHome = async function (req, res) {
     try {
         const user = req.session.user;
+        console.log("user data @ load home:",user);
 
         const productsData = await Product.find({isBlocked:false,isDeleted:false})
         .populate("category")
@@ -379,6 +380,7 @@ const loadHome = async function (req, res) {
         let cartCount = 0;
         if (user) {
             const userData = await User.findById(req.session.user._id);
+            console.log("user data from database:",userData);
             const {productIds} = await getValidWishlistProducts(user._id);
             const cart = await Cart.findOne({userId:user._id}).lean();
 
