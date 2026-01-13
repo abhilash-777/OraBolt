@@ -1,3 +1,4 @@
+require("dotenv").config();
 const express = require("express");
 const path = require("path");
 const database = require("./config/db");
@@ -9,8 +10,6 @@ const cron = require('node-cron');
 const methodOverride = require("method-override");
 const Category = require('./models/categorySchema');
 const multer = require("multer");
-
-require("dotenv").config();
 
 const app = express();
 
