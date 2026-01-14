@@ -36,7 +36,7 @@ app.set("views", [path.join(__dirname, 'views/admin'), path.join(__dirname, 'vie
 app.use(express.static(path.join(__dirname,"public")));
 app.use(express.static(path.join(__dirname,"public/admin/assets")));
 // Add this line for product images
-app.use('/Uploads', express.static(path.join(__dirname, 'Uploads')));
+app.use('/Uploads', express.static(path.join(__dirname, 'public/uploads')));
 app.use(methodOverride('_method'));
 
 database();
