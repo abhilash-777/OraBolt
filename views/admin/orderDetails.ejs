@@ -57,7 +57,7 @@
       </div>
     <% } %>
 
-    <% if(!isPaymentLocked){ %>
+    <% if(!isPaymentLocked && order.paymentStatus === "Pending" || order.paymentStatus === 'Failed'){ %>
       <form id="paymentStatusForm" class="mt-3">
         <div class="row align-items-center">
           <div class="col-md-6">
