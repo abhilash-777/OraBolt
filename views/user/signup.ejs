@@ -20,35 +20,27 @@
         }
         
         body, html {
-            height: 100%;
+            min-height: 100svh;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+        }
+        .auth-page {
+            min-height: calc(100svh - 120px);
             display: flex;
-            align-items: center;
             justify-content: center;
+            align-items: center;
+            padding: 24px;
         }
         
+        /* Signup Card */
         .signup-container {
-            background: white;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            margin-left: 300px;
-            margin-top: 90px;
-            padding: 30px;
             width: 100%;
             max-width: 900px;
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .signup-container::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 5px;
-            background: linear-gradient(to right, var(--primary-color), var(--secondary-color));
+            background: #fff;
+            border-radius: 16px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            margin-top: 70px;
         }
         
         h2 {
@@ -146,7 +138,7 @@
             position: relative;
         }
         .password-wrapper input {
-            padding-right: 44px; /* space for eye icon */
+            padding-right: 44px;
         }
         .toggle-password {
             position: absolute;
@@ -274,141 +266,169 @@
             margin-top: 20px;
         }
         
-        @media (max-width: 768px) {
+       @media (max-width: 768px), (max-height: 750px) {
+            .auth-page {
+                align-items: flex-start;
+            }
+            .signup-container {
+                padding: 20px;
+                margin-top: 20px;
+            }
             .form-column {
                 flex: 0 0 100%;
+                padding: 0;
+            }
+            .form-footer {
+                flex-direction: column;
+                gap: 15px;
+            }
+            .btn-signup,
+            .btn-google {
+                width: 100%;
+                margin: 0;
             }
         }
+        @media (max-height: 850px) {
+            .auth-page {
+                align-items: flex-start;
+            }
+            .signup-container {
+                margin-top: 60px;
+                margin-bottom: 30px;
+            }
+            .form-row{
+                display: flex;
+                flex-wrap: wrap;
+            }
+        }
+
         @media (max-width: 1250px) {
             .signup-container {
-                width: 90%;
+                width: 80%;
                 padding: 20px 15px;
-                margin-left: 150px;
             }
         }
         @media (max-width: 1200px) {
             .signup-container {
                 width: 80%;
                 padding: 30px 20px;
-                margin-left: 130px;
             }
         }
         @media (max-width: 1150px) {
             .signup-container {
                 width: 75%;
                 padding: 20px 20px;
-                margin-left: 130px;
             }
         }
         @media (max-width: 992px) {
             .signup-container {
                 width: 75%;
                 padding: 20px 20px;
-                margin-left: 100px;
             }
         }
         @media (max-width: 770px) {
             .signup-container {
                 width: 75%;
                 padding: 20px 20px;
-                margin-left: 80px;
             }
         }
     </style>
 </head>
 <body>
-    <div class="signup-container">
-        <h2>Create an Account</h2>
-        <form id="signupForm" method="post" action="/signup">
-            <div class="form-row">
-                <div class="form-column">
-                    <div class="form-group">
-                        <label for="name" class="form-label">
-                            <i class='bx bx-user'></i>Full Name
-                        </label>
-                        <input type="text" class="form-control" id="name" name="name" placeholder="Enter your full name">
-                        <div class="error-message" id="nameError">
-                            <i class='bx bx-error-circle'></i>Name is required
+    <div class="auth-page">
+        <div class="signup-container">
+            <h2>Create an Account</h2>
+            <form id="signupForm" method="post" action="/signup">
+                <div class="form-row">
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label for="name" class="form-label">
+                                <i class='bx bx-user'></i>Full Name
+                            </label>
+                            <input type="text" class="form-control" id="name" name="name" placeholder="Enter your full name">
+                            <div class="error-message" id="nameError">
+                                <i class='bx bx-error-circle'></i>Name is required
+                            </div>
+                        </div>
+    
+                        <div class="form-group">
+                            <label for="email" class="form-label">
+                                <i class='bx bx-envelope'></i>Email Address
+                            </label>
+                            <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email address">
+                            <div class="error-message" id="emailError">
+                                <i class='bx bx-error-circle'></i>Email is required
+                            </div>
+                        </div>
+    
+                        <div class="form-group">
+                            <label for="phone" class="form-label">
+                                <i class='bx bx-phone'></i>Phone Number
+                            </label>
+                            <input type="tel" class="form-control" id="phone" name="phone" placeholder="Enter your phone number">
+                            <div class="error-message" id="phoneError">
+                                <i class='bx bx-error-circle'></i>Phone number is required
+                            </div>
                         </div>
                     </div>
-
-                    <div class="form-group">
-                        <label for="email" class="form-label">
-                            <i class='bx bx-envelope'></i>Email Address
-                        </label>
-                        <input type="email" class="form-control" id="email" name="email" placeholder="Enter your email address">
-                        <div class="error-message" id="emailError">
-                            <i class='bx bx-error-circle'></i>Email is required
+                    
+                    <div class="form-column">
+                        <div class="form-group">
+                            <label for="password" class="form-label">
+                                <i class='bx bx-lock-alt'></i>Password
+                            </label>
+                            <div class="password-wrapper">
+                                <input type="password" class="form-control" id="password" name="password" placeholder="Create a password" />
+                                <i class='bx bx-hide toggle-password' data-target="password"></i>
+                            </div>
+                            <div class="password-strength">
+                                <div class="password-strength-bar" id="passwordStrengthBar"></div>
+                            </div>
+                            <div class="password-strength-text" id="passwordStrengthText"></div>
+                            <div class="error-message" id="passwordError">
+                                <i class='bx bx-error-circle'></i>Password is required
+                            </div>
                         </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="phone" class="form-label">
-                            <i class='bx bx-phone'></i>Phone Number
-                        </label>
-                        <input type="tel" class="form-control" id="phone" name="phone" placeholder="Enter your phone number">
-                        <div class="error-message" id="phoneError">
-                            <i class='bx bx-error-circle'></i>Phone number is required
+    
+                        <div class="form-group">
+                            <label for="confirmPassword" class="form-label">
+                                <i class='bx bx-lock'></i>Confirm Password
+                            </label>
+                    
+                            <div class="password-wrapper">
+                                <input type="password" class="form-control" id="confirmPassword" name="confirmPassword"
+                                    placeholder="Confirm your password" />
+                                <i class='bx bx-hide toggle-password' data-target="confirmPassword"></i>
+                            </div>
+                            <div class="error-message" id="confirmPasswordError">
+                                <i class='bx bx-error-circle'></i>Please confirm your password
+                            </div>
+                        </div>
+    
+                        <div class="form-group">
+                            <label for="referral" class="form-label">
+                                <i class='bx bx-gift'></i>Referral Code (Optional)
+                            </label>
+                            <input type="text" class="form-control" id="referral" name="referral" 
+                                maxlength="6" pattern="\d{6}" placeholder="Enter referral code if you have">
                         </div>
                     </div>
                 </div>
-                
-                <div class="form-column">
-                    <div class="form-group">
-                        <label for="password" class="form-label">
-                            <i class='bx bx-lock-alt'></i>Password
-                        </label>
-                        <div class="password-wrapper">
-                            <input type="password" class="form-control" id="password" name="password" placeholder="Create a password" />
-                            <i class='bx bx-hide toggle-password' data-target="password"></i>
-                        </div>
-                        <div class="password-strength">
-                            <div class="password-strength-bar" id="passwordStrengthBar"></div>
-                        </div>
-                        <div class="password-strength-text" id="passwordStrengthText"></div>
-                        <div class="error-message" id="passwordError">
-                            <i class='bx bx-error-circle'></i>Password is required
-                        </div>
+    
+                <div id="formAlert" class="alert alert-danger text-center d-none"></div>
+    
+                <div class="form-footer">
+                    <button type="submit" class="btn btn-signup">Sign Up</button>
+                    <div class="divider">
+                        <span>or</span>
                     </div>
-
-                    <div class="form-group">
-                        <label for="confirmPassword" class="form-label">
-                            <i class='bx bx-lock'></i>Confirm Password
-                        </label>
-                
-                        <div class="password-wrapper">
-                            <input type="password" class="form-control" id="confirmPassword" name="confirmPassword"
-                                placeholder="Confirm your password" />
-                            <i class='bx bx-hide toggle-password' data-target="confirmPassword"></i>
-                        </div>
-                        <div class="error-message" id="confirmPasswordError">
-                            <i class='bx bx-error-circle'></i>Please confirm your password
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="referral" class="form-label">
-                            <i class='bx bx-gift'></i>Referral Code (Optional)
-                        </label>
-                        <input type="text" class="form-control" id="referral" name="referral" 
-                            maxlength="6" pattern="\d{6}" placeholder="Enter referral code if you have">
-                    </div>
+                    <a href="/auth/google" class="btn btn-google">
+                        <i class='bx bxl-google'></i> Continue with Google
+                    </a>
                 </div>
-            </div>
-
-            <div id="formAlert" class="alert alert-danger text-center d-none"></div>
-
-            <div class="form-footer">
-                <button type="submit" class="btn btn-signup">Sign Up</button>
-                <div class="divider">
-                    <span>or</span>
-                </div>
-                <a href="/auth/google" class="btn btn-google">
-                    <i class='bx bxl-google'></i> Continue with Google
-                </a>
-            </div>
-            <a href="/login" class="backToLog">Already have an account? Log in</a>
-        </form>
+                <a href="/login" class="backToLog">Already have an account? Log in</a>
+            </form>
+        </div>
     </div>
 
     <script>

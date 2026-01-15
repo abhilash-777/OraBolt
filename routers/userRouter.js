@@ -97,10 +97,10 @@ router.delete("/removeProfileImage",profileController.removeProfileImage);
 
 //address management
 router.get("/addresses",profileController.loadAddress);
-router.get("/addAddress",profileController.loadAddAddress);
+router.get("/addAddress",profileController.loadManageAddress);
 router.post("/addAddress",profileController.addAddress);
 router.post("/setDefault/:userId/:addressId",profileController.setDefaultAddress);
-router.get("/editAddress/:addressId",profileController.loadEditAddress);
+router.get("/editAddress/:addressId",profileController.loadManageAddress);
 router.put("/editAddress/:addressId",profileController.editAddress);
 router.delete("/deleteAddress/:addressId",profileController.deleteAddress);
 
