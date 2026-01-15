@@ -128,6 +128,13 @@
     </div>
 </div>
 
+    <!-- jQuery (required for Bootstrap) -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+    <!-- Popper.js (required for Bootstrap dropdowns) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js"></script>
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
     const profileForm = document.getElementById("profileForm");
@@ -148,7 +155,7 @@
         phoneError.textContent = "";
         emailError.textContent = "";
 
-        if(!name || !/^(?=.*[A-Za-z])[A-Za-z\s._]+$/.test(name)){
+        if(!name || !/^[A-Za-z][A-Za-z\s._]{2,29}$/.test(name)){
             nameError.textContent = "Name should contain alphabetic Characters";
             isValid = false;
         } else if(name.length < 3 || name.length > 20){

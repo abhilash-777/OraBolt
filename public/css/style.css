@@ -8970,9 +8970,16 @@ button.bg-dark:focus {
   }
 }
 
+@media (min-width: 778px){
+  .ftco-animate{
+    width: 228px;
+  }
+}
+
 @media (min-width: 768px) {
   .float-md-left {
     float: left !important;
+    display: flex;
   }
 
   .float-md-right {
@@ -12134,7 +12141,7 @@ h5,
   position: absolute;
   left: 0;
   right: 0;
-  top: -30px;
+  top: 15px;
   z-index: 99;
 }
 
@@ -13769,10 +13776,12 @@ textarea.form-control {
   }
 }
 
-.ftco-choose .divider-one {
-  height: 700px;
+.showcase{
+  height: 500px;
 }
-
+.ftco-choose .divider-one {
+  height: 350px;
+}
 .ftco-choose .divider-two {
   height: 700px;
 }

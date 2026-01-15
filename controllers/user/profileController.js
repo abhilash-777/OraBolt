@@ -476,16 +476,39 @@ const removeProfileImage = async (req, res) => {
 
 const loadAddress = async (req,res) => renderProfileTab(req,res,"addresses","Error occur on address tab");
 
-const loadAddAddress = async (req,res) => {
+const loadManageAddress = async (req,res) => {
     try {
         const userId = req.session?.user?._id;
+        const addressId = req.params.addressId;
+
         if(!userId){
             console.log("user not found");
+            return res.status(404).redirect("/pageNotFound");
         }
         const userData = await User.findById(userId);
         if(!userData){
             console.log("user data not found.");
+            return res.status(404).json({success:false,message:"user not found"});
         }
+
+        let address = null;
+        let isEdit = false;
+
+        // If addressId exists, it's edit mode
+        if (addressId) {
+            address = await Address.findById(addressId);
+            if (!address) {
+                console.log("Address not found");
+                return res.redirect("/pageNotFound");
+            }
+            // Verify address belongs to user
+            if (address.userId.toString() !== userId.toString()) {
+                console.log("Unauthorized access to address");
+                return res.redirect("/pageNotFound");
+            }
+            isEdit = true;
+        }
+
         let wishlistProductIds = [];
         let cartCount = 0;
         const cart = await Cart.findOne({userId:req.session.user._id}).lean();
@@ -496,8 +519,8 @@ const loadAddAddress = async (req,res) => {
         if(cart && cart.items){
             cartCount = cart.items.reduce((total,item) => total + item.quantity,0);
         }
-        console.log("user data:",userData);
-        res.render("addAddress",{user:userData,wishlistProductIds,cartCount});
+
+        res.render("manageAddress",{user:userData,address,isEdit,wishlistProductIds,cartCount,activeTab:"addresses"});
     } catch (error) {
         console.log("error occure while loading add address:",error);
         return res.redirect("/pageNotFound")
@@ -546,36 +569,6 @@ const addAddress = async (req,res) => {
     } catch (error) {
         console.error("Something wrong while create a address:",error);
         return res.redirect("/pageError");
-    }
-};
-
-const loadEditAddress = async (req,res) => {
-    try {
-        const addressId = req.params.addressId;
-        const findAddress = await Address.findById(addressId);
-        if(!findAddress){
-            console.log("Address not found");
-            return res.redirect("/pageNotFound");
-        }
-        const findUser = await User.findById(findAddress.userId);
-        if(!findUser){
-            console.log("User not found");
-            return res.redirect("/pageNotFound");
-        }
-        let wishlistProductIds = [];
-        let cartCount = 0;
-        const cart = await Cart.findOne({userId:req.session.user._id}).lean();
-        const wishlist = await Wishlist.findOne({userId:req.session.user._id}).lean();
-        if(wishlist && wishlist.products){
-            wishlistProductIds = wishlist.products.map(p => p.productId.toString);
-        }
-        if(cart && cart.items){
-            cartCount = cart.items.reduce((total,item) => total + item.quantity,0);
-        }
-        res.render("editAddress",{user:findUser,address:findAddress,wishlistProductIds,cartCount,activeTab:"addresses"});
-    } catch (error) {
-        console.log("error while loading edit address");
-        return res.redirect("/pageNotFound");
     }
 };
 
@@ -1224,9 +1217,8 @@ module.exports = {
     uploadProfileImage,
     removeProfileImage,
     loadAddress,
-    loadAddAddress,
+    loadManageAddress,
     addAddress,
-    loadEditAddress,
     editAddress,
     setDefaultAddress,
     deleteAddress,

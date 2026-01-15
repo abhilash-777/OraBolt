@@ -33,8 +33,7 @@
         .dropdown a{
             color: black;
         }
-        .dropdown-menu{
-            display: none;
+        .dropdown-menu{ 
             position: absolute;
             background-color: black;
             padding-left: 20px;
@@ -43,20 +42,28 @@
             z-index: 1000;
             right: 0;
         }
+        .dropdown-menu .dropdown-menu {
+            position: static;
+            margin-left: 15px;
+            display: none;
+        }
+        .dropdown-menu .dropdown-menu.show {
+            display: block;
+        }
         .dropdown-menu a{
             color: #ffffff;
             padding: 10px;
             text-decoration: none;
-            display: block;
+            display:inherit;
             width: 100%;
             position: static;
             float: none;
         }
+        .dropdown-item{
+            color: black;
+        }
         .dropdown-menu a:hover{
             color: rgb(243, 210, 132);
-        }
-        .dropdown:hover .dropdown-menu{
-            display: block;
         }
         .logo-img{
             height: 100%;
@@ -108,7 +115,7 @@
                 <ul class="navbar-nav ml-auto">
                     <li class="nav-item active"><a href="/" class="nav-link">Home</a></li>
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="dropdown04" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Catalog</a>
+                        <a class="nav-link dropdown-toggle" id="dropdown04" data-toggle="dropdown">Catalog</a>
                         <div class="dropdown-menu" aria-labelledby="dropdown04">
                             <a class="dropdown-item" href="/shop">Shop</a>
                             <a class="dropdown-item" href="/cart">Cart</a>
@@ -116,7 +123,7 @@
                         </div>
                     </li>
                     <li class="nav-item"><a href="#" class="nav-link">About</a></li>
-                    <li class="nav-item"><a href="contact" class="nav-link">Contact</a></li>
+                    <li class="nav-item"><a href="/contact" class="nav-link">Contact</a></li>
                     <li class="nav-item cta cta-colored">
                         <a href="/wishlist" class="nav-link"><span class="icon-heart"></span>
                             [<%= typeof wishlistProductIds !== 'undefined' ? wishlistProductIds.length : 0 %>]
@@ -145,7 +152,6 @@
                         <a href="signup" class="sign-in-link" style="color: black; font-size: 12px; font-weight:380; margin-left: 10px;">SIGNUP</a>
 
                     <%}%>
-                    
                 </div>
             </div>
         </div>
